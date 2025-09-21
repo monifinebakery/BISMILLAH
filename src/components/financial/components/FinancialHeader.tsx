@@ -21,6 +21,7 @@ export const FinancialHeader: React.FC<FinancialHeaderProps> = ({
   isLoading,
   isMobile
 }) => {
+  console.log('📊 FinancialHeader - isLoading:', isLoading, 'isMobile:', isMobile);
   return (
     <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-xl p-6 text-white border">
       <div className="flex flex-col md:flex-row md:flex-wrap md:items-center md:justify-between gap-4">
@@ -39,7 +40,10 @@ export const FinancialHeader: React.FC<FinancialHeaderProps> = ({
         {/* Desktop Actions */}
         <div className="hidden md:flex flex-wrap items-center gap-3">
           <Button
-            onClick={onAddTransaction}
+            onClick={() => {
+              console.log('Desktop Tambah Transaksi button clicked');
+              onAddTransaction();
+            }}
             disabled={isLoading}
             className="flex items-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
           >
@@ -70,7 +74,10 @@ export const FinancialHeader: React.FC<FinancialHeaderProps> = ({
       {/* Mobile Actions */}
       <div className="flex md:hidden flex-col gap-3 mt-6">
         <Button
-          onClick={onAddTransaction}
+          onClick={() => {
+            console.log('Mobile Tambah Transaksi button clicked');
+            onAddTransaction();
+          }}
           disabled={isLoading}
           className="w-full flex items-center justify-center gap-2 bg-white bg-opacity-20 text-white border border-white border-opacity-30 hover:bg-white hover:bg-opacity-30 backdrop-blur-sm"
         >

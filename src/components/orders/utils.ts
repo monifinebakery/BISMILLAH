@@ -309,6 +309,51 @@ export const validateOrderData = (data: Partial<NewOrder>): { isValid: boolean; 
   };
 };
 
+// ✅ NEW: Snake case conversion helpers
+export const to_snake_order = (order: Order): any => {
+  return {
+    id: order.id,
+    nomor_pesanan: order.nomorPesanan,
+    nama_pelanggan: order.namaPelanggan,
+    telepon_pelanggan: order.teleponPelanggan,
+    email_pelanggan: order.emailPelanggan,
+    alamat_pengiriman: order.alamatPengiriman,
+    tanggal: order.tanggal,
+    tanggal_selesai: order.tanggalSelesai,
+    items: order.items,
+    total_pesanan: order.totalPesanan,
+    status: order.status,
+    catatan: order.catatan,
+    subtotal: order.subtotal,
+    pajak: order.pajak,
+    user_id: order.userId,
+    created_at: order.createdAt,
+    updated_at: order.updatedAt,
+  };
+};
+
+export const from_snake_order = (snakeOrder: any): Order => {
+  return {
+    id: snakeOrder.id,
+    nomorPesanan: snakeOrder.nomor_pesanan,
+    namaPelanggan: snakeOrder.nama_pelanggan,
+    teleponPelanggan: snakeOrder.telepon_pelanggan,
+    emailPelanggan: snakeOrder.email_pelanggan,
+    alamatPengiriman: snakeOrder.alamat_pengiriman,
+    tanggal: safeParseDate(snakeOrder.tanggal) || new Date(),
+    tanggalSelesai: safeParseDate(snakeOrder.tanggal_selesai),
+    items: Array.isArray(snakeOrder.items) ? snakeOrder.items : [],
+    totalPesanan: Number(snakeOrder.total_pesanan) || 0,
+    status: snakeOrder.status || 'pending',
+    catatan: snakeOrder.catatan || '',
+    subtotal: Number(snakeOrder.subtotal) || 0,
+    pajak: Number(snakeOrder.pajak) || 0,
+    userId: snakeOrder.user_id || '',
+    createdAt: safeParseDate(snakeOrder.created_at) || new Date(),
+    updatedAt: safeParseDate(snakeOrder.updated_at) || new Date(),
+  };
+};
+
 // ✅ ENHANCED: Analytics with completion date consideration
 export const calculateOrderStats = (orders: Order[]) => {
   if (!orders.length) {
@@ -426,7 +471,7 @@ export const filterOrdersByCompletionDate = (
 };
 
 // ✅ HELPER FUNCTIONS: Utility functions
-const createFallbackOrder = (id?: string): Order => ({
+export const createFallbackOrder = (id?: string): Order => ({
   id: id || 'error-' + Date.now(),
   nomorPesanan: 'ERROR-' + Date.now().toString().slice(-6),
   namaPelanggan: 'Data Error',

@@ -7,8 +7,14 @@ export const useFinancialNavigation = () => {
   const navigate = useNavigate();
 
   const handleAddTransaction = useCallback(() => {
+    console.log('🚀 handleAddTransaction called - navigating to /laporan-keuangan/tambah');
     logger.debug('Navigating to add transaction page');
-    navigate('/laporan-keuangan/tambah');
+    try {
+      navigate('/laporan-keuangan/tambah');
+      console.log('✅ Navigation call completed');
+    } catch (error) {
+      console.error('❌ Navigation failed:', error);
+    }
   }, [navigate]);
 
   const handleManageCategories = useCallback(() => {

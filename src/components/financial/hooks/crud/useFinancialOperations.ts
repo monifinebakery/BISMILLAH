@@ -1,5 +1,4 @@
 // src/components/financial/hooks/crud/useFinancialOperations.ts
-import { useMemo, useCallback } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 
@@ -18,10 +17,7 @@ import {
 } from '../../services/financialApi';
 
 // Hook imports (clean dependencies)
-import { 
-  useFinancialData, 
-  financialQueryKeys
-} from '../../hooks/useFinancialHooks';
+import { financialQueryKeys } from '../../hooks/useFinancialHooks';
 
 // Context imports
 import { useAuth } from '@/contexts/AuthContext';
@@ -48,43 +44,54 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
       return addFinancialTransaction(data, user.id);
     },
     onMutate: async (newTransaction) => {
-      await queryClient.cancelQueries({ 
-        queryKey: financialQueryKeys.transactions()
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
+      await queryClient.cancelQueries({
+        queryKey: transactionsKey
       });
 
       const previousTransactions = queryClient.getQueryData(
-        financialQueryKeys.transactions()
+        transactionsKey
       );
 
       // Optimistic update
       const optimisticTransaction: FinancialTransaction = {
         id: `temp-${Date.now()}`,
         userId: user?.id || '',
-        ...data,
+        type: newTransaction.type,
+        amount: newTransaction.amount,
+        category: newTransaction.category ?? null,
+        description: newTransaction.description ?? null,
+        relatedId: newTransaction.relatedId ?? null,
+        date: newTransaction.date ?? null,
         createdAt: new Date(),
         updatedAt: new Date(),
       };
 
       queryClient.setQueryData(
-        financialQueryKeys.transactions(),
+        transactionsKey,
         (old: FinancialTransaction[] = []) => [optimisticTransaction, ...old]
       );
 
       return { previousTransactions };
     },
     onError: (error: any, variables, context) => {
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
       if (context?.previousTransactions) {
         queryClient.setQueryData(
-          financialQueryKeys.transactions(),
+          transactionsKey,
           context.previousTransactions
         );
       }
       toast.error(`Gagal menambahkan transaksi: ${error.message}`);
     },
     onSuccess: () => {
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
       // Only refresh the transactions list; optimistic update already updated UI
-      queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.transactions(),
+      queryClient.invalidateQueries({
+        queryKey: transactionsKey,
         exact: true,
       });
       toast.success('Transaksi berhasil ditambahkan');
@@ -93,19 +100,21 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
 
   // Update transaction mutation
   const updateMutation = useMutation({
-    mutationFn: ({ id, data }: { id: string; data: UpdateTransactionData }) => 
+    mutationFn: ({ id, data }: { id: string; data: UpdateTransactionData }) =>
       updateFinancialTransaction(id, data),
     onMutate: async ({ id, data }) => {
-      await queryClient.cancelQueries({ 
-        queryKey: financialQueryKeys.transactions()
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
+      await queryClient.cancelQueries({
+        queryKey: transactionsKey
       });
 
       const previousTransactions = queryClient.getQueryData(
-        financialQueryKeys.transactions()
+        transactionsKey
       );
 
       queryClient.setQueryData(
-        financialQueryKeys.transactions(),
+        transactionsKey,
         (old: FinancialTransaction[] = []) =>
           old.map(transaction =>
             transaction.id === id
@@ -117,18 +126,22 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
       return { previousTransactions };
     },
     onError: (error: any, variables, context) => {
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
       if (context?.previousTransactions) {
         queryClient.setQueryData(
-          financialQueryKeys.transactions(),
+          transactionsKey,
           context.previousTransactions
         );
       }
       toast.error(`Gagal memperbarui transaksi: ${error.message}`);
     },
     onSuccess: () => {
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
       // Only refresh the transactions list to avoid global refetch storms
-      queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.transactions(),
+      queryClient.invalidateQueries({
+        queryKey: transactionsKey,
         exact: true,
       });
       toast.success('Transaksi berhasil diperbarui');
@@ -139,34 +152,40 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteFinancialTransaction(id),
     onMutate: async (id) => {
-      await queryClient.cancelQueries({ 
-        queryKey: financialQueryKeys.transactions()
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
+      await queryClient.cancelQueries({
+        queryKey: transactionsKey
       });
 
       const previousTransactions = queryClient.getQueryData(
-        financialQueryKeys.transactions()
+        transactionsKey
       ) as FinancialTransaction[];
 
       queryClient.setQueryData(
-        financialQueryKeys.transactions(),
+        transactionsKey,
         (old: FinancialTransaction[] = []) => old.filter(t => t.id !== id)
       );
 
       return { previousTransactions };
     },
     onError: (error: any, id, context) => {
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
       if (context?.previousTransactions) {
         queryClient.setQueryData(
-          financialQueryKeys.transactions(),
+          transactionsKey,
           context.previousTransactions
         );
       }
       toast.error(`Gagal menghapus transaksi: ${error.message}`);
     },
     onSuccess: () => {
+      const transactionsKey = financialQueryKeys.transactions(user?.id);
+
       // Only refresh the transactions list after deletion
-      queryClient.invalidateQueries({ 
-        queryKey: financialQueryKeys.transactions(),
+      queryClient.invalidateQueries({
+        queryKey: transactionsKey,
         exact: true,
       });
       toast.success('Transaksi berhasil dihapus');
@@ -175,7 +194,7 @@ export const useFinancialOperations = (): UseFinancialOperationsReturn => {
 
   return {
     addTransaction: addMutation.mutateAsync,
-    updateTransaction: (id: string, data: UpdateTransactionData) => 
+    updateTransaction: (id: string, data: UpdateTransactionData) =>
       updateMutation.mutateAsync({ id, data }),
     deleteTransaction: deleteMutation.mutateAsync,
     isLoading: addMutation.isPending || updateMutation.isPending || deleteMutation.isPending

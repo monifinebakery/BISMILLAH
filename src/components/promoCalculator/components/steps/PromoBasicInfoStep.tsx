@@ -32,7 +32,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           <Input
             id="namaPromo"
             value={formData.namaPromo}
-            onChange={onInputChange}
+            onChange={(e) => onInputChange(e)}
             placeholder="Contoh: Diskon Akhir Tahun 25%"
             className={`mt-1 ${
               stepErrors?.some(error => error.includes('Nama promo')) 
@@ -109,7 +109,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           <Textarea
             id="deskripsi"
             value={formData.deskripsi}
-            onChange={onInputChange}
+            onChange={(e) => onInputChange(e)}
             placeholder="Contoh: Berlaku untuk pembelian minimal 2 item, tidak dapat digabung dengan promo lain..."
             rows={4}
             className="mt-1"
@@ -128,7 +128,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
               id="tanggalMulai"
               type="date"
               value={formData.tanggalMulai}
-              onChange={onInputChange}
+              onChange={(e) => onInputChange(e)}
               className="mt-1"
             />
           </div>
@@ -140,7 +140,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
               id="tanggalSelesai"
               type="date"
               value={formData.tanggalSelesai}
-              onChange={onInputChange}
+              onChange={(e) => onInputChange(e)}
               className="mt-1"
             />
           </div>

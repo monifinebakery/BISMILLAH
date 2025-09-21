@@ -218,22 +218,34 @@ export const usePromoForm = (id?: string) => {
   }, [formData, calculationResult]);
 
   // Handler untuk perubahan input
-  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    if (!e || !e.target) return;
+  const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | string, value?: string) => {
+    // Handle both event object and direct value calls
+    let fieldName: string;
+    let fieldValue: string;
     
-    const { id, value } = e.target;
-    if (!id) return;
+    if (typeof e === 'string') {
+      // Direct call with field name and value
+      fieldName = e;
+      fieldValue = value || '';
+    } else {
+      // Event object call
+      if (!e || !e.target) return;
+      const { id, value } = e.target;
+      if (!id) return;
+      fieldName = id;
+      fieldValue = value;
+    }
     
-    setFormData(prev => ({ ...prev, [id]: value }));
+    setFormData(prev => ({ ...prev, [fieldName]: fieldValue }));
     
     // Clear errors untuk step saat ini ketika user mengubah input
     setStepErrors(prev => ({ ...prev, [currentStep]: [] }));
     
     // Auto-calculate jika di step 2 dan field yang berubah adalah field kalkulasi
-    if (currentStep === 2 && ['hargaProduk', 'hpp', 'nilaiDiskon', 'beli', 'gratis', 'hargaNormal', 'hargaBundle'].includes(id)) {
+    if (currentStep === 2 && ['hargaProduk', 'hpp', 'nilaiDiskon', 'beli', 'gratis', 'hargaNormal', 'hargaBundle'].includes(fieldName)) {
       // Debounce calculation untuk performa
       setTimeout(() => {
-        const newFormData = { ...formData, [id]: value };
+        const newFormData = { ...formData, [fieldName]: fieldValue };
         if (autoCalculate && typeof autoCalculate === 'function') {
           autoCalculate(newFormData);
         }
@@ -251,7 +263,17 @@ export const usePromoForm = (id?: string) => {
     if (name === 'tipePromo') {
       resetCalculation();
     }
-  }, [currentStep, resetCalculation]);
+    
+    // Auto-calculate jika di step 2
+    if (currentStep === 2 && ['tipePromo'].includes(name)) {
+      setTimeout(() => {
+        const newFormData = { ...formData, [name]: value };
+        if (autoCalculate && typeof autoCalculate === 'function') {
+          autoCalculate(newFormData);
+        }
+      }, 500);
+    }
+  }, [currentStep, resetCalculation, formData, autoCalculate]);
 
   // Navigasi step
   const goToStep = useCallback((step: number) => {

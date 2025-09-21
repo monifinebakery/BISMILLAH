@@ -36,7 +36,7 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={formData.hargaProduk}
-                onChange={onInputChange}
+                onChange={(e) => onInputChange(e)}
                 placeholder="50000"
                 className={`mt-1 ${
                   stepErrors?.some(error => error.includes('Harga produk')) 

@@ -101,8 +101,8 @@ export const MainContent: React.FC<MainContentProps> = ({
           <CostManagementTab
             costs={state.costs}
             totalMonthlyCosts={totalMonthlyCosts}
-            hppCosts={state.costs.filter(c => c.group === 'hpp' && c.status === 'aktif').reduce((sum, c) => sum + c.jumlah_per_bulan, 0)}
-            operationalCosts={state.costs.filter(c => c.group === 'operasional' && c.status === 'aktif').reduce((sum, c) => sum + c.jumlah_per_bulan, 0)}
+            hppCosts={state.summary?.total_hpp_group || 0}
+            operationalCosts={state.summary?.total_operasional_group || 0}
             onOpenAddDialog={handleOpenAddDialog}
             onEditCost={handleOpenEditDialog}
             onDeleteCost={handleDeleteCost}

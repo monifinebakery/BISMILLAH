@@ -53,6 +53,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           </Label>
           <Input
             id="namaPromo"
+            name="namaPromo"
             value={formData.namaPromo}
             onChange={handleBasicInputChange}
             placeholder="Contoh: Diskon Akhir Tahun 25%"
@@ -126,6 +127,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           </Label>
           <Textarea
             id="deskripsi"
+            name="deskripsi"
             value={formData.deskripsi}
             onChange={handleBasicInputChange}
             placeholder="Contoh: Berlaku untuk pembelian minimal 2 item, tidak dapat digabung dengan promo lain..."
@@ -144,6 +146,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
             </Label>
             <Input
               id="tanggalMulai"
+              name="tanggalMulai"
               type="date"
               value={formData.tanggalMulai}
               onChange={handleBasicInputChange}
@@ -156,6 +159,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
             </Label>
             <Input
               id="tanggalSelesai"
+              name="tanggalSelesai"
               type="date"
               value={formData.tanggalSelesai}
               onChange={handleBasicInputChange}

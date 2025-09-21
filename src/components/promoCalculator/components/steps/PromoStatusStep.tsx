@@ -15,9 +15,19 @@ interface PromoStatusStepProps extends PromoFormStepProps {
 export const PromoStatusStep: React.FC<PromoStatusStepProps> = ({
   formData,
   stepErrors,
-  onInputChange,
   onSelectChange
 }) => {
+  const handleStatusChange = React.useCallback(
+    (value: string) => {
+      if (onSelectChange) {
+        onSelectChange('status', value);
+      } else {
+        console.warn('PromoStatusStep: handler onSelectChange tidak tersedia');
+      }
+    },
+    [onSelectChange]
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -33,11 +43,7 @@ export const PromoStatusStep: React.FC<PromoStatusStepProps> = ({
           </Label>
           <Select
             value={formData.status || ''}
-            onValueChange={(value) => {
-              if (typeof onSelectChange === 'function') {
-                onSelectChange('status', value);
-              }
-            }}
+            onValueChange={handleStatusChange}
           >
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Pilih status" />

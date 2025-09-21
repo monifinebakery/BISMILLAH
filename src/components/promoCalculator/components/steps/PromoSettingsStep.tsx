@@ -11,9 +11,19 @@ import type { PromoFormStepProps } from '../../types/promo.types';
 export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
   formData,
   stepErrors,
-  onInputChange,
-  onSelectChange
+  onInputChange
 }) => {
+  const handleSettingsInputChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      if (onInputChange) {
+        onInputChange(event);
+      } else {
+        console.warn('PromoSettingsStep: handler onInputChange tidak tersedia');
+      }
+    },
+    [onInputChange]
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -37,12 +47,12 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={formData.hargaProduk}
-                onChange={(e) => onInputChange(e)}
+                onChange={handleSettingsInputChange}
                 placeholder="50000"
                 className={`mt-1 ${
-                  stepErrors?.some(error => error.includes('Harga produk')) 
-                    ? 'border-red-500 focus:border-red-500' 
-                    : formData.hargaProduk && parseFloat(formData.hargaProduk) > 0 
+                  stepErrors?.some(error => error.includes('Harga produk'))
+                    ? 'border-red-500 focus:border-red-500'
+                    : formData.hargaProduk && parseFloat(formData.hargaProduk) > 0
                     ? 'border-green-500' 
                     : ''
                 }`}
@@ -67,11 +77,11 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={formData.hpp}
-                onChange={(e) => onInputChange(e)}
+                onChange={handleSettingsInputChange}
                 placeholder="30000"
                 className={`mt-1 ${
-                  stepErrors?.some(error => error.includes('HPP')) 
-                    ? 'border-red-500 focus:border-red-500' 
+                  stepErrors?.some(error => error.includes('HPP'))
+                    ? 'border-red-500 focus:border-red-500'
                     : formData.hpp && parseFloat(formData.hpp) > 0 && formData.hargaProduk && parseFloat(formData.hpp) < parseFloat(formData.hargaProduk)
                     ? 'border-green-500' 
                     : ''
@@ -98,12 +108,12 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                 inputMode="numeric"
                 pattern="[0-9]*"
                 value={formData.nilaiDiskon}
-                onChange={(e) => onInputChange(e)}
+                onChange={handleSettingsInputChange}
                 placeholder="25"
                 min="0"
                 max="100"
                 className={`mt-1 ${
-                  stepErrors?.some(error => error.includes('Nilai diskon')) 
+                  stepErrors?.some(error => error.includes('Nilai diskon'))
                     ? 'border-red-500 focus:border-red-500' 
                     : formData.nilaiDiskon && parseFloat(formData.nilaiDiskon) > 0 && parseFloat(formData.nilaiDiskon) <= 100
                     ? 'border-green-500' 
@@ -134,12 +144,12 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={formData.beli}
-                    onChange={(e) => onInputChange(e)}
+                    onChange={handleSettingsInputChange}
                     placeholder="2"
                     min="1"
                     className={`mt-1 ${
-                      stepErrors?.some(error => error.includes('Jumlah beli')) 
-                        ? 'border-red-500 focus:border-red-500' 
+                      stepErrors?.some(error => error.includes('Jumlah beli'))
+                        ? 'border-red-500 focus:border-red-500'
                         : formData.beli && parseInt(formData.beli) > 0
                         ? 'border-green-500' 
                         : ''
@@ -161,12 +171,12 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                     inputMode="numeric"
                     pattern="[0-9]*"
                     value={formData.gratis}
-                    onChange={(e) => onInputChange(e)}
+                    onChange={handleSettingsInputChange}
                     placeholder="1"
                     min="1"
                     className={`mt-1 ${
-                      stepErrors?.some(error => error.includes('Jumlah gratis')) 
-                        ? 'border-red-500 focus:border-red-500' 
+                      stepErrors?.some(error => error.includes('Jumlah gratis'))
+                        ? 'border-red-500 focus:border-red-500'
                         : formData.gratis && parseInt(formData.gratis) > 0
                         ? 'border-green-500' 
                         : ''
@@ -197,11 +207,11 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={formData.hargaNormal}
-                  onChange={(e) => onInputChange(e)}
+                  onChange={handleSettingsInputChange}
                   placeholder="100000"
                   className={`mt-1 ${
-                    stepErrors?.some(error => error.includes('Harga normal')) 
-                      ? 'border-red-500 focus:border-red-500' 
+                    stepErrors?.some(error => error.includes('Harga normal'))
+                      ? 'border-red-500 focus:border-red-500'
                       : formData.hargaNormal && parseFloat(formData.hargaNormal) > 0
                       ? 'border-green-500' 
                       : ''
@@ -223,11 +233,11 @@ export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
                   inputMode="numeric"
                   pattern="[0-9]*"
                   value={formData.hargaBundle}
-                  onChange={(e) => onInputChange(e)}
+                  onChange={handleSettingsInputChange}
                   placeholder="80000"
                   className={`mt-1 ${
-                    stepErrors?.some(error => error.includes('Harga bundle')) 
-                      ? 'border-red-500 focus:border-red-500' 
+                    stepErrors?.some(error => error.includes('Harga bundle'))
+                      ? 'border-red-500 focus:border-red-500'
                       : formData.hargaBundle && parseFloat(formData.hargaBundle) > 0 && formData.hargaNormal && parseFloat(formData.hargaBundle) < parseFloat(formData.hargaNormal)
                       ? 'border-green-500' 
                       : ''

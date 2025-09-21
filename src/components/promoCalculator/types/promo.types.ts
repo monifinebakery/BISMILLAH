@@ -60,8 +60,11 @@ export interface PromoWizardProps {
 export interface PromoFormStepProps {
   formData: PromoFormData;
   stepErrors: string[];
-  onInputChange: (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | string, value?: string) => void;
-  onSelectChange: (name: string, value: string) => void;
+  onInputChange?: (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement> | string,
+    value?: string
+  ) => void;
+  onSelectChange?: (name: string, value: string) => void;
 }
 
 export interface PromoCalculationDisplayProps {

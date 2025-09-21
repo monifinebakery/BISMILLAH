@@ -20,8 +20,8 @@ import {
   PromoCalculationStep
 } from './components';
 const PromoFullCalculator = () => {
-  const [showCreatorHint, setShowCreatorHint] = React.useState<boolean>(false);
-  React.useEffect(() => {
+  const [showCreatorHint, setShowCreatorHint] = useState(false);
+  useEffect(() => {
     try {
       const dismissed = localStorage.getItem('promoCreatorHintDismissed');
       setShowCreatorHint(!dismissed);
@@ -106,13 +106,6 @@ const PromoFullCalculator = () => {
         return <PromoBasicInfoStep {...stepProps} />;
     }
   };
-
-  // Memoized calculate function
-  const handleCalculate = useCallback(() => {
-    if (calculate && formData) {
-      calculate(formData);
-    }
-  }, [calculate, formData]);
 
   // Loading state
   if (isEditMode && isLoading) {
@@ -243,7 +236,7 @@ const PromoFullCalculator = () => {
                 calculationResult={calculationResult}
                 onPrevStep={prevStep}
                 onNextStep={nextStep}
-                onCalculate={() => calculate && formData && calculate(formData)}
+                onCalculate={handleCalculate}
                 onSave={handleSave}
               />
             )}

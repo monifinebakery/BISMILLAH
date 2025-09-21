@@ -29,6 +29,9 @@ import { logger } from '@/utils/logger';
 // Auth Context
 import { useAuth } from '@/contexts/AuthContext';
 
+// Financial API
+import { addFinancialTransaction } from '@/components/financial/services/financialApi';
+
 // Financial categories
 import { DEFAULT_FINANCIAL_CATEGORIES } from './types/financial';
 
@@ -359,6 +362,7 @@ const AddTransactionPage: React.FC = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(false);
+  const { user } = useAuth();
 
   // Navigation handlers
   const handleBack = () => {
@@ -370,9 +374,6 @@ const AddTransactionPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      // Get the authenticated user
-      const { useAuth } = await import('@/contexts/AuthContext');
-      const { user } = useAuth();
       if (!user) {
         toast.error('Anda harus login terlebih dahulu');
         setIsLoading(false);
@@ -389,8 +390,7 @@ const AddTransactionPage: React.FC = () => {
       };
       
       // Call the financial API
-      const financialApi = await import('@/components/financial/services/financialApi');
-      await financialApi.addFinancialTransaction(transactionData, user.id);
+      await addFinancialTransaction(transactionData, user.id);
       
       toast.success('Transaksi berhasil ditambahkan');
       navigate('/laporan');

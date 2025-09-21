@@ -162,7 +162,6 @@ const OrdersPage: React.FC = () => {
     },
     enabled: !!user?.id,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    keepPreviousData: true,
     placeholderData: (prev) => prev,
   });
 
@@ -263,8 +262,8 @@ const OrdersPage: React.FC = () => {
   const businessHandlers = useOrderActions({
     context: contextValue,
     ordersForView: finalOrders,
-    selectedIds: uiState.selectedOrderIds,
-    toggleSelectOrder: uiState.toggleSelectOrder,
+    selectedIds: selectedIds,
+    toggleSelectOrder: toggleOrderSelection,
     editingOrder: pageState.editingOrder,
     dialog: {
       openOrderForm: (order?: Order | null) => dialogHandlers.openOrderForm(order ?? null),
@@ -277,8 +276,8 @@ const OrdersPage: React.FC = () => {
     (order: Order) => {
       logger.component('OrdersPage', 'Follow up initiated:', {
         orderId: order.id,
-        nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan'],
-        hasPhone: !!order.teleponPelanggan,
+        nomorPesanan: (order as any).nomor_pesanan || order.order_number,
+        hasPhone: !!(order as any).telepon_pelanggan || !!order.customer_phone,
         status: order.status
       });
 
@@ -293,11 +292,11 @@ const OrdersPage: React.FC = () => {
       window.open(whatsappUrl, '_blank');
 
       logger.success('Follow up WhatsApp opened:', {
-        customer: order.namaPelanggan,
-        orderNumber: (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']
+        customer: (order as any).nama_pelanggan || order.customer_name,
+        orderNumber: (order as any).nomor_pesanan || order.order_number
       });
 
-      toast.success(`Follow up untuk ${order.namaPelanggan} berhasil dibuka di WhatsApp`);
+      toast.success(`Follow up untuk ${(order as any).nama_pelanggan || order.customer_name} berhasil dibuka di WhatsApp`);
     },
     [getWhatsappUrl]
   );
@@ -306,7 +305,7 @@ const OrdersPage: React.FC = () => {
   const handleViewDetail = useCallback((order: Order) => {
     logger.component('OrdersPage', 'View detail requested:', {
       orderId: order.id,
-      nomorPesanan: (order as any).nomor_pesanan || (order as any)['nomorPesanan']
+      nomorPesanan: (order as any).nomor_pesanan || order.order_number
     });
     dialogHandlers.openDetail(order);
   }, [dialogHandlers]);
@@ -350,7 +349,7 @@ const OrdersPage: React.FC = () => {
     useLazyLoading,
     currentPage,
     totalPages: paginationInfo.totalPages,
-    selectedOrdersCount: uiState.selectedOrderIds.length,
+    selectedOrdersCount: selectedIds.length,
     dialogsOpen: pageState.dialogs,
     isEditingOrder: !!pageState.editingOrder,
     hasUpdateOrderStatus: typeof updateOrderStatus === 'function'

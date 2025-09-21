@@ -230,10 +230,10 @@ export const usePromoForm = (id?: string) => {
     } else {
       // Event object call
       if (!e || !e.target) return;
-      const { id, value } = e.target;
+      const { id, value: targetValue } = e.target;
       if (!id) return;
       fieldName = id;
-      fieldValue = value;
+      fieldValue = targetValue;
     }
     
     setFormData(prev => ({ ...prev, [fieldName]: fieldValue }));

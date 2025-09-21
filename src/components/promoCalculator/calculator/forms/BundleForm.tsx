@@ -1,8 +1,9 @@
 // 🎯 Form untuk Bundle Produk - Fixed with Proper Recipe Properties
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Package, Plus, X, Search } from 'lucide-react';
 import { toast } from 'sonner';
+import { helpers } from '@/components/promoCalculator/utils';
 
 const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
   const [formData, setFormData] = useState({
@@ -17,6 +18,12 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showResep, setShowResep] = useState(false);
+
+  // Debounced search term update
+  const debouncedSetSearchTerm = useMemo(
+    () => helpers.debounce((value) => setSearchTerm(value), 300),
+    []
+  );
 
   // Helper function to get the correct property value
   const getRecipeProperty = (recipe, property) => {
@@ -198,12 +205,12 @@ const BundleForm = ({ onSubmit, isLoading, recipes }: any) => {
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <input
-                      type="text"
-                      placeholder="Cari resep..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                    />
+                  type="text"
+                  placeholder="Cari resep..."
+                  value={searchTerm}
+                  onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                />
                   </div>
                 </div>
                 <div className="max-h-48 overflow-y-auto">

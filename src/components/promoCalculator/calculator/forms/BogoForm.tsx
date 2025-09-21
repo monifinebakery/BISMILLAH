@@ -1,8 +1,9 @@
 // BogoForm.jsx - Fixed ReferenceError: Cannot access 'x' before initialization
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Gift, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { helpers } from '@/components/promoCalculator/utils';
 
 const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,12 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [showResepUtama, setShowResepUtama] = useState(false);
   const [showResepGratis, setShowResepGratis] = useState(false);
+
+  // Debounced search term update
+  const debouncedSetSearchTerm = useMemo(
+    () => helpers.debounce((value) => setSearchTerm(value), 300),
+    []
+  );
 
   // ✅ FIXED: Helper functions moved to TOP before being used
   const getRecipeProperty = (recipe, property) => {
@@ -151,12 +158,12 @@ const BogoForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <input
-                  type="text"
-                  placeholder="Cari resep..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                />
+                    type="text"
+                    placeholder="Cari resep..."
+                    value={searchTerm}
+                    onChange={(e) => debouncedSetSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  />
               </div>
             </div>
 

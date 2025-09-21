@@ -1,7 +1,8 @@
 // 🎯 DiscountForm - Fixed className Issues
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Percent, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
+import { helpers } from '@/components/promoCalculator/utils';
 
 const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
   const [formData, setFormData] = useState({
@@ -19,6 +20,12 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
 
   const [searchTerm, setSearchTerm] = useState('');
   const [showResep, setShowResep] = useState(false);
+
+  // Debounced search term update
+  const debouncedSetSearchTerm = useMemo(
+    () => helpers.debounce((value) => setSearchTerm(value), 300),
+    []
+  );
 
   // Safe array filtering
   const filteredRecipes = Array.isArray(recipes) ? recipes.filter(recipe =>
@@ -129,7 +136,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                   type="text"
                   placeholder="Cari resep..."
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => debouncedSetSearchTerm(e.target.value)}
                   className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>

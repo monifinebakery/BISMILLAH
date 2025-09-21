@@ -1,5 +1,5 @@
-// src/pages/PromoList.jsx - FIXED with Logger
-import React, { useState } from 'react';
+// src/pages/PromoList.jsx - Daftar Promo dengan useQuery dan PromoCard
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,7 +18,8 @@ import PromoCard from '@/components/promoCalculator/components/PromoCard';
 import PromoEditDialog from '@/components/promoCalculator/dialogs/PromoEditDialog';
 import { LoadingState } from '@/components/recipe/components/shared/LoadingState';
 import { promoService } from '@/components/promoCalculator/services/promoService';
-import { logger } from '@/utils/logger';
+import { logger } from '@/utils/logger'; // ✅ Import logger
+import { helpers } from '@/components/promoCalculator/utils';
 
 // ✅ Query Keys
 export const PROMO_QUERY_KEYS = {
@@ -46,6 +47,15 @@ const PromoList = () => {
     sortBy: 'created_at',
     sortOrder: 'desc'
   });
+
+  // Debounced search term update
+  const debouncedSetSearchTerm = useMemo(
+    () => helpers.debounce((value) => {
+      setSearchTerm(value);
+      setPagination(prev => ({ ...prev, page: 1 }));
+    }, 300),
+    []
+  );
 
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editingPromo, setEditingPromo] = useState(null);
@@ -195,11 +205,6 @@ const PromoList = () => {
   });
 
   // Handlers
-  const handleSearch = (value) => {
-    setSearchTerm(value);
-    setPagination(prev => ({ ...prev, page: 1 }));
-  };
-
   const handleSelectItem = (id, selected) => {
     if (selected) {
       setSelectedItems(prev => [...prev, id]);
@@ -376,7 +381,7 @@ const PromoList = () => {
                     type="text"
                     placeholder="Cari nama promo, tipe, atau deskripsi..."
                     value={searchTerm}
-                    onChange={(e) => handleSearch(e.target.value)}
+                    onChange={(e) => debouncedSetSearchTerm(e.target.value)}
                     className="pl-10"
                   />
                 </div>

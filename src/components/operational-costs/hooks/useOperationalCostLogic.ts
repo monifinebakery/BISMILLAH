@@ -76,20 +76,16 @@ export const useOperationalCostLogic = () => {
   useEffect(() => {
     if (!state.isAuthenticated) return;
     if (state.loading.costs) return;
+    if (!appSettings) return;
 
-    // IMPORTANT: Ensure app settings are loaded before computing.
-    // Otherwise we might accidentally overwrite target_output_monthly with a default value.
-    const currentAppSettings = appSettingsRef.current;
-    if (!currentAppSettings) return;
-
-    const target = currentAppSettings.target_output_monthly;
+    const target = appSettings.target_output_monthly;
     if (target <= 0) return;
 
     const computedOverhead = hppCosts / target;
     const computedOperasional = operasionalCosts / target;
 
-    const currentOverhead = currentAppSettings.overhead_per_pcs ?? 0;
-    const currentOperasional = currentAppSettings.operasional_per_pcs ?? 0;
+    const currentOverhead = appSettings.overhead_per_pcs ?? 0;
+    const currentOperasional = appSettings.operasional_per_pcs ?? 0;
 
     // Avoid unnecessary updates (epsilon compare)
     const EPS = 0.0001;
@@ -100,34 +96,46 @@ export const useOperationalCostLogic = () => {
     const t = setTimeout(async () => {
       try {
         setSyncStatus('syncing');
-        // Only update computed per-unit costs here. Do NOT pass target to avoid overwriting
-        // a freshly-updated target_output_monthly with a stale value.
+        console.log('🔄 Auto-syncing cost per unit values', {
+          computedOverhead: Math.round(computedOverhead),
+          computedOperasional: Math.round(computedOperasional),
+          currentOverhead,
+          currentOperasional,
+          target
+        });
+
+        // Update computed per-unit costs
         await appSettingsApi.updateCostPerUnit(
-          computedOverhead,
-          computedOperasional
+          Math.round(computedOverhead),
+          Math.round(computedOperasional)
         );
+
         await loadAppSettingsRef.current?.();
         setSyncStatus('updated');
         setLastSyncedAt(new Date().toISOString());
-        // Show toast on significant change
+
+        // Only show toast on significant changes
         const overheadDeltaAbs = Math.abs(computedOverhead - currentOverhead);
         const overheadDeltaPct = currentOverhead > 0 ? overheadDeltaAbs / currentOverhead : 1;
         const operasionalDeltaAbs = Math.abs(computedOperasional - currentOperasional);
         const operasionalDeltaPct = currentOperasional > 0 ? operasionalDeltaAbs / currentOperasional : 1;
-        const significant = (overheadDeltaAbs >= 50 || overheadDeltaPct >= 0.005) || (operasionalDeltaAbs >= 50 || operasionalDeltaPct >= 0.005);
+        const significant = (overheadDeltaAbs >= 50 || overheadDeltaPct >= 0.005) ||
+                           (operasionalDeltaAbs >= 50 || operasionalDeltaPct >= 0.005);
+
         if (significant) {
           toast.success('Biaya per pcs diperbarui', {
-            description: `Overhead: ${formatCurrency(computedOverhead)}/pcs · Operasional: ${formatCurrency(computedOperasional)}/pcs`
+            description: `Overhead: ${formatCurrency(Math.round(computedOverhead))}/pcs · Operasional: ${formatCurrency(Math.round(computedOperasional))}/pcs`
           });
         }
       } catch (e) {
         console.error('Auto-update overhead failed:', e);
         setSyncStatus('error');
+        toast.error('Gagal menyinkronisasi biaya per pcs');
       }
     }, 400);
 
     return () => clearTimeout(t);
-  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts]);
+  }, [state.isAuthenticated, state.loading.costs, hppCosts, operasionalCosts, appSettings]);
 
   // Update target monthly handler
   const handleUpdateTargetMonthly = async (target: number) => {

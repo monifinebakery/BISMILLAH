@@ -222,7 +222,7 @@ export const usePromoForm = (id?: string) => {
     // Handle both event object and direct value calls
     let fieldName: string;
     let fieldValue: string;
-    
+
     if (typeof e === 'string') {
       // Direct call with field name and value
       fieldName = e;
@@ -230,14 +230,22 @@ export const usePromoForm = (id?: string) => {
     } else {
       // Event object call
       if (!e || !e.target) return;
-      const { id, value: targetValue } = e.target;
-      if (!id) return;
-      fieldName = id;
+      const target = e.target as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+      const { id, name, value: targetValue } = target;
+      const dataField = target.dataset?.field;
+      const resolvedFieldName = id || name || dataField;
+
+      if (!resolvedFieldName) {
+        console.warn('usePromoForm: field identifier tidak ditemukan pada elemen input', target);
+        return;
+      }
+
+      fieldName = resolvedFieldName;
       fieldValue = targetValue;
     }
-    
+
     setFormData(prev => ({ ...prev, [fieldName]: fieldValue }));
-    
+
     // Clear errors untuk step saat ini ketika user mengubah input
     setStepErrors(prev => ({ ...prev, [currentStep]: [] }));
     

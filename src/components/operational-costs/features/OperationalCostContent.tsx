@@ -1,6 +1,7 @@
 // src/components/operational-costs/features/OperationalCostContent.tsx
 
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { OperationalCostHeader } from '../components';
 import LoadingState from '../components/LoadingState';
@@ -9,8 +10,9 @@ import { DialogManager, DialogManagerRef } from './DialogManager';
 import { MainContent } from './MainContent';
 
 export const OperationalCostContent: React.FC = () => {
-  const [showQuickSetup, setShowQuickSetup] = useState(false);
+  const [, setShowQuickSetup] = useState(false);
   const dialogManagerRef = useRef<DialogManagerRef>(null);
+  const navigate = useNavigate();
 
   const {
     state,
@@ -54,7 +56,7 @@ export const OperationalCostContent: React.FC = () => {
     if (shouldShowQuickSetupHint) {
       dialogManagerRef.current?.openQuickSetup();
     } else {
-      dialogManagerRef.current?.openAddDialog();
+      navigate('/biaya-operasional/tambah');
     }
   };
 

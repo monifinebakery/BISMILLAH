@@ -42,7 +42,9 @@ export const HeavyComponents = {
   )
 };
 
-const QuickFallback: React.FC = () => <MinimalLoader className="h-32" />;
+const QuickFallback: React.FC = () => (
+  React.createElement(MinimalLoader, { className: 'h-32' })
+);
 
 // ✅ Smart wrapper - only wrap heavy components
 export const withSmartLazy = <P extends object>(
@@ -51,9 +53,14 @@ export const withSmartLazy = <P extends object>(
 ) => {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return React.forwardRef<any, P>((props, ref) => (
-    <React.Suspense fallback={<QuickFallback />}>
-      <Component {...props} ref={ref} />
-    </React.Suspense>
+    React.createElement(
+      React.Suspense,
+      { fallback: React.createElement(QuickFallback) },
+      React.createElement(Component as React.ComponentType<P>, {
+        ...(props as P),
+        ref,
+      })
+    )
   ));
 };
 

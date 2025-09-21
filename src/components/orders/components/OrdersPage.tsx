@@ -390,17 +390,11 @@ const OrdersPage: React.FC = () => {
         fallback={SmallFallback}
       >
         {/* ✅ STATISTICS: Order statistics section */}
-         <SafeSuspense 
-           loadingMessage="" 
-           size="md"
-           fallback={SmallFallback}
-         >
-           <OrderStatistics 
-             orders={finalOrders} 
-             loading={finalIsLoading}
-           />
-         </SafeSuspense>
-        
+        <OrderStatistics
+          orders={finalOrders}
+          loading={finalIsLoading}
+        />
+
         <OrderControls 
           uiState={uiState} 
           loading={finalIsLoading}

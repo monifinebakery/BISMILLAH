@@ -271,15 +271,37 @@ async function handleNavigation(request) {
     }
     throw new Error('Network response not ok');
   } catch (error) {
-    console.log('[SW] Navigation failed, serving cached index.html');
-    
-    // Do not serve cached index.html if unavailable; return 503 to avoid HTML-as-JS issues
-    const cachedResponse = await caches.match('/index.html');
-    if (cachedResponse) {
-      return cachedResponse;
+    console.log('[SW] Navigation failed, attempting cached fallback');
+
+    const fallbackCandidates = [request, '/'];
+
+    for (const candidate of fallbackCandidates) {
+      const cachedResponse = await caches.match(candidate);
+      if (cachedResponse) {
+        const contentType = cachedResponse.headers.get('content-type') || '';
+        if (contentType.includes('text/html') || contentType === '') {
+          return cachedResponse;
+        }
+
+        swLog('[SW] Skipping non-HTML cached response for navigation:', candidate);
+      }
     }
-    
-    return new Response('App not available offline', { status: 503 });
+
+    // Do not serve cached index.html if unavailable; return 503 to avoid HTML-as-JS issues
+    const cachedIndex = await caches.match('/index.html');
+    if (cachedIndex) {
+      const contentType = cachedIndex.headers.get('content-type') || '';
+      if (contentType.includes('text/html') || contentType === '') {
+        return cachedIndex;
+      }
+
+      swLog('[SW] Skipping cached index.html due to unexpected MIME type:', contentType);
+    }
+
+    return new Response('App not available offline', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain' }
+    });
   }
 }
 

@@ -65,8 +65,14 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           <Select
             value={formData.tipePromo || ''}
             onValueChange={(value) => {
-              if (typeof onSelectChange === 'function') {
-                onSelectChange('tipePromo', value);
+              if (onSelectChange && typeof onSelectChange === 'function') {
+                try {
+                  onSelectChange('tipePromo', value);
+                } catch (error) {
+                  console.error('Error calling onSelectChange:', error);
+                }
+              } else {
+                console.warn('onSelectChange is not a function:', typeof onSelectChange);
               }
             }}
           >

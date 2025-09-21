@@ -15,6 +15,7 @@ interface PromoStatusStepProps extends PromoFormStepProps {
 export const PromoStatusStep: React.FC<PromoStatusStepProps> = ({
   formData,
   stepErrors,
+  onInputChange,
   onSelectChange
 }) => {
   return (

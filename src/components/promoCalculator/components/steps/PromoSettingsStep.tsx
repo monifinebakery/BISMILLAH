@@ -11,7 +11,8 @@ import type { PromoFormStepProps } from '../../types/promo.types';
 export const PromoSettingsStep: React.FC<PromoFormStepProps> = ({
   formData,
   stepErrors,
-  onInputChange
+  onInputChange,
+  onSelectChange
 }) => {
   return (
     <Card>

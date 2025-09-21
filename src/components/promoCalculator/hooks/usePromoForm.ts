@@ -5,7 +5,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { promoService } from '@/components/promoCalculator/services/promoService';
+import { promosService } from '@/components/promoCalculator/services';
 import { usePromoCalculation } from './usePromoCalculation';
 import type { 
   PromoFormData, 
@@ -63,7 +63,7 @@ export const usePromoForm = (id?: string) => {
     queryFn: async () => {
       if (!id) return null;
       try {
-        const promo = await promoService.getById(id);
+        const promo = await promosService.getById(id);
         return promo;
       } catch (error) {
         console.error('Error fetching promo:', error);
@@ -118,9 +118,9 @@ export const usePromoForm = (id?: string) => {
       };
 
       if (isEditMode) {
-        return await promoService.update(id, fullPromoData);
+        return await promosService.update(id, fullPromoData);
       } else {
-        return await promoService.create(fullPromoData);
+        return await promosService.create(fullPromoData);
       }
     },
     onSuccess: (data) => {

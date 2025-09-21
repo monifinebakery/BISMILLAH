@@ -147,6 +147,7 @@ const FinancialReportPage: React.FC = () => {
           dateRange={dateRangeForPicker}
           isLoading={financialCore.isLoading}
           isMobile={isMobile}
+          actionsDisabled={financialCore.isLoading && !financialCore.hasTransactions}
         />
 
         {/* Summary Cards */}

@@ -2,7 +2,7 @@
 // Simplified container component that orchestrates smaller parts
 
 import React from 'react';
-import { RecipeErrorBoundary } from './shared/RecipeErrorBoundary';
+import RecipeErrorBoundary from './shared/RecipeErrorBoundary';
 import { LoadingStates } from '@/components/ui/loading-spinner';
 
 // Hooks

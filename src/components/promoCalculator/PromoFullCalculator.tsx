@@ -1,7 +1,7 @@
 // src/components/promoCalculator/PromoFullCalculator.tsx
 // Refactored PromoFullCalculator using modular components
 
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -37,6 +37,7 @@ const PromoFullCalculator = () => {
     }
     setShowCreatorHint(false);
   };
+  
   const { id } = useParams();
   const {
     // Form state
@@ -69,6 +70,13 @@ const PromoFullCalculator = () => {
     isEditMode
   } = usePromoForm(id);
 
+  // Memoized calculate function
+  const handleCalculate = useCallback(() => {
+    if (calculate && formData) {
+      calculate(formData);
+    }
+  }, [calculate, formData]);
+
   // Render function for step content
   const renderStepContent = () => {
     const stepProps = {
@@ -89,7 +97,7 @@ const PromoFullCalculator = () => {
             formData={formData}
             calculationResult={calculationResult}
             isCalculating={isCalculating}
-            onCalculate={() => calculate && formData && calculate(formData)}
+            onCalculate={handleCalculate}
           />
         );
       case 4:
@@ -98,6 +106,13 @@ const PromoFullCalculator = () => {
         return <PromoBasicInfoStep {...stepProps} />;
     }
   };
+
+  // Memoized calculate function
+  const handleCalculate = useCallback(() => {
+    if (calculate && formData) {
+      calculate(formData);
+    }
+  }, [calculate, formData]);
 
   // Loading state
   if (isEditMode && isLoading) {

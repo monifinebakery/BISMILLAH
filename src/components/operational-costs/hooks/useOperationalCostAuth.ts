@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
+import { refreshSession as refreshSessionInternal } from '@/services/auth';
 import { logger } from '@/utils/logger';
 import { OPERATIONAL_COST_QUERY_KEYS } from './useOperationalCostQuery';
 
@@ -185,18 +186,18 @@ export const useOperationalCostAuth = ({
   const refreshSession = useCallback(async () => {
     try {
       logger.info('🔐 Refreshing session');
-      const { data, error } = await supabase.auth.refreshSession();
-      
-      if (error) {
-        logger.error('🔐 Session refresh error:', error);
+      const session = await refreshSessionInternal();
+
+      if (!session?.user) {
+        logger.error('🔐 Session refresh returned no active session');
         setIsAuthenticated(false);
         if (onError) {
           onError('Sesi berakhir, silakan login kembali');
         }
         return false;
       }
-      
-      const isAuth = !!data.session?.user;
+
+      const isAuth = !!session.user;
       setIsAuthenticated(isAuth);
       logger.info('🔐 Session refreshed successfully');
       return isAuth;

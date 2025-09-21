@@ -16,6 +16,28 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
   onInputChange,
   onSelectChange
 }) => {
+  const handleBasicInputChange = React.useCallback(
+    (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      if (onInputChange) {
+        onInputChange(event);
+      } else {
+        console.warn('PromoBasicInfoStep: handler onInputChange tidak tersedia');
+      }
+    },
+    [onInputChange]
+  );
+
+  const handlePromoTypeChange = React.useCallback(
+    (value: string) => {
+      if (onSelectChange) {
+        onSelectChange('tipePromo', value);
+      } else {
+        console.warn('PromoBasicInfoStep: handler onSelectChange tidak tersedia');
+      }
+    },
+    [onSelectChange]
+  );
+
   return (
     <Card>
       <CardHeader>
@@ -32,12 +54,12 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           <Input
             id="namaPromo"
             value={formData.namaPromo}
-            onChange={(e) => onInputChange(e)}
+            onChange={handleBasicInputChange}
             placeholder="Contoh: Diskon Akhir Tahun 25%"
             className={`mt-1 ${
-              stepErrors?.some(error => error.includes('Nama promo')) 
-                ? 'border-red-500 focus:border-red-500' 
-                : formData.namaPromo.length >= 3 
+              stepErrors?.some(error => error.includes('Nama promo'))
+                ? 'border-red-500 focus:border-red-500'
+                : formData.namaPromo.length >= 3
                 ? 'border-green-500' 
                 : ''
             }`}
@@ -64,17 +86,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           </Label>
           <Select
             value={formData.tipePromo || ''}
-            onValueChange={(value) => {
-              if (onSelectChange && typeof onSelectChange === 'function') {
-                try {
-                  onSelectChange('tipePromo', value);
-                } catch (error) {
-                  console.error('Error calling onSelectChange:', error);
-                }
-              } else {
-                console.warn('onSelectChange is not a function:', typeof onSelectChange);
-              }
-            }}
+            onValueChange={handlePromoTypeChange}
           >
             <SelectTrigger className="mt-1">
               <SelectValue placeholder="Pilih tipe promo" />
@@ -115,7 +127,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
           <Textarea
             id="deskripsi"
             value={formData.deskripsi}
-            onChange={(e) => onInputChange(e)}
+            onChange={handleBasicInputChange}
             placeholder="Contoh: Berlaku untuk pembelian minimal 2 item, tidak dapat digabung dengan promo lain..."
             rows={4}
             className="mt-1"
@@ -134,7 +146,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
               id="tanggalMulai"
               type="date"
               value={formData.tanggalMulai}
-              onChange={(e) => onInputChange(e)}
+              onChange={handleBasicInputChange}
               className="mt-1"
             />
           </div>
@@ -146,7 +158,7 @@ export const PromoBasicInfoStep: React.FC<PromoFormStepProps> = ({
               id="tanggalSelesai"
               type="date"
               value={formData.tanggalSelesai}
-              onChange={(e) => onInputChange(e)}
+              onChange={handleBasicInputChange}
               className="mt-1"
             />
           </div>

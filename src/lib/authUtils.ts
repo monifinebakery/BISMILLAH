@@ -1,5 +1,7 @@
 // src/lib/authUtils.ts - CLEAN VERSION WITHOUT DUPLICATES
 import { supabase } from '@/integrations/supabase/client';
+import type { Session } from '@supabase/supabase-js';
+import { refreshSession as refreshAuthSession } from '@/services/auth';
 import { logger } from '@/utils/logger';
 import { withTimeout, withSoftTimeout } from '@/utils/asyncUtils';
 
@@ -351,36 +353,23 @@ const { data: { session }, error } = await withSoftTimeout(sessionPromise as any
 /**
  * ✅ ENHANCED: Force refresh session with device-adaptive retry
  */
-export const refreshSessionSafely = async () => {
+export const refreshSessionSafely = async (): Promise<Session | null> => {
   try {
     logger.debug('🔄 Safely refreshing session...');
-    
-    // ✅ DEVICE B FIX: Add timeout for refresh operation
-    const adaptiveTimeout = getAdaptiveTimeout(10000);
-    
-    const refreshPromise = supabase.auth.refreshSession();
-    const timeoutPromise = new Promise((_, reject) => 
-      setTimeout(() => reject(new Error('Session refresh timeout')), adaptiveTimeout)
-    );
-    
-const { data: { session }, error } = await withTimeout(refreshPromise as any, adaptiveTimeout, 'Session refresh timeout') as any;
-    
-    if (error) {
-      logger.error('⚠️ Session refresh error:', error);
-      return false;
-    }
-    
+
+    const session = await refreshAuthSession();
+
     if (session?.user?.id) {
       logger.success('✅ Session refreshed successfully:', session.user.email);
-      return true;
+      return session;
     }
-    
+
     logger.warn('⚠️ Session refresh returned no user');
-    return false;
-    
+    return null;
+
   } catch (error) {
     logger.error('❌ Error refreshing session safely:', error);
-    return false;
+    return null;
   }
 };
 

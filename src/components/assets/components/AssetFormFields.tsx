@@ -1,12 +1,14 @@
 // src/components/assets/components/AssetFormFields.tsx
 
-import React from 'react';
+import React, { useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { FormField } from '@/components/ui/form-field';
-import { DollarSign, Calendar, MapPin, FileText, Package } from 'lucide-react';
+import { CurrencyInput } from '@/components/ui/CurrencyInput';
+import { cn } from '@/lib/utils';
+import { Calendar, MapPin, FileText, Package } from 'lucide-react';
 import { AssetFormData, AssetFormErrors, AssetCategory, AssetCondition } from '../types';
 import {
   ASSET_CATEGORIES,
@@ -197,30 +199,69 @@ interface ValueFieldProps extends FieldProps {
   helpText?: string;
 }
 
-const AssetValueField: React.FC<ValueFieldProps> = ({ 
-  id, 
-  label, 
-  value, 
-  error, 
-  onChange, 
-  disabled, 
+const AssetValueField: React.FC<ValueFieldProps> = ({
+  id,
+  label,
+  value,
+  error,
+  onChange,
+  disabled,
   placeholder,
-  helpText 
-}) => (
-  <FormField
-    label={label}
-    type="number"
-    value={getInputValue(value)}
-    onChange={(e) => onChange(e.target.value ? Number(e.target.value) : '')}
-    placeholder={placeholder}
-    disabled={disabled}
-    error={error}
-    min="0"
-    icon={DollarSign}
-    helpText={helpText}
-    required={label.includes('*')}
-  />
-);
+  helpText
+}) => {
+  const rawValueRef = useRef('');
+
+  const handleValueTracking = (inputValue: string) => {
+    rawValueRef.current = inputValue.replace(/[^0-9]/g, '');
+
+    if (rawValueRef.current === '') {
+      onChange('');
+    }
+  };
+
+  const handleNumericChange = (numericValue: number) => {
+    if (rawValueRef.current === '') {
+      return;
+    }
+
+    onChange(numericValue);
+  };
+
+  const resolvedValue =
+    typeof value === 'number'
+      ? value
+      : value === '' || value === null || value === undefined
+        ? ''
+        : Number(value);
+
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={id} className="text-gray-700">
+        {label}
+      </Label>
+      <CurrencyInput
+        id={id}
+        name={id}
+        value={resolvedValue}
+        onChange={handleNumericChange}
+        onValueChange={(inputValue) => handleValueTracking(inputValue)}
+        disabled={disabled}
+        placeholder={placeholder}
+        debounceMs={300}
+        className={cn(
+          'pr-3',
+          error
+            ? 'border-red-500 focus:ring-red-500 focus:border-red-500'
+            : 'border-orange-200 focus:ring-orange-400 focus:border-orange-400'
+        )}
+      />
+      {error && <p className="text-red-500 text-xs mt-1">{error}</p>}
+      {helpText && !error && (
+        <p className="text-xs text-gray-500">{helpText}</p>
+      )}
+    </div>
+  );
+};
 
 const AssetDateField: React.FC<FieldProps> = ({ value, error, onChange, disabled }) => (
   <FormField

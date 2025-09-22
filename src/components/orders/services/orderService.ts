@@ -8,6 +8,8 @@ import type { Order, OrderItem, CreateOrderData, UpdateOrderData, OrderStatus, N
 import { generateOrderNumber } from '@/utils/formatUtils';
 import { to_snake_order } from '../utils';
 import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
+import { networkErrorHandler } from '@/utils/networkErrorHandling';
+import { offlineQueue } from '@/utils/offlineQueue';
 
 // ✅ FIXED: Valid status values matching application values
 const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'completed'];
@@ -67,11 +69,32 @@ export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<v
 
   logger.debug(`🗑️ Bulk deleting ${ids.length} orders for user ${userId}`);
 
-  // Delete orders one by one (Supabase doesn't have native bulk delete for complex operations)
-  const deletePromises = ids.map(id => deleteOrder(userId, id));
-  await Promise.all(deletePromises);
+  // Check if offline - queue operation instead
+  if (!navigator.onLine) {
+    const operationId = offlineQueue.queueOperation('bulk_delete_orders', userId, { ids });
+    toast.info(`Operasi di-queue untuk sinkronisasi offline`, {
+      description: `${ids.length} pesanan akan dihapus saat online`
+    });
+    logger.info(`📱 Queued bulk delete operation: ${operationId}`);
+    return;
+  }
 
-  logger.info(`✅ Successfully bulk deleted ${ids.length} orders`);
+  try {
+    // Delete orders one by one (Supabase doesn't have native bulk delete for complex operations)
+    const deletePromises = ids.map(id => deleteOrder(userId, id));
+    await Promise.all(deletePromises);
+
+    logger.info(`✅ Successfully bulk deleted ${ids.length} orders`);
+    toast.success(`Berhasil menghapus ${ids.length} pesanan`);
+  } catch (error) {
+    // Handle network errors with user-friendly messages and retry logic
+    networkErrorHandler.handleNetworkError(
+      error,
+      `Hapus ${ids.length} pesanan`,
+      () => bulkDeleteOrders(userId, ids) // Retry function
+    );
+    throw error; // Re-throw after handling
+  }
 }
 
 // Fetch orders with pagination for lazy loading
@@ -474,38 +497,62 @@ export async function deleteOrderSnake(userId: string, id: string): Promise<void
 export async function bulkUpdateStatus(userId: string, ids: string[], newStatus: string): Promise<void> {
   // ✅ FIXED: Validate status before bulk update
   const validatedStatus = validateStatus(newStatus);
-  
+
   // PERFORMANCE: Batch processing untuk menghindari query terlalu besar
   const BATCH_SIZE = 20;
   const batches = [];
-  
+
   for (let i = 0; i < ids.length; i += BATCH_SIZE) {
     batches.push(ids.slice(i, i + BATCH_SIZE));
   }
-  
-  // CONCURRENT: Process batches secara parallel dengan delay minimal
-  const promises = batches.map(async (batch, index) => {
-    // PERFORMANCE: Stagger requests untuk menghindari rate limiting
-    if (index > 0) {
-      await new Promise(resolve => setTimeout(resolve, 50 * index));
-    }
-    
-    const { error } = await supabase
-      .from('orders')
-      .update({ 
-        status: validatedStatus, 
-        updated_at: new Date().toISOString() 
-      })
-      .in('id', batch)
-      .eq('user_id', userId);
 
-    if (error) {
-      logger.error(`Error bulk updating batch ${index + 1}:`, error);
-      throw error;
-    }
-  });
-  
-  await Promise.all(promises);
+  logger.debug(`📝 Bulk updating ${ids.length} orders to status: ${validatedStatus}`);
+
+  // Check if offline - queue operation instead
+  if (!navigator.onLine) {
+    const operationId = offlineQueue.queueOperation('bulk_update_status', userId, { ids, newStatus: validatedStatus });
+    toast.info(`Operasi di-queue untuk sinkronisasi offline`, {
+      description: `Status ${ids.length} pesanan akan diupdate saat online`
+    });
+    logger.info(`📱 Queued bulk update status operation: ${operationId}`);
+    return;
+  }
+
+  try {
+    // CONCURRENT: Process batches secara parallel dengan delay minimal
+    const promises = batches.map(async (batch, index) => {
+      // PERFORMANCE: Stagger requests untuk menghindari rate limiting
+      if (index > 0) {
+        await new Promise(resolve => setTimeout(resolve, 50 * index));
+      }
+
+      const { error } = await supabase
+        .from('orders')
+        .update({
+          status: validatedStatus,
+          updated_at: new Date().toISOString()
+        })
+        .in('id', batch)
+        .eq('user_id', userId);
+
+      if (error) {
+        logger.error(`Error bulk updating batch ${index + 1}:`, error);
+        throw error;
+      }
+    });
+
+    await Promise.all(promises);
+    logger.info(`✅ Successfully bulk updated ${ids.length} orders to status: ${validatedStatus}`);
+    toast.success(`Berhasil update status ${ids.length} pesanan`);
+  } catch (error) {
+    // Handle network errors with user-friendly messages and retry logic
+    networkErrorHandler.handleNetworkError(
+      error,
+      `Update status ${ids.length} pesanan`,
+      () => bulkUpdateStatus(userId, ids, newStatus) // Retry function
+    );
+    throw error; // Re-throw after handling
+  }
 }
 
 // ULTRA OPTIMIZED: Bulk delete dengan batching and financial cleanup

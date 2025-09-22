@@ -12,6 +12,7 @@ import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'
 import { safePerformance } from '@/utils/browserApiSafeWrappers';
 import { initializeNetworkErrorHandler } from '@/utils/networkErrorHandler';
+import { offlineQueue } from '@/utils/offlineQueue';
 import { detectSafariIOS, initSafariUtils, shouldBypassServiceWorker, getSafariDelay, logSafariInfo } from '@/utils/safariUtils';
 // import '@/utils/preload-optimizer'; // Temporarily disabled to prevent unused preload warnings
 
@@ -41,6 +42,29 @@ const appStartTime = safePerformance.now();
 // Initialize network error handler
 // ------------------------------
 initializeNetworkErrorHandler();
+
+// ------------------------------
+// Initialize offline queue system
+// ------------------------------
+// Offline queue is initialized automatically when imported
+
+// ------------------------------
+// Cleanup on app shutdown
+// ------------------------------
+window.addEventListener('beforeunload', () => {
+  try {
+    // Cleanup PWA resources
+    const { offlineQueue } = require('./utils/offlineQueue');
+    const { networkErrorHandler } = require('./utils/networkErrorHandling');
+    
+    if (offlineQueue?.destroy) offlineQueue.destroy();
+    if (networkErrorHandler?.destroy) networkErrorHandler.destroy();
+    
+    console.log('[App] Cleanup completed');
+  } catch (error) {
+    console.warn('[App] Cleanup failed:', error);
+  }
+});
 
 // ------------------------------
 // Scheduler polyfill (fallback)

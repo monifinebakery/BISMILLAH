@@ -163,14 +163,14 @@ export interface OrderFilters {
 
 export interface UseOrderUIReturn {
   // Data
-  current_orders: Order[];
-  total_items: number;
-  total_pages: number;
-  filtered_orders: Order[]; // ✅ Added for useOrderUI compatibility
+  currentOrders: Order[];
+  totalItems: number;
+  totalPages: number;
+  filteredOrders: Order[]; // ✅ Added for useOrderUI compatibility
 
   // Pagination
-  current_page: number;
-  items_per_page: number;
+  currentPage: number;
+  itemsPerPage: number;
   setCurrentPage: (page: number) => void;
   setItemsPerPage: (items: number) => void;
   
@@ -178,13 +178,13 @@ export interface UseOrderUIReturn {
   filters: OrderFilters;
   updateFilters: (newFilters: Partial<OrderFilters>) => void;
   clearFilters: () => void;
-  has_active_filters: boolean;
+  hasActiveFilters: boolean;
   
   // Selection
-  selected_order_ids: string[];
-  is_selection_mode: boolean;
-  all_current_selected: boolean;
-  some_current_selected: boolean;
+  selectedOrderIds: string[];
+  isSelectionMode: boolean;
+  allCurrentSelected: boolean;
+  someCurrentSelected: boolean;
   toggleSelectOrder: (orderId: string, forceValue?: boolean) => void;
   toggleSelectAll: (orders: Order[]) => void;
   clearSelection: () => void;

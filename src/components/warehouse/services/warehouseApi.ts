@@ -7,6 +7,7 @@ import { UnifiedDateHandler, WarehouseDateUtils } from '@/utils/unifiedDateHandl
 import { applyStandardDateRangeFilters, STANDARD_DATE_FIELDS } from '@/utils/standardDateRangeFiltering';
 // ✅ NEW: Import type utilities for consistent type conversion
 import { toNumber, toDate, normalizeBahanBaku, normalizeBahanBakuFrontend } from '../utils/typeUtils';
+import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 import type { BahanBaku, BahanBakuFrontend } from '../types';
 
 export interface ServiceConfig {
@@ -128,6 +129,51 @@ class CrudService {
     } catch (error: any) {
       this.handleError('Fetch failed', error);
       return [];
+    }
+  }
+
+  // 🎯 OPTIMIZED: Fetch materials with pagination and caching
+  async fetchBahanBakuPaginatedOptimized(page: number = 1, limit: number = 20): Promise<{
+    data: BahanBakuFrontend[];
+    total: number;
+    page: number;
+    limit: number;
+    totalPages: number;
+  }> {
+    try {
+      const result = await PaginationOptimizer.fetchWithPagination<BahanBakuFrontend>(
+        'bahan_baku',
+        this.config.userId || '',
+        {
+          page,
+          limit: Math.min(limit, 25), // Cap at 25 items per page
+          selectFields: OPTIMIZED_SELECTS.warehouse.list,
+          orderBy: 'nama',
+          cachePrefix: 'warehouse_paginated'
+        }
+      );
+
+      const transformedData = (result.data || []).map((item: any) => {
+        const normalizedItem = normalizeBahanBaku(item);
+        return transformToFrontend(normalizedItem);
+      });
+
+      return {
+        data: transformedData,
+        total: result.totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(result.totalCount / limit)
+      };
+    } catch (error: any) {
+      this.handleError('Optimized paginated fetch failed', error);
+      return {
+        data: [],
+        total: 0,
+        page,
+        limit,
+        totalPages: 0
+      };
     }
   }
 

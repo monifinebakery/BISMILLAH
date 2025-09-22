@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getCurrentUserId as getAuthUserId } from '@/utils/authHelpers';
 import { Recipe, RecipeDB, NewRecipe } from '../types';
+import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 
 // import transformers from './recipeTransformers';
 export interface ApiResponse<T> {
@@ -157,6 +158,135 @@ class RecipeApiService {
     }
   }
   // Skip all snake variants and comments
+  /**
+   * ✅ OPTIMIZED: Get all recipes with caching and reduced fields
+   */
+  async getRecipesOptimized(filters?: {
+    category?: string;
+    search?: string;
+    sortBy?: string;
+    sortOrder?: 'asc' | 'desc';
+  }): Promise<Recipe[]> {
+    try {
+      const userId = await this.getCurrentUserId();
+      logger.debug('RecipeAPI: Fetching optimized recipes with filters:', filters);
+
+      const data = await new OptimizedQueryBuilder('recipes', 'recipes_list')
+        .select(OPTIMIZED_SELECTS.recipes.list)
+        .eq('user_id', userId)
+        .limit(50) // Reduced from unlimited
+        .execute();
+
+      // Apply filters client-side for cached data
+      let filteredData = (data || []).map((item) => {
+        const dbItem: RecipeDB = {
+          ...item,
+          kategori_resep: item.kategori_resep || undefined,
+          bahan_resep: (item.bahan_resep as any) || []
+        } as RecipeDB;
+        return this.transformFromDB(dbItem);
+      });
+
+      // Apply filters
+      if (filters?.category) {
+        filteredData = filteredData.filter(recipe => recipe.kategori_resep === filters.category);
+      }
+      if (filters?.search) {
+        const query = filters.search.toLowerCase();
+        filteredData = filteredData.filter(recipe =>
+          recipe.nama_resep.toLowerCase().includes(query) ||
+          recipe.kategori_resep?.toLowerCase().includes(query) ||
+          recipe.deskripsi?.toLowerCase().includes(query)
+        );
+      }
+
+      // Apply sorting
+      const sortBy = filters?.sortBy || 'nama_resep';
+      const ascending = (filters?.sortOrder || 'asc') === 'asc';
+      filteredData.sort((a: any, b: any) => {
+        const aVal = a[sortBy] || '';
+        const bVal = b[sortBy] || '';
+        if (ascending) {
+          return aVal.localeCompare(bVal);
+        } else {
+          return bVal.localeCompare(aVal);
+        }
+      });
+
+      logger.debug(`RecipeAPI: Successfully fetched ${filteredData.length} optimized recipes`);
+      return filteredData;
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error fetching optimized recipes');
+    }
+  }
+  
+  /**
+   * ✅ OPTIMIZED: Get recipes with pagination and caching
+   */
+  async getRecipesPaginatedOptimized(
+    page: number = 1,
+    limit: number = 20,
+    filters?: {
+      category?: string;
+      search?: string;
+      sortBy?: string;
+      sortOrder?: 'asc' | 'desc';
+    }
+  ): Promise<PaginatedResponse<Recipe>> {
+    try {
+      const userId = await this.getCurrentUserId();
+
+      const result = await PaginationOptimizer.fetchWithPagination<Recipe>(
+        'recipes',
+        userId,
+        {
+          page,
+          limit: Math.min(limit, 25), // Cap at 25 items per page
+          selectFields: OPTIMIZED_SELECTS.recipes.list,
+          orderBy: filters?.sortBy || 'nama_resep',
+          cachePrefix: 'recipes_paginated'
+        }
+      );
+
+      let filteredData = (result.data || []).map((item: any) => {
+        const dbItem: RecipeDB = {
+          ...item,
+          kategori_resep: item.kategori_resep || undefined,
+          bahan_resep: (item.bahan_resep as any) || []
+        } as RecipeDB;
+        return this.transformFromDB(dbItem);
+      });
+
+      // Apply additional filters if needed
+      if (filters?.category) {
+        filteredData = filteredData.filter(recipe => recipe.kategori_resep === filters.category);
+      }
+      if (filters?.search) {
+        const query = filters.search.toLowerCase();
+        filteredData = filteredData.filter(recipe =>
+          recipe.nama_resep.toLowerCase().includes(query) ||
+          recipe.kategori_resep?.toLowerCase().includes(query)
+        );
+      }
+
+      return {
+        data: filteredData,
+        total: result.totalCount,
+        page,
+        limit,
+        totalPages: Math.ceil(result.totalCount / limit)
+      };
+    } catch (error) {
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('Unexpected error fetching paginated optimized recipes');
+    }
+  }
+  
   /**
    * ✅ useQuery-optimized: Get single recipe by ID
    */

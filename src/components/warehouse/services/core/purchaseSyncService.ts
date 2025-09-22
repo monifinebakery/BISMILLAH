@@ -144,10 +144,10 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
       };
 
       // Enhanced: Update supplier info if provided
-      if ((item as any).supplier && (item as any).supplier.trim()) {
-        // If existing has no supplier, set it. If different, append it.
+      if (purchase.supplier && purchase.supplier.trim()) {
+        // Use supplier from purchase header, not individual items
         const currentSupplier = existing.supplier || '';
-        const newSupplier = (item as any).supplier.trim();
+        const newSupplier = purchase.supplier.trim();
         if (!currentSupplier) {
           updateData.supplier = newSupplier;
         } else if (!currentSupplier.toLowerCase().includes(newSupplier.toLowerCase())) {
@@ -186,7 +186,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         stok: qty,
         harga_satuan: unitPrice,
         harga_rata_rata: unitPrice, // For new items, WAC = unit price
-        supplier: (item as any).supplier || '',
+        supplier: purchase.supplier || '', // Use supplier from purchase header
         minimum: 0,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString()

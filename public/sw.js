@@ -19,13 +19,10 @@ function swError(...args) {
   }
 }
 
-// Update version number when you want to force cache refresh
-// Use a static base prefix combined with commit hash from version.json
-// so cache names remain stable between reloads of the same build.
-const CACHE_PREFIX = 'v5';
+// Use a static base prefix combined with build identifiers from version.json
+// so cache names change automatically on each build without manual edits.
+const CACHE_PREFIX = 'hpp';
 const VERSION_URL = new URL('version.json', self.location.origin).href;
-
-// TEST UPDATE: Force cache refresh by changing this comment
 
 const cacheConfigPromise = resolveCacheConfig();
 
@@ -55,14 +52,22 @@ async function loadVersionSuffix() {
     const response = await fetch(VERSION_URL, { cache: 'no-store' });
     if (response.ok) {
       const data = await response.json();
-      if (data && typeof data.commitHash === 'string' && data.commitHash) {
-        return data.commitHash;
+      if (data) {
+        if (typeof data.buildId === 'string' && data.buildId) {
+          return data.buildId;
+        }
+        if (typeof data.commitHash === 'string' && data.commitHash) {
+          return data.commitHash;
+        }
+        if (typeof data.buildTimestamp === 'string' && data.buildTimestamp) {
+          return data.buildTimestamp.replace(/[^a-zA-Z0-9]/g, '').slice(0, 16);
+        }
       }
     }
   } catch (error) {
     swError('[SW] Failed to load version.json for cache versioning:', error);
   }
-  return 'fallback';
+  return `fallback-${Date.now().toString(36)}`;
 }
 
 function getCacheConfig() {
@@ -85,6 +90,8 @@ const CRITICAL_ASSET_PATTERNS = [
   /\/assets\/index-[\w-]+\.css$/,
   /\/assets\/vendor-[\w-]+\.js$/
 ];
+
+const DYNAMIC_CHUNK_PATTERN = /\/assets\/chunk-[\w-]+\.(js|css)$/;
 
 // API endpoints to cache
 const API_ENDPOINTS = [
@@ -202,14 +209,18 @@ async function handleStaticAsset(request) {
   
   try {
     // Check if it's a critical asset
-    const isCriticalAsset = CRITICAL_ASSET_PATTERNS.some(pattern => 
+    const isCriticalAsset = CRITICAL_ASSET_PATTERNS.some(pattern =>
       pattern.test(url.pathname)
     );
-    
+
+    if (DYNAMIC_CHUNK_PATTERN.test(url.pathname)) {
+      return handleDynamicChunkAsset(request, url, { assetsCache, staticCache });
+    }
+
     // For JavaScript and CSS files with hash in name, use cache-first
     // For other assets, use network-first to ensure freshness
     const isHashedAsset = /\-[a-zA-Z0-9]{8,}\.(js|css)$/.test(url.pathname);
-    
+
     if (isHashedAsset) {
       // Hashed assets can be cached forever (cache-first)
       const cachedResponse = await caches.match(request);
@@ -218,11 +229,11 @@ async function handleStaticAsset(request) {
         return cachedResponse;
       }
     }
-    
+
     // Try network first for non-hashed assets
     swLog('[SW] Fetching from network:', url.pathname);
     const networkResponse = await fetch(request);
-    
+
     if (networkResponse.ok) {
       const ct = networkResponse.headers.get('content-type') || '';
       // Avoid caching HTML responses for JS/CSS requests (prevents MIME errors)
@@ -236,7 +247,7 @@ async function handleStaticAsset(request) {
         swLog('[SW] Skipping cache for asset with HTML response:', url.pathname);
       }
     }
-    
+
     return networkResponse;
   } catch (error) {
     swError('[SW] Static asset fetch failed:', url.pathname, error);
@@ -378,6 +389,73 @@ async function handleDynamicRequest(request) {
     
     return new Response('Content not available offline', { status: 503 });
   }
+}
+
+async function handleDynamicChunkAsset(request, url, { assetsCache, staticCache }) {
+  const cacheCandidates = [assetsCache, staticCache];
+  try {
+    swLog('[SW] Network-first for dynamic chunk:', url.pathname);
+    const networkResponse = await fetch(request);
+
+    if (networkResponse.ok) {
+      const cache = await caches.open(assetsCache);
+      cache.put(request, networkResponse.clone());
+      return networkResponse;
+    }
+
+    if (networkResponse.status === 404) {
+      swLog('[SW] Dynamic chunk missing on server, clearing stale cache:', url.pathname);
+      await purgeCachedEntry(request, cacheCandidates);
+      await broadcastMessage({ type: 'SW_CHUNK_MISSING', url: url.pathname });
+      return networkResponse;
+    }
+
+    const fallbackResponse = await matchCachedEntry(request, cacheCandidates);
+    if (fallbackResponse) {
+      swLog('[SW] Using cached dynamic chunk after non-OK response:', url.pathname, networkResponse.status);
+      return fallbackResponse;
+    }
+
+    return networkResponse;
+  } catch (error) {
+    swError('[SW] Dynamic chunk fetch failed, attempting cache fallback:', url.pathname, error);
+
+    const cachedResponse = await matchCachedEntry(request, cacheCandidates);
+    if (cachedResponse) {
+      swLog('[SW] Serving cached dynamic chunk fallback:', url.pathname);
+      return cachedResponse;
+    }
+
+    return new Response('Chunk not available offline', { status: 503 });
+  }
+}
+
+async function purgeCachedEntry(request, cacheNames) {
+  await Promise.all(cacheNames.map(async (cacheName) => {
+    const cache = await caches.open(cacheName);
+    const match = await cache.match(request);
+    if (match) {
+      await cache.delete(request);
+    }
+  }));
+}
+
+async function broadcastMessage(message) {
+  const clients = await self.clients.matchAll({ includeUncontrolled: true });
+  for (const client of clients) {
+    client.postMessage(message);
+  }
+}
+
+async function matchCachedEntry(request, cacheNames) {
+  for (const cacheName of cacheNames) {
+    const cache = await caches.open(cacheName);
+    const match = await cache.match(request);
+    if (match) {
+      return match;
+    }
+  }
+  return null;
 }
 
 // Background sync for offline actions

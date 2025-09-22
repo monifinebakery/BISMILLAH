@@ -5,8 +5,8 @@ import type { Purchase } from '../types/purchase.types';
 
 // Import all functions from the new refactored modules
 import {
-  fetchPurchases,
-  fetchPaginatedPurchases,
+  fetchPurchasesOptimized as fetchPurchases,
+  fetchPaginatedPurchasesOptimized as fetchPaginatedPurchases,
   fetchPurchaseById,
   createPurchase,
   updatePurchase,

@@ -6,8 +6,8 @@ import { reversePurchaseFromWarehouse } from '@/components/warehouse/services/wa
 
 // Import the new modular services
 import {
-  fetchPurchases,
-  fetchPaginatedPurchases,
+  fetchPurchasesOptimized as fetchPurchases,
+  fetchPaginatedPurchasesOptimized as fetchPaginatedPurchases,
   fetchPurchaseById,
   createPurchase,
   updatePurchase,

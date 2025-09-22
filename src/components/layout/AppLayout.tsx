@@ -7,6 +7,10 @@ import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useAppLayout } from "@/hooks/useAppLayout";
 import { MobileLayout } from "./MobileLayout";
 import { DesktopLayout } from "./DesktopLayout";
+import { AutoLinkingPopup } from "@/components/popups";
+import { logger } from "@/utils/logger";
+import { supabase } from '@/integrations/supabase/client';
+import { safeStorageGet, safeStorageRemove } from '@/utils/auth/safeStorage';
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();

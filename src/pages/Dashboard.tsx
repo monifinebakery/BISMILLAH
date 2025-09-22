@@ -186,11 +186,9 @@ const Dashboard = () => {
                     placeholder="Masukkan nama Anda..."
                     className="bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36"
                     onKeyPress={async (e) => {
-                      if (e.key === 'Enter') {
-                        const name = (e.target as HTMLInputElement).value.trim();
-                        if (name) {
-                          await saveSettings({ ownerName: name });
-                        }
+                      const name = (e.target as HTMLInputElement).value.trim();
+                      if (e.key === 'Enter' && name !== 'Nama Anda') {
+                        await saveSettings({ ownerName: name });
                       }
                     }}
                   />

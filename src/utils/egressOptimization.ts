@@ -11,7 +11,7 @@ export const OPTIMIZED_SELECTS = {
     minimal: 'id, nomor_pesanan, status, total_pesanan'
   },
   purchases: {
-    list: 'id, supplier, tanggal, total_nilai, status, created_at',
+    list: 'id, supplier, tanggal, total_nilai, items, status, created_at',
     detail: 'id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at',
     minimal: 'id, supplier, total_nilai, status'
   },

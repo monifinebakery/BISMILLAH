@@ -6,6 +6,8 @@ import { ArrowLeft, Save, X, Package, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSupplier } from '@/contexts/SupplierContext';
+import { getSupplierName } from '@/utils/purchaseHelpers';
 
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -47,6 +49,7 @@ export const EditBahanBaku: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { user } = useAuth();
+  const { suppliers } = useSupplier();
   
   const [formData, setFormData] = useState<FormData>({
     nama: '',
@@ -75,26 +78,13 @@ export const EditBahanBaku: React.FC = () => {
     enabled: isEditMode && !!user?.id,
   });
 
-  // Fetch suppliers
-  const { data: suppliers = [] } = useQuery({
-    queryKey: ['suppliers', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      // Fetch from suppliers table
-      const service = await warehouseApi.createService('crud', { userId: user.id });
-      // You might need to add this method to the service
-      return []; // TODO: implement fetchSuppliers method
-    },
-    enabled: !!user?.id,
-  });
-
   // Update form when existing item loads
   useEffect(() => {
     if (existingItem) {
       setFormData({
         nama: existingItem.nama || '',
         kategori: existingItem.kategori || '',
-        supplier: existingItem.supplier || '',
+        supplier: existingItem.supplier || '', // Keep as ID for now, will display as name
         stok: toNumber(existingItem.stok),
         minimum: toNumber(existingItem.minimum),
         satuan: existingItem.satuan || '',
@@ -104,6 +94,12 @@ export const EditBahanBaku: React.FC = () => {
       });
     }
   }, [existingItem]);
+
+  // Get display name for supplier
+  const getDisplaySupplierName = (supplierId: string): string => {
+    if (!supplierId) return '';
+    return getSupplierName(supplierId, suppliers) || supplierId;
+  };
 
   // Save mutation
   const saveMutation = useMutation({
@@ -268,18 +264,48 @@ export const EditBahanBaku: React.FC = () => {
                   {errors.kategori && <p className="text-sm text-red-600">{errors.kategori}</p>}
                 </div>
 
-                {/* Supplier */}
+                {/* Supplier - Show as Select with names */}
                 <div className="space-y-2">
-                  <Label htmlFor="supplier" className="required">Supplier</Label>
-                  <Input
-                    id="supplier"
-                    type="text"
+                  <Label className="required">Supplier</Label>
+                  <Select
                     value={formData.supplier}
-                    onChange={(e) => handleInputChange('supplier', e.target.value)}
-                    placeholder="Masukkan nama supplier"
-                    className={errors.supplier ? 'border-red-500' : ''}
-                  />
+                    onValueChange={(value) => handleInputChange('supplier', value)}
+                  >
+                    <SelectTrigger className={errors.supplier ? 'border-red-500' : ''}>
+                      <SelectValue placeholder="Pilih supplier">
+                        {formData.supplier ? getDisplaySupplierName(formData.supplier) : 'Pilih supplier'}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {suppliers.map((supplier) => (
+                        <SelectItem key={supplier.id} value={supplier.id}>
+                          {supplier.nama}
+                        </SelectItem>
+                      ))}
+                      {/* Allow manual input if supplier not in list */}
+                      {formData.supplier && !suppliers.find(s => s.id === formData.supplier) && (
+                        <SelectItem value={formData.supplier}>
+                          {getDisplaySupplierName(formData.supplier)} (Custom)
+                        </SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
                   {errors.supplier && <p className="text-sm text-red-600">{errors.supplier}</p>}
+                  
+                  {/* Fallback text input for manual entry */}
+                  <div className="mt-2">
+                    <Label htmlFor="supplier-manual" className="text-xs text-gray-500">
+                      Atau ketik manual:
+                    </Label>
+                    <Input
+                      id="supplier-manual"
+                      type="text"
+                      value={formData.supplier && !suppliers.find(s => s.id === formData.supplier) ? getDisplaySupplierName(formData.supplier) : ''}
+                      onChange={(e) => handleInputChange('supplier', e.target.value)}
+                      placeholder="Ketik nama supplier baru"
+                      className="text-xs"
+                    />
+                  </div>
                 </div>
 
                 {/* Satuan */}

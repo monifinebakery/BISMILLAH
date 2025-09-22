@@ -4,6 +4,7 @@ import React, { useState, useMemo, Suspense, lazy, useCallback } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
+import UpdateBanner from '@/components/UpdateBanner';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -181,6 +182,7 @@ const Dashboard = () => {
 
   return (
     <ErrorBoundary>
+      <UpdateBanner />
       <div className="min-h-screen bg-background">
         <div className="container-safe max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           

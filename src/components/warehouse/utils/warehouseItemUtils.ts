@@ -16,7 +16,7 @@ interface EnsureOptions {
  */
 export const ensureBahanBakuIdsForItems = async (
   items: PurchaseItem[],
-  supplierId: string,
+  supplierName: string, // Changed from supplierId to supplierName
   { bahanBaku, addBahanBaku }: EnsureOptions
 ): Promise<PurchaseItem[]> => {
   const results: PurchaseItem[] = [];
@@ -31,7 +31,7 @@ export const ensureBahanBakuIdsForItems = async (
     let existing = (bahanBaku as any[])?.find((bb: any) =>
       bb?.nama?.toLowerCase()?.trim() === item?.nama?.toLowerCase()?.trim() &&
       (bb?.satuan?.toLowerCase()?.trim() || '') === (item?.satuan?.toLowerCase()?.trim() || '') &&
-      bb?.supplier === supplierId
+      bb?.supplier === supplierName // Changed from supplierId to supplierName
     );
 
     // Fallback: name + unit regardless of supplier
@@ -64,7 +64,7 @@ export const ensureBahanBakuIdsForItems = async (
           minimum: 0,
           satuan: item.satuan || '-',
           harga: item.unitPrice || 0,
-          supplier: supplierId,
+          supplier: supplierName, // Changed from supplierId to supplierName
         });
         created = true;
         results.push({ ...item, bahanBakuId: newId });
@@ -77,7 +77,7 @@ export const ensureBahanBakuIdsForItems = async (
         if (msg.includes('duplicate') || e?.code === '23505') {
           const found = (bahanBaku as any[])?.find((bb: any) =>
             bb?.nama?.toLowerCase()?.trim() === item?.nama?.toLowerCase()?.trim() &&
-            bb?.supplier === supplierId
+            bb?.supplier === supplierName // Changed from supplierId to supplierName
           );
           if (found) {
             results.push({ ...item, bahanBakuId: found.id });

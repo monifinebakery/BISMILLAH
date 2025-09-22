@@ -3,7 +3,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
-import { useSupplier } from '@/contexts/SupplierContext';
 // Gunakan kategori yang sama dengan analisis profit
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 // ✅ NEW: Import type utilities for consistent type conversion
@@ -88,12 +87,10 @@ export const useWarehouseCore = (context: WarehouseContextType) => {
     export: false,
   });
   const [editingItem, setEditingItem] = useState<BahanBakuFrontend | null>(null);
-  const { getSupplierById } = useSupplier();
-  const resolveSupplierName = useCallback((supplierId?: string) => {
-    if (!supplierId) return '';
-    const supplier = getSupplierById(supplierId);
-    return supplier?.nama || 'Supplier Tidak Dikenal';
-  }, [getSupplierById]);
+  const resolveSupplierName = useCallback((supplierName?: string) => {
+    // Supplier field now contains the name directly, not ID
+    return supplierName || '';
+  }, []);
 
   // ✅ ENHANCED: Log editing item changes
   useEffect(() => {

@@ -134,28 +134,21 @@ const fetchSuppliersWithMapping = async (userId?: string): Promise<{ id: string;
   }
 };
 
-// Helper function to resolve supplier ID to name
-const resolveSupplierIdToName = (supplierId: string, suppliersList: { id: string; nama: string }[]): string => {
-  if (!supplierId) return '';
-  
-  // If it's already a name (not UUID format), return as is
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (!uuidRegex.test(supplierId)) {
-    return supplierId;
-  }
-  
-  // Find supplier by ID
-  const supplier = suppliersList.find(s => s.id === supplierId);
-  return supplier ? supplier.nama : supplierId; // Fallback to ID if not found
+// Helper function to resolve supplier name (supplier field now contains name directly)
+const resolveSupplierName = (supplierName: string): string => {
+  return supplierName || '';
 };
 
-// Helper function to resolve supplier name to ID for saving
+// Legacy function for backward compatibility - supplier field now contains name directly
+const resolveSupplierIdToName = (supplierName: string, suppliersList: { id: string; nama: string }[]): string => {
+  // Supplier field now contains name directly, no need for resolution
+  return supplierName || '';
+};
+
+// Legacy function for backward compatibility - supplier field now contains name directly
 const resolveSupplierNameToId = (supplierName: string, suppliersList: { id: string; nama: string }[]): string => {
-  if (!supplierName) return '';
-  
-  // Find supplier by name
-  const supplier = suppliersList.find(s => s.nama === supplierName);
-  return supplier ? supplier.id : supplierName; // Fallback to name if not found
+  // Supplier field now contains name directly, no need for resolution
+  return supplierName || '';
 };
 
 const fetchDialogData = async (type: 'categories' | 'suppliers', userId?: string): Promise<string[]> => {
@@ -214,15 +207,12 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   useEffect(() => {
     if (isEditMode && item) {
-      // Resolve supplier ID to name for display
-      const resolvedSupplierName = suppliersMapping.length > 0 
-        ? resolveSupplierIdToName(item.supplier || '', suppliersMapping)
-        : item.supplier || '';
+      // Supplier field now contains name directly, no resolution needed
+      const resolvedSupplierName = item.supplier || '';
         
-      logger.debug('Resolving supplier for edit mode:', {
-        originalSupplier: item.supplier,
-        resolvedSupplierName,
-        mappingCount: suppliersMapping.length
+      logger.debug('Using supplier name directly for edit mode:', {
+        supplierName: item.supplier,
+        resolvedSupplierName
       });
       
       setFormData({
@@ -275,21 +265,17 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Resolve supplier name back to ID for saving
-      const resolvedSupplierId = suppliersMapping.length > 0 
-        ? resolveSupplierNameToId(formData.supplier.trim(), suppliersMapping)
-        : formData.supplier.trim();
+      const resolvedSupplierName = formData.supplier.trim();
         
-      logger.debug('Resolving supplier for submission:', {
+      logger.debug('Using supplier name directly for submission:', {
         supplierName: formData.supplier.trim(),
-        resolvedSupplierId,
-        mappingCount: suppliersMapping.length
+        resolvedSupplierName
       });
       
       const submitData = {
         nama: formData.nama.trim(),
         kategori: formData.kategori.trim(),
-        supplier: resolvedSupplierId,
+        supplier: resolvedSupplierName,
         stok: formData.stok,
         minimum: formData.minimum,
         satuan: formData.satuan.trim(),

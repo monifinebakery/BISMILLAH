@@ -1,6 +1,6 @@
 // pages/Dashboard.tsx - Updated to use new trends data
 
-import React, { useState, useMemo, Suspense, lazy, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
@@ -87,22 +87,12 @@ const Dashboard = () => {
     activities: 1,
     worstProducts: 1
   });
-  const [ownerInputValue, setOwnerInputValue] = useState('');
-
+  
   // 👤 Get settings from context
-  const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
+  const { settings, isLoading: settingsLoading } = useUserSettings();
   const { ownerName } = settings;
   const isMobile = useIsMobile();
   const isSettingsLoading = settingsLoading;
-
-  useEffect(() => {
-    if (isSettingsLoading) {
-      return;
-    }
-
-    const sanitizedName = ownerName && ownerName !== 'Nama Anda' ? ownerName : '';
-    setOwnerInputValue(sanitizedName);
-  }, [ownerName, isSettingsLoading]);
 
   // Debug logging for settings
   React.useEffect(() => {
@@ -129,41 +119,6 @@ const Dashboard = () => {
     () => getGreeting(!isSettingsLoading ? ownerName : undefined),
     [isSettingsLoading, ownerName]
   );
-
-  const handleOwnerNameSave = useCallback(async (rawName?: string) => {
-    if (isSettingsLoading) {
-      logger.debug('Dashboard - Skipping save because settings are still loading');
-      return;
-    }
-
-    const name = rawName?.trim();
-
-    // Debug logging
-    logger.debug('Dashboard - handleOwnerNameSave called:', { 
-      rawName, 
-      name, 
-      currentOwnerName: ownerName 
-    });
-    
-    if (
-      !name ||
-      name === 'Nama Anda' ||
-      (ownerName && name.toLowerCase() === ownerName.trim().toLowerCase())
-    ) {
-      logger.debug('Dashboard - Skipping save due to invalid/duplicate name');
-      return;
-    }
-
-    logger.info('Dashboard - Saving owner name:', name);
-    const saved = await saveSettings({ ownerName: name });
-
-    if (saved) {
-      logger.success('Dashboard - Owner name saved successfully');
-      setOwnerInputValue(name);
-    } else {
-      logger.error('Dashboard - Failed to save owner name');
-    }
-  }, [isSettingsLoading, ownerName, saveSettings]);
 
   // 🛡️ Safe date range handler - menggunakan unified date utils
   const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
@@ -234,39 +189,6 @@ const Dashboard = () => {
                 isMobile={isMobile}
               />
               
-              {/* 👤 Owner Name Quick Setting */}
-              <div
-                className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm"
-                aria-busy={isSettingsLoading}
-              >
-                <span className="text-amber-700 font-medium">👋</span>
-                <input
-                  type="text"
-                  placeholder={isSettingsLoading ? 'Memuat nama...' : 'Masukkan nama Anda...'}
-                  className={`bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36 transition-opacity ${isSettingsLoading ? 'opacity-60 cursor-not-allowed' : ''}`}
-                  value={ownerInputValue}
-                  onChange={(event) => setOwnerInputValue(event.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.target as HTMLInputElement;
-                      handleOwnerNameSave(input.value);
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const input = e.target as HTMLInputElement;
-                    if (input.value.trim()) {
-                      handleOwnerNameSave(input.value);
-                    }
-                  }}
-                  disabled={isSettingsLoading}
-                />
-                {isSettingsLoading && (
-                  <div className="flex items-center gap-1 text-amber-600 text-xs">
-                    <span className="w-3 h-3 border-[2px] border-amber-300 border-t-transparent rounded-full animate-spin" />
-                    <span>Memuat pengaturan...</span>
-                  </div>
-                )}
-              </div>
             </div>
 
             {/* 📊 Stats Grid with Trends */}

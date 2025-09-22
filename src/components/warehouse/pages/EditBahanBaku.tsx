@@ -20,6 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { warehouseApi } from '../services/warehouseApi';
 import { FNB_COGS_CATEGORIES } from '@/components/profitAnalysis/constants/profitConstants';
 import { toNumber } from '../utils/typeUtils';
+import { warehouseUtils } from '../services/warehouseUtils';
 
 interface FormData {
   nama: string;
@@ -89,7 +90,7 @@ export const EditBahanBaku: React.FC = () => {
         minimum: toNumber(existingItem.minimum),
         satuan: existingItem.satuan || '',
         harga: toNumber(existingItem.harga),
-        expiry: existingItem.expiry ? existingItem.expiry.split('T')[0] : '',
+        expiry: warehouseUtils.formatDateForInput(existingItem.expiry),
         keterangan: existingItem.keterangan || ''
       });
     }

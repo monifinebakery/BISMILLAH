@@ -223,7 +223,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
         minimum: toNumber(item.minimum),
         satuan: item.satuan || '',
         harga: toNumber(item.harga),
-        expiry: item.expiry ? item.expiry.split('T')[0] : '',
+        expiry: warehouseUtils.formatDateForInput(item.expiry),
       });
     } else {
       setFormData(initialFormData);

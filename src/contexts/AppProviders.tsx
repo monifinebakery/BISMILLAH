@@ -30,6 +30,7 @@ import { FollowUpTemplateProvider } from './FollowUpTemplateContext';
 import { OperationalCostProviderRefactored as OperationalCostProvider } from '@/components/operational-costs/context/OperationalCostContextRefactored';
 import { PromoProvider } from '@/components/promoCalculator/context/PromoContext';
 import { DeviceProvider } from './DeviceContext';
+import { DeviceSyncProvider } from './DeviceSyncContext';
 
 interface AppProvidersProps {
   children: ReactNode;
@@ -75,6 +76,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
     { component: PromoProvider, name: 'Promo' },
     { component: FollowUpTemplateProvider, name: 'FollowUpTemplate' },
     { component: DeviceProvider, name: 'Device' },
+    { component: DeviceSyncProvider, name: 'DeviceSync' },
     { component: ProfitAnalysisProvider, name: 'ProfitAnalysis' },
   ];
   

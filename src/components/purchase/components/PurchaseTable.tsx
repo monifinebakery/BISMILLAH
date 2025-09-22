@@ -470,7 +470,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-gray-900 truncate">
-                            {purchase.supplier || 'Supplier Tidak Diketahui'}
+                            {getSupplierNameFromTableContext(purchase.supplier)}
                           </h4>
                           <div className="ml-2">
                             <StatusBadge status={purchase.status} />
@@ -588,6 +588,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                       onDelete={openDelete}
                       onStatusChange={(id, newStatus) => Promise.resolve(handleStatusChange(id, newStatus))}
                       onEditStatus={setEditingStatusId}
+                      getSupplierName={getSupplierName}
                     />
                   ))}
                 </TableBody>
@@ -633,6 +634,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
         isUpdating={false}
         onConfirm={dialogHandlers.confirmStatusChange}
         onCancel={dialogHandlers.cancelStatusChange}
+        getSupplierName={getSupplierName}
       />
 
       <AlertDialog open={dialogState.deleteConfirmation.isOpen} onOpenChange={(open: boolean) => !open && dialogHandlers.cancelDelete()}>

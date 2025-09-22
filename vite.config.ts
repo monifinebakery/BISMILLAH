@@ -51,115 +51,112 @@ export default defineConfig(({ mode }) => {
           ]
         : []
       ),
-      ...(env.VITE_ANALYZE === "true"
-        ? [
-            visualizer({
-              filename: "dist/stats.html",
-              template: "treemap",
-              gzipSize: true,
-              brotliSize: true,
-              open: false,
-            }),
-          ]
-        : []
-      ),
-      VitePWA({
-        registerType: 'autoUpdate',
-        devOptions: {
-          enabled: true
-        },
-        manifest: {
-          name: 'Bismillah App',
-          short_name: 'Bismillah',
-          description: 'My Awesome App description',
-          theme_color: '#ffffff',
-          icons: [
-            {
-              src: 'pwa-192x192.png',
-              sizes: '192x192',
-              type: 'image/png'
-            },
-            {
-              src: 'pwa-512x512.png',
-              sizes: '512x512',
-              type: 'image/png'
-            }
-          ]
-        },
-        workbox: {
-          // Exclude very large rarely-used chunks from precache to speed up first install on mobile
-          maximumFileSizeToCacheInBytes: 700_000, // ~0.7 MB limit
-          globIgnores: [
-            '**/vendor-*.js',
-            '**/excel-*.js',
-            '**/charts-*.js',
-            '**/*.map',
-            'stats.html'
-          ],
-          navigateFallback: '/index.html',
-          runtimeCaching: [
-            {
-              // Supabase REST GET requests
-              urlPattern: new RegExp('^https://[a-zA-Z0-9.-]+\\.supabase\\.co/rest/v1/.*'),
-              handler: 'NetworkFirst',
-              method: 'GET',
-              options: {
-                cacheName: 'supabase-rest-cache',
-                networkTimeoutSeconds: 3,
-                cacheableResponse: {
-                  statuses: [0, 200]
-                },
-                expiration: {
-                  maxEntries: 200,
-                  maxAgeSeconds: 60 * 60 * 24 * 3 // 3 days
-                }
-              }
-            },
-            {
-              // Supabase public storage assets
-              urlPattern: new RegExp('^https://[a-zA-Z0-9.-]+\\.supabase\\.co/storage/v1/object/public/.*'),
-              handler: 'CacheFirst',
-              method: 'GET',
-              options: {
-                cacheName: 'supabase-storage-cache',
-                cacheableResponse: {
-                  statuses: [0, 200]
-                },
-                expiration: {
-                  maxEntries: 300,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-                }
-              }
-            },
-            {
-              // Images (any origin)
-              // Note: generateSW requires string or RegExp, not a function
-              urlPattern: new RegExp('\\.(?:png|jpg|jpeg|svg|gif|webp|avif)$'),
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'image-cache',
-                expiration: {
-                  maxEntries: 200,
-                  maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-                }
-              }
-            },
-            {
-              // Google Fonts (if used)
-              urlPattern: new RegExp('^https://fonts\\.(?:googleapis|gstatic)\\.com/.*'),
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'google-fonts-cache',
-                cacheableResponse: { statuses: [0, 200] },
-                expiration: {
-                  maxEntries: 50,
-                  maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-                }
-              }
-            }
-          ]
-        }
-      })
+      // ...(isProd && !keepLogs
+      //   ? [
+      //       removeConsole({
+      //         includes: ["log", "debug", "info", "warn", "trace"],
+      //       }),
+      //     ]
+      //   : []
+      // ),
+      // VitePWA disabled - using custom service worker implementation
+      // VitePWA({
+      //   registerType: 'autoUpdate',
+      //   devOptions: {
+      //     enabled: true
+      //   },
+      //   manifest: {
+      //     name: 'Bismillah App',
+      //     short_name: 'Bismillah',
+      //     description: 'My Awesome App description',
+      //     theme_color: '#ffffff',
+      //     icons: [
+      //       {
+      //         src: 'pwa-192x192.png',
+      //         sizes: '192x192',
+      //         type: 'image/png'
+      //       },
+      //       {
+      //         src: 'pwa-512x512.png',
+      //         sizes: '512x512',
+      //         type: 'image/png'
+      //       }
+      //     ]
+      //   },
+      //   workbox: {
+      //     // Exclude very large rarely-used chunks from precache to speed up first install on mobile
+      //     maximumFileSizeToCacheInBytes: 700_000, // ~0.7 MB limit
+      //     globIgnores: [
+      //       '**/vendor-*.js',
+      //       '**/excel-*.js',
+      //       '**/charts-*.js',
+      //       '**/*.map',
+      //       'stats.html'
+      //     ],
+      //     navigateFallback: '/index.html',
+      //     runtimeCaching: [
+      //       {
+      //         // Supabase REST GET requests
+      //         urlPattern: new RegExp('^https://[a-zA-Z0-9.-]+\\.supabase\\.co/rest/v1/.*'),
+      //         handler: 'NetworkFirst',
+      //         method: 'GET',
+      //         options: {
+      //           cacheName: 'supabase-rest-cache',
+      //           networkTimeoutSeconds: 3,
+      //           cacheableResponse: {
+      //             statuses: [0, 200]
+      //           },
+      //           expiration: {
+      //             maxEntries: 200,
+      //             maxAgeSeconds: 60 * 60 * 24 * 3 // 3 days
+      //           }
+      //         }
+      //       },
+      //       {
+      //         // Supabase public storage assets
+      //         urlPattern: new RegExp('^https://[a-zA-Z0-9.-]+\\.supabase\\.co/storage/v1/object/public/.*'),
+      //         handler: 'CacheFirst',
+      //         method: 'GET',
+      //         options: {
+      //           cacheName: 'supabase-storage-cache',
+      //           cacheableResponse: {
+      //             statuses: [0, 200]
+      //           },
+      //           expiration: {
+      //             maxEntries: 300,
+      //             maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+      //           }
+      //         }
+      //       },
+      //       {
+      //         // Images (any origin)
+      //         // Note: generateSW requires string or RegExp, not a function
+      //         urlPattern: new RegExp('\\.(?:png|jpg|jpeg|svg|gif|webp|avif)$'),
+      //         handler: 'CacheFirst',
+      //         options: {
+      //           cacheName: 'image-cache',
+      //           expiration: {
+      //             maxEntries: 200,
+      //             maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+      //           }
+      //         }
+      //       },
+      //       {
+      //         // Google Fonts (if used)
+      //         urlPattern: new RegExp('^https://fonts\\.(?:googleapis|gstatic)\\.com/.*'),
+      //         handler: 'CacheFirst',
+      //         options: {
+      //           cacheName: 'google-fonts-cache',
+      //           cacheableResponse: { statuses: [0, 200] },
+      //           expiration: {
+      //             maxEntries: 50,
+      //             maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
+      //           }
+      //         }
+      //       }
+      //     ]
+      //   }
+      // })
     ],
 
     // konsisten dengan netlify.toml (targetPort=5173) & preview 5500

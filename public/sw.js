@@ -73,8 +73,8 @@ const STATIC_ASSETS = [
   // '/index.html', // do not precache HTML to avoid version mismatch
   '/manifest.json',
   '/favicon.ico',
-  '/pwa-192.png',
-  '/pwa-512.png'
+  '/monifine-192.png',
+  '/monifine-512.png'
 ];
 
 // Critical assets patterns to cache aggressively

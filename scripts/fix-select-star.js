@@ -45,8 +45,8 @@ const TABLE_COLUMNS = {
     'kategori', 'created_at', 'updated_at'
   ],
   purchases: [
-    'id', 'user_id', 'tanggal', 'supplier', 'total_pembelian',
-    'status', 'catatan', 'created_at', 'updated_at'
+    'id', 'user_id', 'tanggal', 'supplier', 'total_nilai',
+    'status', 'catatan', 'created_at', 'updated_at', 'items', 'metode_perhitungan'
   ]
 };
 

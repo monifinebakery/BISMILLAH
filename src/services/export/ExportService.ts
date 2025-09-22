@@ -21,6 +21,7 @@ import {
   sheetAssetsCSV,
   sheetPromosCSV,
   sheetBusinessCSV,
+  sheetHPPBreakdownCSV,
 } from './ExportUtils';
 
 export interface SupplierRef {
@@ -193,8 +194,8 @@ export const ExportService = {
     appendCsvSheet(sheetAssetsCSV(input.assets || input.manajemen_aset || []), 'Manajemen Aset');
     // Tabs requested but no dedicated dataset yet -> create light placeholders
     appendCsvSheet(sheetPromosCSV(input.promos || []), 'Kalkulator Promo');
-    // Hitung HPP tab: reuse recipe CSV as a simple reference (or could compute detailed per-item HPP later)
-    appendCsvSheet(sheetRecipesCSV(input.recipes || []), 'Hitung HPP');
+    // Hitung HPP tab: detailed breakdown per recipe (ingredients + cost steps)
+    appendCsvSheet(sheetHPPBreakdownCSV(input.recipes || [], input.suppliers || []), 'Hitung HPP');
 
     // Download
     const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });

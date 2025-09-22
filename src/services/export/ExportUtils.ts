@@ -121,6 +121,132 @@ export const sheetOrdersCSV = (orders: any[] = []): string => {
 // Re-export for direct usage if desired
 export { exportRecipesToCSV as sheetRecipesCSV } from '@/components/recipe/services/recipeUtils';
 
+// 5b) Hitung HPP - Detailed breakdown (ingredients + cost steps per recipe)
+export const sheetHPPBreakdownCSV = (recipes: any[] = [], suppliers: any[] = []): string => {
+  const headers = [
+    'Nama Resep',
+    'Jumlah Porsi',
+    'Tipe', // Bahan | Biaya | Ringkasan
+    'Nama', // Bahan name or cost item name
+    'Qty',
+    'Satuan',
+    'Harga Satuan (Rp)',
+    'Total (Rp)',
+    'Supplier',
+    'Keterangan',
+    'HPP per Porsi (Rp)',
+    'HPP per Pcs (Rp)',
+    'Jumlah Pcs per Porsi',
+    'Harga Jual per Porsi (Rp)',
+    'Harga Jual per Pcs (Rp)',
+    'Margin (%)',
+  ];
+
+  const rows: Row[] = [headers];
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const supplierNameById = new Map<string, string>();
+  suppliers.forEach((s: any) => { if (s?.id) supplierNameById.set(String(s.id), s.nama || s.name || ''); });
+
+  const resolveSupplierName = (bahan: any): string => {
+    const raw = bahan?.supplier_name ?? bahan?.supplierName ?? bahan?.supplier ?? bahan?.supplier_id ?? bahan?.supplierId ?? '';
+    if (!raw) return '';
+    if (typeof raw === 'string' && !uuidRegex.test(raw)) return raw;
+    const id = String(raw);
+    return supplierNameById.get(id) || id;
+  };
+
+  for (const r of recipes) {
+    const nama = r.nama_resep ?? r.namaResep ?? '';
+    const porsi = Number(r.jumlah_porsi ?? r.jumlahPorsi ?? 0) || 0;
+    const pcsPerPorsi = Number(r.jumlah_pcs_per_porsi ?? r.jumlahPcsPerPorsi ?? 0) || 0;
+    const margin = Number(r.margin_keuntungan_persen ?? r.marginKeuntunganPersen ?? 0) || 0;
+    const biayaTKL = Number(r.biaya_tenaga_kerja ?? r.biayaTenagaKerja ?? 0) || 0;
+    const biayaOverhead = Number(r.biaya_overhead ?? r.biayaOverhead ?? 0) || 0;
+    const hargaJualPorsi = Number(r.harga_jual_porsi ?? r.hargaJualPorsi ?? 0) || 0;
+    const hargaJualPcs = Number(r.harga_jual_per_pcs ?? r.hargaJualPerPcs ?? 0) || 0;
+    const hppPerPorsi = Number(r.hpp_per_porsi ?? r.hppPerPorsi ?? 0) || 0;
+    const hppPerPcs = Number(r.hpp_per_pcs ?? r.hppPerPcs ?? 0) || 0;
+
+    const bahanList: any[] = Array.isArray(r.bahan_resep ?? r.bahanResep) ? (r.bahan_resep ?? r.bahanResep) : [];
+
+    // Ingredients rows
+    let totalBahanBaku = 0;
+    for (const b of bahanList) {
+      const qty = Number(b.jumlah ?? 0) || 0;
+      const satuan = b.satuan ?? '';
+      const hargaSatuan = Number(b.harga_satuan ?? b.hargaSatuan ?? 0) || 0;
+      const total = Number(b.total_harga ?? b.totalHarga ?? (qty * hargaSatuan)) || 0;
+      totalBahanBaku += total;
+      rows.push([
+        nama,
+        String(porsi),
+        'Bahan',
+        b.nama ?? '',
+        String(qty),
+        satuan,
+        formatCurrency(hargaSatuan),
+        formatCurrency(total),
+        resolveSupplierName(b),
+        '',
+        '', '', String(pcsPerPorsi || ''), '', '', String(margin || ''),
+      ]);
+    }
+
+    // Cost rows
+    rows.push([
+      nama,
+      String(porsi),
+      'Biaya',
+      'Tenaga Kerja',
+      '',
+      '',
+      '',
+      formatCurrency(biayaTKL),
+      '',
+      '',
+      '', '', String(pcsPerPorsi || ''), '', '', String(margin || ''),
+    ]);
+    rows.push([
+      nama,
+      String(porsi),
+      'Biaya',
+      'Overhead',
+      '',
+      '',
+      '',
+      formatCurrency(biayaOverhead),
+      '',
+      '',
+      '', '', String(pcsPerPorsi || ''), '', '', String(margin || ''),
+    ]);
+
+    const totalHPP = totalBahanBaku + biayaTKL + biayaOverhead;
+
+    // Summary row
+    rows.push([
+      nama,
+      String(porsi),
+      'Ringkasan',
+      'TOTAL',
+      '',
+      '',
+      '',
+      formatCurrency(totalHPP),
+      '',
+      `Total Bahan: ${formatCurrency(totalBahanBaku)}`,
+      formatCurrency(hppPerPorsi || (porsi > 0 ? totalHPP / porsi : 0)),
+      formatCurrency(hppPerPcs || (porsi > 0 && pcsPerPorsi > 0 ? (totalHPP / porsi) / pcsPerPorsi : 0)),
+      String(pcsPerPorsi || ''),
+      formatCurrency(hargaJualPorsi),
+      formatCurrency(hargaJualPcs),
+      String(margin || ''),
+    ]);
+  }
+
+  return csv(rows);
+};
+
 // 6) Biaya Operasional
 export const sheetOperationalCostsCSV = (items: any[] = []): string => {
   const headers = [

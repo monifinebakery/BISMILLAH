@@ -8,7 +8,8 @@ export const OPTIMIZED_SELECTS = {
   orders: {
     list: 'id, nomor_pesanan, tanggal, nama_pelanggan, status, total_pesanan, created_at',
     detail: 'id, nomor_pesanan, tanggal, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, status, total_pesanan, catatan, items, created_at, updated_at',
-    minimal: 'id, nomor_pesanan, status, total_pesanan'
+    minimal: 'id, nomor_pesanan, status, total_pesanan',
+    full: 'id, user_id, nomor_pesanan, tanggal, status, nama_pelanggan, telepon_pelanggan, email_pelanggan, alamat_pengiriman, items, total_pesanan, catatan, created_at, updated_at'
   },
   purchases: {
     list: 'id, supplier, tanggal, total_nilai, items, status, created_at',

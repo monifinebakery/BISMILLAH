@@ -315,7 +315,7 @@ const CostList: React.FC<CostListProps> = ({
           </thead>
           <tbody className="divide-y divide-gray-200">
             {sortedCosts.map((cost) => (
-              <tr key={cost.id} className="hover:bg-gray-50">
+              <tr key={cost.id} className="hover:bg-white">
                 <td className="px-4 py-4">
                   <div className="text-sm font-medium text-gray-900">
                     {cost.nama_biaya}

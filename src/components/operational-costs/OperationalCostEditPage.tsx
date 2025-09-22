@@ -118,7 +118,7 @@ const OperationalCostEditContent: React.FC = () => {
 
   if (!state.isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="h-12 w-12 text-red-500 mx-auto mb-4 text-4xl">🔒</div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Akses Terbatas</h2>
@@ -138,7 +138,7 @@ const OperationalCostEditContent: React.FC = () => {
 
   if (!cost) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="h-12 w-12 text-red-500 mx-auto mb-4 text-4xl">❌</div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Data Tidak Ditemukan</h2>
@@ -154,7 +154,7 @@ const OperationalCostEditContent: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-white">
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-20">
         <div className="mb-6">
           <Breadcrumb>

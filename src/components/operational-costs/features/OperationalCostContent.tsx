@@ -81,7 +81,7 @@ export const OperationalCostContent: React.FC = () => {
   // Auth check
   if (!state.isAuthenticated) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="text-center max-w-md">
           <div className="h-12 w-12 text-red-500 mx-auto mb-4 text-4xl">🔒</div>
           <h2 className="text-xl font-semibold text-gray-800 mb-2">Akses Terbatas</h2>
@@ -101,7 +101,7 @@ export const OperationalCostContent: React.FC = () => {
 
   return (
     <TooltipProvider>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-white">
       {/* ❌ REMOVED: Heavy modal onboarding */}
       <OperationalCostHeader
         onStartOnboarding={() => dialogManagerRef.current?.openQuickSetup()}

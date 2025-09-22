@@ -6,6 +6,7 @@ import SimpleNotificationBell from "@/components/SimpleNotificationBell";
 import { AppError } from "@/components/loaders";
 import BottomTabBar from "@/components/BottomTabBar";
 import { TrendingUp } from "lucide-react";
+import UpdateBanner from "@/components/UpdateBanner";
 
 interface MobileLayoutProps {
   isPaid: boolean;
@@ -22,6 +23,9 @@ export const MobileLayout: React.FC<MobileLayoutProps> = ({
 }) => {
   return (
     <div className="h-screen bg-white flex flex-col relative overflow-hidden">
+      {/* 📱 Update Banner - Integrated into mobile header */}
+      <UpdateBanner />
+
       {/* 📱 Mobile Header */}
       <header className="sticky top-0 z-40 flex h-14 items-center gap-4 border-b bg-white px-4 w-full">
         <div className="flex items-center gap-3 flex-1">

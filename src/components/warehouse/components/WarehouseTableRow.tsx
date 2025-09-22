@@ -14,6 +14,8 @@ import {
 import { warehouseUtils } from '../services/warehouseUtils';
 import type { BahanBakuFrontend } from '../types';
 import { logger } from '@/utils/logger';
+import { useSupplier } from '@/contexts/SupplierContext';
+import { getSupplierName } from '@/utils/purchaseHelpers';
 import { toNumber } from '../utils/typeUtils';
 import { formatIDNumber } from '@/utils/numberLocale';
 
@@ -40,10 +42,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
+  const { suppliers } = useSupplier();
+
   const supplierName = useMemo(() => {
-    // Supplier field now contains name directly, no need for ID resolution
-    return item.supplier || '-';
-  }, [item.supplier]);
+    // ✅ FIXED: Use getSupplierName utility to resolve supplier ID to name
+    return getSupplierName(item.supplier || '', suppliers) || '-';
+  }, [item.supplier, suppliers]);
 
   const highlightText = (text: string, term: string) => {
     if (!term) return text;

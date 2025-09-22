@@ -419,7 +419,7 @@ const CostForm: React.FC<CostFormProps> = ({
               <button
                 type="button"
                 onClick={() => handleStaffTypeSelection(true)}
-                className="w-full text-left p-4 border-2 border-green-200 rounded-lg hover:border-green-300 hover:bg-green-50 transition-colors"
+                className="w-full text-left p-4 border-2 border-green-200 rounded-lg hover:border-green-300 hover:bg-white transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-5 h-5 bg-green-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
@@ -443,7 +443,7 @@ const CostForm: React.FC<CostFormProps> = ({
               <button
                 type="button"
                 onClick={() => handleStaffTypeSelection(false)}
-                className="w-full text-left p-4 border-2 border-blue-200 rounded-lg hover:border-blue-300 hover:bg-blue-50 transition-colors"
+                className="w-full text-left p-4 border-2 border-blue-200 rounded-lg hover:border-blue-300 hover:bg-white transition-colors"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">

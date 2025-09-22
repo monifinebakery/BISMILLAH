@@ -61,7 +61,7 @@ export const OperationalCostContent: React.FC = () => {
   };
 
   const handleOpenEditDialog = (cost: any) => {
-    dialogManagerRef.current?.openEditDialog(cost);
+    navigate(`/biaya-operasional/edit/${cost.id}`);
   };
 
   const handleDeleteCost = async (costId: string) => {

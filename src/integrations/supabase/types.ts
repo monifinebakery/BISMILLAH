@@ -918,7 +918,7 @@ export type Database = {
       }
       create_new_order: {
         Args: { order_data: Json }
-        Returns: string
+        Returns: Json
       }
       get_order_statistics: {
         Args: { p_user_id: string }

@@ -10,6 +10,10 @@ const OperationalCostCreatePage = React.lazy(() =>
   import(/* webpackChunkName: "operational-costs-create" */ '@/components/operational-costs/OperationalCostCreatePage')
 );
 
+const OperationalCostEditPage = React.lazy(() =>
+  import(/* webpackChunkName: "operational-costs-edit" */ '@/components/operational-costs/OperationalCostEditPage')
+);
+
 const operationalCostRoutes = (
   <>
     <Route
@@ -34,6 +38,19 @@ const operationalCostRoutes = (
           preloadOnHover={true}
         >
           <OperationalCostCreatePage />
+        </OptimizedRouteWrapper>
+      }
+    />
+
+    <Route
+      path="biaya-operasional/edit/:id"
+      element={
+        <OptimizedRouteWrapper
+          routeName="operational-costs-edit"
+          priority="medium"
+          preloadOnHover={true}
+        >
+          <OperationalCostEditPage />
         </OptimizedRouteWrapper>
       }
     />

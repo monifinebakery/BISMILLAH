@@ -29,6 +29,7 @@ interface StatusChangeConfirmationDialogProps {
   isUpdating: boolean;
   onConfirm: () => void;
   onCancel: () => void;
+  getSupplierName?: (supplierId: string) => string;
 }
 
 const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogProps> = ({
@@ -38,7 +39,8 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
   validation,
   isUpdating,
   onConfirm,
-  onCancel
+  onCancel,
+  getSupplierName
 }) => {
   const cancelButtonRef = useRef<HTMLButtonElement>(null);
   const confirmButtonRef = useRef<HTMLButtonElement>(null);
@@ -166,7 +168,10 @@ const StatusChangeConfirmationDialog: React.FC<StatusChangeConfirmationDialogPro
 
             {/* Purchase Details */}
             <div className="text-sm text-gray-600">
-              <p><span className="font-medium">Supplier:</span> {purchase.supplier}</p>
+              <p>
+                <span className="font-medium">Supplier:</span>{' '}
+                {getSupplierName ? getSupplierName(purchase.supplier) : (purchase.supplier || 'Supplier Tidak Diketahui')}
+              </p>
               <p><span className="font-medium">Total Items:</span> {purchase.items.length} item</p>
               <p><span className="font-medium">Total Nilai:</span> Rp {(purchase.totalNilai ?? purchase.total_nilai ?? 0).toLocaleString('id-ID')}</p>
             </div>

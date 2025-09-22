@@ -139,7 +139,9 @@ const createPurchaseColumns = (
     sortable: true,
     render: (purchase: Purchase) => (
       <span className="text-sm text-gray-900">
-        {purchase.supplier || 'Supplier Tidak Diketahui'}
+        {getSupplierName
+          ? getSupplierName(purchase.supplier)
+          : (purchase.supplier || 'Supplier Tidak Diketahui')}
       </span>
     )
   },

@@ -18,6 +18,7 @@ interface PurchaseTableRowProps {
   onStatusChange: (purchaseId: string, newStatus: string) => Promise<void>;
   onEdit: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
+  getSupplierName?: (supplierId: string) => string;
 }
 
 export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
@@ -28,11 +29,19 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
   onEditStatus,
   onStatusChange,
   onEdit,
-  onDelete
+  onDelete,
+  getSupplierName
 }) => {
+  const resolvedSupplierName = React.useMemo(() => {
+    if (!getSupplierName) {
+      return purchase.supplier || 'Supplier Tidak Diketahui';
+    }
+    return getSupplierName(purchase.supplier) || 'Supplier Tidak Diketahui';
+  }, [getSupplierName, purchase.supplier]);
+
   return (
-    <TableRow 
-      key={purchase.id} 
+    <TableRow
+      key={purchase.id}
       className="hover:bg-gray-50"
     >
       <TableCell>
@@ -61,7 +70,7 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
       <TableCell>
         <div>
           <div className="font-medium">
-            {purchase.supplier || 'Supplier Tidak Diketahui'}
+            {resolvedSupplierName}
           </div>
         </div>
       </TableCell>

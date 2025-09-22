@@ -199,17 +199,25 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase): Promise<void
     }
 
     try {
-      const { data: existing, error: fetchError } = await supabase
+      const { data: existingData, error: fetchError } = await supabase
         .from('bahan_baku')
         .select('id, stok, harga_rata_rata, harga_satuan')
         .eq('id', itemId)
         .eq('user_id', purchase.userId)
-        .single();
+        .maybeSingle();
+
+      const fetchErrorCode = (fetchError as { code?: string } | null)?.code;
 
       if (fetchError) {
-        logger.error('Error fetching existing item:', fetchError);
-        continue;
+        if (fetchErrorCode === 'PGRST116') {
+          logger.debug('Item not found, will create new entry:', { itemId });
+        } else {
+          logger.error('Error fetching existing item:', fetchError);
+          continue;
+        }
       }
+
+      const existing = fetchErrorCode === 'PGRST116' ? null : existingData;
 
       const oldStock = existing?.stok ?? 0;
       const oldWac = existing?.harga_rata_rata ?? existing?.harga_satuan ?? 0;

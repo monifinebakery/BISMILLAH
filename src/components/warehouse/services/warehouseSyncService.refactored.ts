@@ -19,6 +19,8 @@ export interface PurchaseItem {
   nama?: string;
   kategori?: string;
   quantity?: number;
+  qty?: number;
+  qty_base?: number;
   kuantitas?: number;
   jumlah?: number;
   unitPrice?: number;
@@ -121,7 +123,16 @@ export const extractItemId = (item: PurchaseItem): string | undefined => {
  * @returns Kuantitas atau 0 jika tidak ditemukan
  */
 export const extractQuantity = (item: PurchaseItem): number => {
-  return toNumber(item.kuantitas ?? item.jumlah ?? 0);
+  const rawQuantity =
+    item.quantity ??
+    item.kuantitas ??
+    item.jumlah ??
+    item.qty_base ??
+    item.qty ??
+    0;
+
+  const quantity = toNumber(rawQuantity);
+  return quantity < 0 ? 0 : quantity;
 };
 
 /**

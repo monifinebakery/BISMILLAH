@@ -143,15 +143,15 @@ const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
 
   const MobileCardView = () => (
     <div 
-      className="md:hidden space-y-3 p-4"
+      className="md:hidden space-y-4 p-4"
       role="table"
       aria-label="Warehouse items list"
     >
-      <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200" role="row">
+      <div className="flex justify-between items-center mb-6 py-3 px-4 border-b border-gray-200 bg-gray-50 rounded-lg" role="row">
         <div role="cell">
           <span className="text-sm font-medium text-gray-700">{items?.length || 0} item</span>
           {lastUpdated && (
-            <div className="text-xs text-gray-400 mt-1">
+            <div className="text-xs text-gray-500 mt-1">
               Terakhir diperbarui: {lastUpdated.toLocaleTimeString('id-ID')}
             </div>
           )}
@@ -162,40 +162,43 @@ const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
             size="sm"
             onClick={selectionState.handleRefresh}
             disabled={selectionState.isRefreshing}
-            className="flex items-center gap-1"
+            className="flex items-center gap-2 h-11 px-4 hover:bg-gray-100 active:bg-gray-200 transition-colors"
             aria-label="Refresh warehouse data"
             title="Refresh data"
           >
-            <RefreshCw className={`w-3 h-3 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
+            <span className="text-sm">{selectionState.isRefreshing ? 'Refreshing...' : 'Refresh'}</span>
           </Button>
         )}
       </div>
 
       {isSelectionMode && (
         <div 
-          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4"
+          className="flex items-center gap-4 p-4 bg-gray-50 rounded-lg mb-4 border border-gray-200"
           role="row"
           aria-label="Bulk selection controls"
         >
           <button
             onClick={selectionState.selectAllCurrent}
-            className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
+            className="flex items-center justify-center w-12 h-12 rounded-lg border-2 border-gray-300 hover:border-orange-500 active:bg-orange-50 transition-colors"
             aria-label={selectionState.allCurrentSelected ? 'Deselect all items' : 'Select all items'}
             title={selectionState.allCurrentSelected ? 'Deselect all items' : 'Select all items'}
           >
             {selectionState.allCurrentSelected ? (
-              <CheckSquare className="w-5 h-5 text-orange-500" aria-hidden="true" />
+              <CheckSquare className="w-6 h-6 text-orange-500" aria-hidden="true" />
             ) : selectionState.someCurrentSelected ? (
-              <div className="w-3 h-3 bg-orange-500 rounded-sm" aria-hidden="true" />
+              <div className="w-4 h-4 bg-orange-500 rounded-sm" aria-hidden="true" />
             ) : (
-              <Square className="w-5 h-5 text-gray-400" aria-hidden="true" />
+              <Square className="w-6 h-6 text-gray-400" aria-hidden="true" />
             )}
           </button>
-          <span className="text-sm font-medium text-gray-700">
-            {selectionState.selectedItems.length > 0
-              ? `${selectionState.selectedItems.length} item dipilih`
-              : 'Pilih semua item'}
-          </span>
+          <div>
+            <span className="text-base font-medium text-gray-700">
+              {selectionState.selectedItems.length > 0
+                ? `${selectionState.selectedItems.length} item dipilih`
+                : 'Pilih semua item'}
+            </span>
+          </div>
         </div>
       )}
 
@@ -276,7 +279,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
               scope="col"
               aria-sort={sortConfig.key === 'nama' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+              <button className="flex items-center gap-2 w-full text-left hover:text-orange-600 py-2 px-3 rounded-md hover:bg-orange-50 active:bg-orange-100 transition-colors">
                 <span>Nama</span>
                 {getSortIcon('nama')}
               </button>

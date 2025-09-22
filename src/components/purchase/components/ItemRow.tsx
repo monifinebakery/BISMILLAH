@@ -33,7 +33,7 @@ export const ItemRow: React.FC<ItemRowProps> = React.memo(({
 
     return (
       <div 
-        className={`flex items-center gap-1 ${variant === 'mobile' ? 'ml-2 flex-shrink-0' : 'justify-end gap-2'}`}
+        className={`flex items-center gap-2 ${variant === 'mobile' ? 'ml-4 flex-shrink-0' : 'justify-end gap-2'}`}
         role="group"
         aria-label={`Actions for ${item.nama}`}
       >
@@ -42,22 +42,22 @@ export const ItemRow: React.FC<ItemRowProps> = React.memo(({
           variant="outline"
           onClick={() => onEdit(index)}
           disabled={isSubmitting}
-          className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+          className="h-11 w-11 p-0 border-gray-300 hover:bg-orange-50 active:bg-orange-100 transition-colors"
           aria-label={`Edit item ${item.nama}`}
           title={`Edit ${item.nama}`}
         >
-          <Edit3 className="h-3 w-3 text-gray-600" aria-hidden="true" />
+          <Edit3 className="h-4 w-4 text-gray-600" aria-hidden="true" />
         </Button>
         <Button
           size="sm"
           variant="outline"
           onClick={() => onDelete(index)}
           disabled={isSubmitting}
-          className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
+          className="h-11 w-11 p-0 border-red-300 hover:bg-red-50 active:bg-red-100 transition-colors"
           aria-label={`Delete item ${item.nama}`}
           title={`Delete ${item.nama}`}
         >
-          <Trash2 className="h-3 w-3 text-red-600" aria-hidden="true" />
+          <Trash2 className="h-4 w-4 text-red-600" aria-hidden="true" />
         </Button>
       </div>
     );
@@ -96,25 +96,30 @@ export const ItemRow: React.FC<ItemRowProps> = React.memo(({
     return (
       <div 
         key={key} 
-        className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50"
+        className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
         role="row"
         aria-label={`Purchase item: ${item.nama}`}
       >
-        <div className="flex justify-between items-start mb-2">
-          <div className="flex-1 min-w-0" role="cell">
+        <div className="flex justify-between items-start mb-3">
+          <div className="flex-1 min-w-0 pr-3" role="cell">
             {itemInfo}
           </div>
           {actionButtons}
         </div>
-        <div className="grid grid-cols-2 gap-4 text-sm" role="row">
-          <div role="cell" aria-label={`Quantity: ${item.quantity} ${item.satuan}`}>
-            {itemDetails}
+        <div className="grid grid-cols-2 gap-4 text-sm pl-1" role="row">
+          <div role="cell" className="text-gray-600">
+            <span className="block text-xs text-gray-500 mb-1">Kuantitas</span>
+            <span className="font-medium">{item.quantity} {item.satuan}</span>
+          </div>
+          <div role="cell" className="text-gray-600">
+            <span className="block text-xs text-gray-500 mb-1">Harga Satuan</span>
+            <span className="font-medium">{formatCurrency(item.unitPrice)}</span>
           </div>
         </div>
-        <div className="mt-2 pt-2 border-t border-gray-100" role="cell">
+        <div className="mt-3 pt-3 border-t border-gray-100" role="cell">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-            <span aria-label={`Subtotal: ${formatCurrency(item.subtotal)}`}>
+            <span className="font-bold text-green-600 text-lg" aria-label={`Subtotal: ${formatCurrency(item.subtotal)}`}>
               {subtotalDisplay}
             </span>
           </div>

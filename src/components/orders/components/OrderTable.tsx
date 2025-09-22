@@ -138,7 +138,7 @@ const OrderRowActions: React.FC<{
   if (disabled) {
     return (
       <div className="text-gray-400">
-        <MoreHorizontal className="h-5 w-5" />
+        <MoreHorizontal className="h-6 w-6" />
       </div>
     );
   }
@@ -148,45 +148,48 @@ const OrderRowActions: React.FC<{
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className="h-8 w-8 p-0" 
+          className="h-11 w-11 p-0 hover:bg-gray-100 active:bg-gray-200 transition-colors" 
           onClick={(e) => {
             e.stopPropagation();
             logger.info('Dropdown menu clicked for order:', order.order_number);
           }}
+          aria-label="More actions"
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreHorizontal className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-48 z-50" side="bottom" sideOffset={4}>        
+      <DropdownMenuContent align="end" className="w-56 z-50" side="bottom" sideOffset={8}>        
         <DropdownMenuItem 
           onClick={() => { setIsOpen(false); onEdit(); }}
-          className="cursor-pointer"
+          className="cursor-pointer h-12 px-4 py-3"
         >
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Pesanan
+          <Edit className="mr-3 h-4 w-4" />
+          <span className="text-base">Edit Pesanan</span>
         </DropdownMenuItem>
         
         <DropdownMenuItem 
           onClick={handleFollowUp}
-          className="cursor-pointer"
+          className="cursor-pointer h-12 px-4 py-3"
           disabled={!order.customer_phone && !onFollowUp}
         >
-          <MessageSquare className="mr-2 h-4 w-4" />
-          Follow Up WhatsApp
-          {(!order.customer_phone && !onFollowUp) && (
-            <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
-          )}
+          <MessageSquare className="mr-3 h-4 w-4" />
+          <div className="flex flex-col items-start">
+            <span className="text-base">Follow Up WhatsApp</span>
+            {(!order.customer_phone && !onFollowUp) && (
+              <span className="text-xs text-gray-400">(No WhatsApp)</span>
+            )}
+          </div>
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         
         <DropdownMenuItem 
           onClick={handleDelete} 
-          className="text-red-600 focus:text-red-600 cursor-pointer"
+          className="text-red-600 focus:text-red-600 cursor-pointer h-12 px-4 py-3"
         >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Hapus
+          <Trash2 className="mr-3 h-4 w-4" />
+          <span className="text-base">Hapus</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -427,26 +430,26 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
         {uiState.currentOrders.map((order: Order) => (
           <div 
             key={order.id} 
-            className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50"
+            className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
             role="row"
             aria-label={`Order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']} for ${(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}`}
           >
-            <div className="flex justify-between items-start mb-2">
+            <div className="flex justify-between items-start mb-3">
               <div className="flex items-center gap-3 flex-1 min-w-0" role="cell">
                 {isSelectionMode && (
                   <Checkbox
                     checked={selectedIds.includes(order.id)}
                     onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
                     aria-label={`Select order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}`}
-                    className="mt-1"
+                    className="mt-1 flex-shrink-0"
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-900 truncate">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-gray-900 truncate text-base pr-2">
                       #{(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}
                     </h4>
-                    <div className="ml-2">
+                    <div className="flex-shrink-0">
                       <StatusBadge
                         status={order.status}
                         onChange={(newStatus) => onStatusChange(order.id, newStatus)}
@@ -454,24 +457,24 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
                       />
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-600 mb-1">
                     {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500">
                     {formatDateForDisplay(order.tanggal)} • {formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 ml-2 flex-shrink-0" role="cell">
-                <OrderRowActions
-                  order={order}
-                  onEdit={() => onEditOrder(order)}
-                  onDelete={() => onDeleteOrder(order.id)}
-                  onFollowUp={() => handleFollowUp(order)}
-                  onViewDetail={() => handleViewDetail(order)}
-                  disabled={uiState.isSelectionMode}
-                />
-              </div>
+            </div>
+            <div className="flex items-center justify-end pt-2 border-t border-gray-100" role="cell">
+              <OrderRowActions
+                order={order}
+                onEdit={() => onEditOrder(order)}
+                onDelete={() => onDeleteOrder(order.id)}
+                onFollowUp={() => handleFollowUp(order)}
+                onViewDetail={() => handleViewDetail(order)}
+                disabled={uiState.isSelectionMode}
+              />
             </div>
           </div>
         ))}

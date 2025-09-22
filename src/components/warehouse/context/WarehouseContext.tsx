@@ -237,12 +237,12 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
     isRefetching,
     dataUpdatedAt,
   } = useQuery({
-    queryKey: warehouseQueryKeys.list(),
+    queryKey: [...warehouseQueryKeys.list(), user?.id ?? 'anonymous'],
     queryFn: () => {
       if (isDebugMode) logger.debug('🔄 Warehouse queryFn called');
       return fetchWarehouseData(user?.id);
     },
-    enabled: !!user,
+    enabled: !!user?.id,
     staleTime: 2 * 60 * 1000, // 2 minutes cache to improve performance
     // ✅ Improved retry logic: handle transient 5xx (e.g., 503) with backoff
     retry: (failureCount, err: any) => {

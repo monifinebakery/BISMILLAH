@@ -96,6 +96,15 @@ const Dashboard = () => {
   const { ownerName } = settings;
   const isMobile = useIsMobile();
 
+  // Debug logging for settings
+  React.useEffect(() => {
+    logger.debug('Dashboard - Settings loaded:', { 
+      settings, 
+      ownerName, 
+      settingsLoading 
+    });
+  }, [settings, ownerName, settingsLoading]);
+
   // 🔄 Data Fetching with Trends
   const {
     stats,
@@ -112,17 +121,32 @@ const Dashboard = () => {
 
   const handleOwnerNameSave = useCallback(async (rawName?: string) => {
     const name = (rawName ?? ownerNameDraft).trim();
+    
+    // Debug logging
+    logger.debug('Dashboard - handleOwnerNameSave called:', { 
+      rawName, 
+      ownerNameDraft, 
+      name, 
+      currentOwnerName: ownerName 
+    });
+    
     if (
       !name ||
       name === 'Nama Anda' ||
       (ownerName && name.toLowerCase() === ownerName.trim().toLowerCase())
     ) {
+      logger.debug('Dashboard - Skipping save due to invalid/duplicate name');
       return;
     }
 
+    logger.info('Dashboard - Saving owner name:', name);
     const saved = await saveSettings({ ownerName: name });
+    
     if (saved) {
+      logger.success('Dashboard - Owner name saved successfully');
       setOwnerNameDraft('');
+    } else {
+      logger.error('Dashboard - Failed to save owner name');
     }
   }, [ownerNameDraft, ownerName, saveSettings]);
 
@@ -167,14 +191,16 @@ const Dashboard = () => {
     );
   }
 
-  // 🔄 Loading state (progressive: don't block on settingsLoading)
-  if (!dateRange || !dateRange.from || !dateRange.to) {
+  // 🔄 Loading state - Wait for both dateRange and settings to load
+  if (!dateRange || !dateRange.from || !dateRange.to || settingsLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
-          <p className="text-gray-500">Sedang menyiapkan data untuk Anda...</p>
+          <p className="text-gray-500">
+            {settingsLoading ? 'Memuat pengaturan...' : 'Sedang menyiapkan data untuk Anda...'}
+          </p>
         </div>
       </div>
     );
@@ -197,7 +223,7 @@ const Dashboard = () => {
               />
               
               {/* 👤 Owner Name Quick Setting */}
-              {(!ownerName || ownerName === 'Nama Anda') && (
+              {(!ownerName || ownerName.trim() === '' || ownerName === 'Nama Anda') && (
                 <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm">
                   <span className="text-amber-700 font-medium">💡</span>
                   <input

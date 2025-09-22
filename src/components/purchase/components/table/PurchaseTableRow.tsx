@@ -18,7 +18,6 @@ interface PurchaseTableRowProps {
   onStatusChange: (purchaseId: string, newStatus: string) => Promise<void>;
   onEdit: (purchase: Purchase) => void;
   onDelete: (purchase: Purchase) => void;
-  getSupplierName: (id: string) => string;
 }
 
 export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
@@ -29,8 +28,7 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
   onEditStatus,
   onStatusChange,
   onEdit,
-  onDelete,
-  getSupplierName
+  onDelete
 }) => {
   return (
     <TableRow 
@@ -63,7 +61,7 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
       <TableCell>
         <div>
           <div className="font-medium">
-            {getSupplierName(purchase.supplier)}
+            {purchase.supplier || 'Supplier Tidak Diketahui'}
           </div>
         </div>
       </TableCell>

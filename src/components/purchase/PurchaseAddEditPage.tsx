@@ -366,7 +366,7 @@ const PurchaseAddEditPage: React.FC = () => {
                 {/* Mobile Card Layout */}
                 <div className="block md:hidden">
                   {formData.items.map((item, index) => (
-                    <div key={index} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
+                    <div key={item.bahanBakuId || `item-${index}`} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1 min-w-0">
                           <h4 className="font-medium text-gray-900 truncate">{item.nama}</h4>
@@ -440,7 +440,7 @@ const PurchaseAddEditPage: React.FC = () => {
                     </thead>
                     <tbody className="divide-y divide-gray-200">
                       {formData.items.map((item, index) => (
-                        <tr key={index} className="hover:bg-gray-50">
+                        <tr key={item.bahanBakuId || `item-${index}`} className="hover:bg-gray-50">
                           <td className="px-4 py-3">
                             <div className="font-medium text-gray-900">{item.nama}</div>
                             <div className="text-sm text-gray-500">{item.satuan}</div>

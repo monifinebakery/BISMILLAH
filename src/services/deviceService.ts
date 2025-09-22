@@ -39,8 +39,23 @@ export interface SyncOperation {
 const getStoredDevices = (userId: string): DeviceRecord[] => {
   try {
     const stored = safeStorageGet(`${DEVICES_STORAGE_KEY}_${userId}`);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
+    if (!stored) return [];
+
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+
+    // Validate and filter device records
+    return parsed.filter(device =>
+      device &&
+      typeof device.id === 'string' &&
+      typeof device.device_id === 'string' &&
+      typeof device.device_name === 'string' &&
+      ['desktop', 'mobile', 'tablet'].includes(device.device_type) &&
+      typeof device.browser === 'string' &&
+      typeof device.os === 'string'
+    );
+  } catch (error) {
+    logger.warn('Error parsing stored devices, resetting:', error);
     return [];
   }
 };
@@ -52,14 +67,36 @@ const saveDevices = (userId: string, devices: DeviceRecord[]): void => {
 const getStoredSyncOperations = (userId: string): SyncOperation[] => {
   try {
     const stored = safeStorageGet(`${SYNC_OPERATIONS_KEY}_${userId}`);
-    return stored ? JSON.parse(stored) : [];
-  } catch {
+    if (!stored) return [];
+
+    const parsed = JSON.parse(stored);
+    if (!Array.isArray(parsed)) return [];
+
+    // Validate and filter sync operations
+    return parsed.filter(operation =>
+      operation &&
+      typeof operation.id === 'string' &&
+      typeof operation.device_id === 'string' &&
+      ['create', 'update', 'delete'].includes(operation.operation_type) &&
+      ['operational_cost', 'recipe', 'settings'].includes(operation.entity_type) &&
+      typeof operation.entity_id === 'string' &&
+      Array.isArray(operation.synced_devices)
+    );
+  } catch (error) {
+    logger.warn('Error parsing stored sync operations, resetting:', error);
     return [];
   }
 };
 
 const saveSyncOperations = (userId: string, operations: SyncOperation[]): void => {
-  safeStorageSet(`${SYNC_OPERATIONS_KEY}_${userId}`, JSON.stringify(operations));
+  // Clean up old operations (older than 7 days) before saving
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+  const cleanedOperations = operations.filter(op => new Date(op.timestamp) > sevenDaysAgo);
+
+  // Limit to last 100 operations to prevent storage bloat
+  const limitedOperations = cleanedOperations.slice(-100);
+
+  safeStorageSet(`${SYNC_OPERATIONS_KEY}_${userId}`, JSON.stringify(limitedOperations));
 };
 
 /**
@@ -253,19 +290,32 @@ export const subscribeToSyncOperations = (
   deviceId: string,
   onNewOperation: (operation: SyncOperation) => void
 ) => {
-  // For local storage implementation, we'll use polling
+  // Optimized polling - check every 5 seconds for faster sync
   const interval = setInterval(async () => {
     try {
       const operations = await getPendingSyncOperations(userId, deviceId);
+      let newOperationsFound = false;
+
       operations.forEach(operation => {
         if (!operation.synced_devices.includes(deviceId)) {
           onNewOperation(operation);
+          newOperationsFound = true;
         }
       });
+
+      // If new operations found, mark them as synced immediately
+      if (newOperationsFound) {
+        operations.forEach(async (operation) => {
+          if (!operation.synced_devices.includes(deviceId)) {
+            await markSyncCompleted(operation.id, deviceId, userId);
+          }
+        });
+      }
+
     } catch (error) {
       logger.error('Error in sync polling:', error);
     }
-  }, 30000); // Check every 30 seconds
+  }, 5000); // Check every 5 seconds for near real-time sync
 
   return () => clearInterval(interval);
 };

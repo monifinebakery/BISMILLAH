@@ -151,7 +151,7 @@ const OrderRowActions: React.FC<{
           className="h-8 w-8 p-0" 
           onClick={(e) => {
             e.stopPropagation();
-            logger.info('Dropdown menu clicked for order:', order.orderNumber);
+            logger.info('Dropdown menu clicked for order:', order.order_number);
           }}
         >
           <MoreHorizontal className="h-4 w-4" />
@@ -170,11 +170,11 @@ const OrderRowActions: React.FC<{
         <DropdownMenuItem 
           onClick={handleFollowUp}
           className="cursor-pointer"
-          disabled={!order.customerPhone && !onFollowUp}
+          disabled={!order.customer_phone && !onFollowUp}
         >
           <MessageSquare className="mr-2 h-4 w-4" />
           Follow Up WhatsApp
-          {(!order.customerPhone && !onFollowUp) && (
+          {(!order.customer_phone && !onFollowUp) && (
             <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
           )}
         </DropdownMenuItem>
@@ -385,8 +385,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
       
       // Buka WhatsApp
       window.open(whatsappUrl, '_blank');
-      
       const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
+      const nomor = (order as any).nomor_pesanan || (order as any)['nomorPesanan'] || (order as any).order_number || '';
       toast.success(`Follow up untuk ${nama} berhasil dibuka di WhatsApp`);
       
     } catch (error) {

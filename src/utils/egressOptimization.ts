@@ -25,6 +25,21 @@ export const OPTIMIZED_SELECTS = {
     list: 'id, nama_resep, kategori_resep, harga_jual_porsi, hpp_per_porsi',
     detail: 'id, nama_resep, jumlah_porsi, kategori_resep, deskripsi, bahan_resep, total_hpp, hpp_per_porsi, harga_jual_porsi',
     ingredients: 'id, bahan_resep'
+  },
+  financial: {
+    list: 'id, type, category, amount, description, date, created_at',
+    detail: 'id, user_id, type, category, amount, description, date, related_id, created_at, updated_at',
+    minimal: 'id, user_id, related_id, type, amount, category, date',
+    summary: 'id, type, amount, category, date'
+  },
+  profitAnalysis: {
+    summary: 'id, total_revenue, total_costs, gross_profit, net_profit, profit_margin, date_range',
+    detailed: 'id, revenue_breakdown, cost_breakdown, profit_analysis, recommendations, created_at'
+  },
+  assets: {
+    list: 'id, nama, kategori, nilai_perolehan, nilai_sekarang, tanggal_perolehan, status, created_at',
+    detail: 'id, nama, kategori, nilai_perolehan, nilai_sekarang, tanggal_perolehan, tanggal_penyusutan, status, deskripsi, created_at, updated_at',
+    minimal: 'id, nama, nilai_sekarang, status'
   }
 } as const;
 

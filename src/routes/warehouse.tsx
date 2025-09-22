@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import { logger } from '@/utils/logger';
+import { pwaManager } from '@/utils/pwaUtils';
 
 const WarehousePage = React.lazy(() =>
   import(/* webpackChunkName: "warehouse" */ '@/components/warehouse/WarehousePageRefactored')
@@ -21,11 +22,40 @@ const EditBahanBaku = React.lazy(() =>
     })
 );
 
-const WarehouseErrorFallback: React.FC<{ 
-  error: Error; 
+const WarehouseErrorFallback: React.FC<{
+  error: Error;
   resetErrorBoundary: () => void;
   routeName?: string;
 }> = ({ error, resetErrorBoundary, routeName }) => {
+  const [isFixing, setIsFixing] = useState(false);
+  const isChunkError = /dynamically imported module|ChunkLoadError|Importing a module script failed/i.test(
+    error?.message || ''
+  );
+
+  const handleFix = async () => {
+    try {
+      setIsFixing(true);
+
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(
+          keys
+            .filter((key) => /hpp-|static|dynamic|api|workbox|vite|assets/i.test(key))
+            .map((key) => caches.delete(key))
+        );
+      }
+
+      await pwaManager.updateServiceWorker();
+      pwaManager.skipWaiting();
+    } catch (recoveryError) {
+      console.warn('Warehouse chunk recovery encountered an issue:', recoveryError);
+    } finally {
+      const url = new URL(window.location.href);
+      url.searchParams.set('v', Date.now().toString());
+      window.location.replace(url.toString());
+    }
+  };
+
   logger.error('Warehouse Error:', error);
   return (
     <div className="flex flex-col items-center justify-center p-8 text-center max-w-md mx-auto">
@@ -41,6 +71,15 @@ const WarehouseErrorFallback: React.FC<{
         >
           🔄 Muat Ulang Halaman
         </button>
+        {isChunkError && (
+          <button
+            onClick={handleFix}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg transition-colors font-medium disabled:opacity-70"
+            disabled={isFixing}
+          >
+            {isFixing ? 'Membersihkan Cache…' : 'Perbaiki Aset & Muat Ulang'}
+          </button>
+        )}
         <button
           onClick={() => window.location.href = '/auth'}
           className="border border-gray-300 text-gray-700 hover:bg-gray-50 px-6 py-3 rounded-lg transition-colors"
@@ -48,6 +87,12 @@ const WarehouseErrorFallback: React.FC<{
           🔙 Kembali ke Login
         </button>
       </div>
+      {isChunkError && (
+        <p className="text-xs text-gray-500 mt-4">
+          Terjadi kendala saat memuat berkas aplikasi (sering terjadi pada perangkat mobile/PWA). Kami mencoba membersihkan cache
+          lama sebelum memuat ulang halaman.
+        </p>
+      )}
     </div>
   );
 };

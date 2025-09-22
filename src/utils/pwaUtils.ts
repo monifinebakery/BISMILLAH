@@ -279,6 +279,32 @@ export function usePWA() {
   const [isOnline, setIsOnline] = React.useState(pwaManager.isOnline());
   const [updateAvailable, setUpdateAvailable] = React.useState(false);
 
+  // Version checking for update banner
+  React.useEffect(() => {
+    const checkForVersionUpdate = async () => {
+      try {
+        const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
+        const data = await response.json();
+        const latestCommit = data.commitHash;
+        const currentCommit = import.meta.env.VITE_COMMIT_HASH;
+
+        if (latestCommit && currentCommit && latestCommit !== currentCommit) {
+          setUpdateAvailable(true);
+        }
+      } catch (error) {
+        console.warn('[usePWA] Failed to check version:', error);
+      }
+    };
+
+    // Check immediately
+    checkForVersionUpdate();
+
+    // Check every 5 minutes
+    const interval = setInterval(checkForVersionUpdate, 5 * 60 * 1000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   React.useEffect(() => {
     // Listen for install prompt availability
     const handleBeforeInstallPrompt = () => {

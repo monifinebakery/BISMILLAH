@@ -12,6 +12,7 @@ import { AutoLinkingPopup } from "@/components/popups";
 import { logger } from "@/utils/logger";
 import { supabase } from '@/integrations/supabase/client';
 import { safeStorageGet, safeStorageRemove } from '@/utils/auth/safeStorage';
+import UpdateBanner from '@/components/UpdateBanner';
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
@@ -180,6 +181,7 @@ export const AppLayout = () => {
   
   return (
     <>
+      <UpdateBanner />
       {isMobile ? (
         <MobileLayout {...layoutProps} />
       ) : (

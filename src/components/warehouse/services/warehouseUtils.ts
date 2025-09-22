@@ -73,6 +73,17 @@ const formatDate = (date: string | Date) =>
   new Intl.DateTimeFormat('id-ID', { year: 'numeric', month: 'short', day: 'numeric' })
     .format(typeof date === 'string' ? new Date(date) : date);
 
+const formatDateForInput = (value?: string | Date | null): string => {
+  if (!value) return '';
+
+  const parsedDate = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(parsedDate.getTime())) {
+    return '';
+  }
+
+  return parsedDate.toISOString().split('T')[0];
+};
+
 // ✅ UPDATED: Use new critical stock logic with 20% buffer
 const getLowStockItems = (items: BahanBakuFrontend[]) => {
   return items.filter(item => {
@@ -172,6 +183,7 @@ export const warehouseUtils = {
 
   formatCurrency,
   formatDate,
+  formatDateForInput,
 
   formatStockLevel: (current: number, minimum: number) => {
     if (current === 0) return { level: 'out' as const, percentage: 0, color: 'red' };

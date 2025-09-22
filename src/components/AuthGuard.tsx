@@ -23,10 +23,34 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ✅ ANTI-FLICKER: Reduce mobile optimization states to prevent flicker
   const isMobile = useRef(/Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
   const [isInitialized, setIsInitialized] = useState(false);
-  
+  const [isWaitingForOtpSession, setIsWaitingForOtpSession] = useState(false);
+  const [otpTick, setOtpTick] = useState(() => Date.now());
+  const otpTimestampRef = useRef<number>(0);
+  const otpTimeoutDeadlineRef = useRef<number>(0);
+  const otpWaitTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
 
   // ✅ Development bypass authentication (must NOT short‑circuit before hooks)
   const isDevelopmentBypass = import.meta.env.DEV && import.meta.env.VITE_DEV_BYPASS_AUTH === 'true';
+
+  const readOtpTimestamp = useCallback(() => {
+    try {
+      return parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0;
+    } catch (error) {
+      console.error('Failed to read otpVerifiedAt timestamp:', error);
+      return 0;
+    }
+  }, []);
+
+  const stopOtpWaiting = useCallback(() => {
+    if (otpWaitTimeoutRef.current) {
+      clearTimeout(otpWaitTimeoutRef.current);
+      otpWaitTimeoutRef.current = null;
+    }
+    otpTimeoutDeadlineRef.current = 0;
+    otpTimestampRef.current = 0;
+    setIsWaitingForOtpSession(prev => (prev ? false : prev));
+  }, []);
 
   // ✅ FIX: Centralized navigation handler to prevent race conditions
   const handleNavigation = useCallback((targetPath: string, reason: string) => {
@@ -80,20 +104,58 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   // ✅ FORCE RE-RENDER on auth state changes with timeout prevention
   useEffect(() => {
     setRenderCount(prev => prev + 1);
-    
+
     // ✅ FIX: Auto-cleanup stale otpVerifiedAt flag to prevent infinite loops
     if (!user && !isLoading && isReady) {
-      try {
-        const ts = parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0;
-        if (ts > 0 && (Date.now() - ts) > 15000) { // Clear flag after 15 seconds
+      const otpTimestamp = readOtpTimestamp();
+      const now = Date.now();
+      const OTP_DISPLAY_TIMEOUT_MS = 12000;
+      const OTP_STALE_THRESHOLD_MS = 15000;
+      const MIN_WAIT_WINDOW_MS = 3000;
+
+      if (otpTimestamp > 0) {
+        const elapsed = now - otpTimestamp;
+
+        if (elapsed > OTP_STALE_THRESHOLD_MS) {
           console.warn('🧙 [AuthGuard] Clearing stale otpVerifiedAt flag');
-          safeStorageRemove('otpVerifiedAt');
+          try {
+            safeStorageRemove('otpVerifiedAt');
+          } catch (error) {
+            console.error('Failed to clean stale otpVerifiedAt:', error);
+          }
+          stopOtpWaiting();
+        } else {
+          otpTimestampRef.current = otpTimestamp;
+          setIsWaitingForOtpSession(prev => (prev ? prev : true));
+
+          const remainingWindow = Math.max(0, OTP_DISPLAY_TIMEOUT_MS - elapsed);
+          const waitDuration = Math.max(MIN_WAIT_WINDOW_MS, remainingWindow);
+          otpTimeoutDeadlineRef.current = now + waitDuration;
+
+          if (otpWaitTimeoutRef.current) {
+            clearTimeout(otpWaitTimeoutRef.current);
+          }
+
+          otpWaitTimeoutRef.current = setTimeout(() => {
+            console.warn('🚨 AuthGuard: OTP session wait timeout reached, redirecting to auth');
+            try {
+              safeStorageRemove('otpVerifiedAt');
+            } catch (error) {
+              console.error('Failed to remove otpVerifiedAt flag after timeout:', error);
+            }
+            stopOtpWaiting();
+            if (location.pathname !== '/auth') {
+              navigate('/auth', { replace: true });
+            }
+          }, waitDuration);
         }
-      } catch (error) {
-        console.error('Failed to clean stale otpVerifiedAt:', error);
+      } else {
+        stopOtpWaiting();
       }
+    } else {
+      stopOtpWaiting();
     }
-    
+
     // ✅ MOBILE-OPTIMIZED: Reasonable timeout with retry-based strategy
     if (isLoading && !isReady && !user) {
       const mobileCapabilities = detectMobileCapabilities();
@@ -119,9 +181,21 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         }
       }, timeoutDuration);
       
-      return () => clearTimeout(timeoutId);
+      return () => {
+        clearTimeout(timeoutId);
+        if (otpWaitTimeoutRef.current) {
+          clearTimeout(otpWaitTimeoutRef.current);
+          otpWaitTimeoutRef.current = null;
+        }
+      };
     }
-  }, [user, isReady, isLoading, navigate, location.pathname]);
+    return () => {
+      if (otpWaitTimeoutRef.current) {
+        clearTimeout(otpWaitTimeoutRef.current);
+        otpWaitTimeoutRef.current = null;
+      }
+    };
+  }, [user, isReady, isLoading, navigate, location.pathname, readOtpTimestamp, stopOtpWaiting]);
 
   // ✅ ENHANCED DEBUG: Log all state changes
   useEffect(() => {
@@ -169,6 +243,18 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [isReady, isLoading, isInitialized]);
 
+  useEffect(() => {
+    if (!isWaitingForOtpSession) {
+      return;
+    }
+
+    const intervalId = setInterval(() => {
+      setOtpTick(Date.now());
+    }, 1000);
+
+    return () => clearInterval(intervalId);
+  }, [isWaitingForOtpSession]);
+
   // ✅ REMOVED: Navigation useEffect to prevent race conditions with Navigate component
   // All navigation is now handled by the Navigate component below to ensure atomic redirects
 
@@ -215,39 +301,31 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
   // ✅ FIXED: Simplified redirect logic without race conditions
   if (!user) {
-    // Check for recent OTP verification to provide better UX
-    let recentlyVerified = false;
-    let otpTimestamp = 0;
-    try {
-      const ts = parseInt(safeStorageGet('otpVerifiedAt') || '0', 10) || 0; // ✅ FIX: Thread-safe access
-      otpTimestamp = ts;
-      // Reduced timeout to prevent infinite loading - if session isn't established within 10s, redirect to auth
-      recentlyVerified = ts > 0 && (Date.now() - ts) < 10000; // Reduced from 30s to 10s
-    } catch (error) {
-      logger.warn('[AuthGuard] Failed to read otpVerifiedAt from storage', error);
-    }
+    const otpTimestamp = otpTimestampRef.current || readOtpTimestamp();
+    const now = otpTick;
+    const OTP_DISPLAY_TIMEOUT_MS = 12000;
+    const waitingForOtp = isWaitingForOtpSession || (otpTimestamp > 0 && (now - otpTimestamp) < OTP_DISPLAY_TIMEOUT_MS);
+    const elapsedSeconds = otpTimestamp > 0 ? Math.max(0, Math.floor((now - otpTimestamp) / 1000)) : 0;
 
-    if (recentlyVerified) {
-      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified, ${Math.floor((Date.now() - otpTimestamp) / 1000)}s ago)`);
-      
-      // ✅ FIX: Auto-cleanup if waiting too long to prevent infinite loops
-      if (renderCount > 50) { // If we've re-rendered more than 50 times, something is wrong
-        console.warn(`🚨 [AuthGuard] Too many renders (${renderCount}), clearing OTP flag and redirecting`);
-        try {
-          safeStorageRemove('otpVerifiedAt');
-        } catch (error) {
-          console.error('Failed to remove otpVerifiedAt flag:', error);
-        }
-        return <Navigate to="/auth" state={{ from: location }} replace />;
-      }
-      
+    const remainingSeconds = otpTimeoutDeadlineRef.current > 0
+      ? Math.max(0, Math.ceil((otpTimeoutDeadlineRef.current - now) / 1000))
+      : Math.max(0, Math.ceil((OTP_DISPLAY_TIMEOUT_MS - (now - otpTimestamp)) / 1000));
+
+    if (waitingForOtp) {
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified, ${elapsedSeconds}s ago)`);
+
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
           <div className="text-center">
             <div className="w-10 h-10 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
             <p className="text-sm text-gray-600">Menyiapkan sesi...</p>
             <p className="text-xs text-gray-400 mt-2">Render #{renderCount}</p>
-            <p className="text-xs text-gray-400 mt-1">{Math.floor((Date.now() - otpTimestamp) / 1000)}s dari verifikasi</p>
+            <p className="text-xs text-gray-400 mt-1">{elapsedSeconds}s dari verifikasi</p>
+            {remainingSeconds > 0 && (
+              <p className="text-xs text-gray-400 mt-1">
+                Mengarahkan ulang otomatis dalam ±{remainingSeconds}s jika sesi belum aktif
+              </p>
+            )}
           </div>
         </div>
       );

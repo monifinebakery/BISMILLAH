@@ -183,7 +183,7 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
         telepon_pelanggan: order.teleponPelanggan || '',
         email_pelanggan: order.emailPelanggan || '',
         alamat_pengiriman: order.alamatPengiriman || '',
-        items: JSON.stringify(Array.isArray(order.items) ? order.items : []), // ✅ FIXED: Stringify items for JSON
+        items: Array.isArray(order.items) ? order.items : [],
         total_pesanan: Number(order.totalPesanan) || 0,
         catatan: order.catatan || '',
         subtotal: Number(order.subtotal) || 0,
@@ -248,7 +248,7 @@ export async function addOrder(userId: string, order: NewOrder): Promise<Order> 
     status: validateStatus(order.status),
     tanggal: toSafeISOString(order.tanggal || new Date()),
     total_pesanan: Number(order.totalPesanan) || 0,
-    items: JSON.stringify(Array.isArray(order.items) ? order.items : []),
+    items: Array.isArray(order.items) ? order.items : [],
     subtotal: Number(order.subtotal) || 0,
     pajak: Number(order.pajak) || 0,
     catatan: order.catatan || '',

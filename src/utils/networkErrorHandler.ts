@@ -1,7 +1,79 @@
 // src/utils/networkErrorHandler.ts
 // Global network error handler untuk menyembunyikan 'Fetch failed loading' di production
 
+import { safeStorageGet, safeStorageRemove, safeStorageSet } from '@/utils/auth/safeStorage';
+
 import { logger } from './logger';
+
+const FORCE_NETWORK_LOGS_KEY = 'FORCE_NETWORK_LOGS';
+
+let storageAvailableForNetworkLogs = true;
+let forceNetworkLogsFallback = false;
+
+const markStorageUnavailable = (): void => {
+  if (!storageAvailableForNetworkLogs) {
+    return;
+  }
+
+  storageAvailableForNetworkLogs = false;
+  logger.warn('[NETWORK] Storage tidak tersedia, menggunakan fallback in-memory untuk FORCE_NETWORK_LOGS.');
+};
+
+const isStorageUsable = (): boolean => {
+  if (!storageAvailableForNetworkLogs) {
+    return false;
+  }
+
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    // Akses property untuk memastikan storage tersedia
+    void window.localStorage;
+    return true;
+  } catch (error) {
+    markStorageUnavailable();
+    logger.warn('[NETWORK] Gagal mengakses window.localStorage, fallback digunakan untuk konfigurasi network logs.', error);
+    return false;
+  }
+};
+
+const isForceNetworkLogsEnabled = (): boolean => {
+  if (!isStorageUsable()) {
+    return forceNetworkLogsFallback;
+  }
+
+  const storedValue = safeStorageGet(FORCE_NETWORK_LOGS_KEY);
+
+  if (storedValue === 'true') {
+    forceNetworkLogsFallback = true;
+    return true;
+  }
+
+  if (storedValue === 'false') {
+    forceNetworkLogsFallback = false;
+    return false;
+  }
+
+  return forceNetworkLogsFallback;
+};
+
+const updateForceNetworkLogs = (enabled: boolean): void => {
+  forceNetworkLogsFallback = enabled;
+
+  if (!isStorageUsable()) {
+    return;
+  }
+
+  const operation = enabled
+    ? safeStorageSet(FORCE_NETWORK_LOGS_KEY, 'true')
+    : safeStorageRemove(FORCE_NETWORK_LOGS_KEY);
+
+  void operation.catch(() => {
+    markStorageUnavailable();
+  });
+};
 
 // Environment detection
 const IS_PRODUCTION = window.location.hostname === 'kalkulator.monifine.my.id' || 
@@ -41,7 +113,7 @@ function handleWindowError(event: ErrorEvent): boolean {
   
   if (shouldSuppressError(error)) {
     // Silent di production, tapi log untuk debugging jika diperlukan
-    if (localStorage.getItem('FORCE_NETWORK_LOGS') === 'true') {
+    if (isForceNetworkLogsEnabled()) {
       logger.debug('[NETWORK] Suppressed error:', error);
     }
     return true; // Prevent default browser error handling
@@ -58,7 +130,7 @@ function handleUnhandledRejection(event: PromiseRejectionEvent): void {
   
   if (shouldSuppressError(error)) {
     // Silent di production
-    if (localStorage.getItem('FORCE_NETWORK_LOGS') === 'true') {
+    if (isForceNetworkLogsEnabled()) {
       logger.debug('[NETWORK] Suppressed promise rejection:', error);
     }
     event.preventDefault(); // Prevent default browser handling
@@ -78,7 +150,7 @@ window.fetch = async function(...args: Parameters<typeof fetch>): Promise<Respon
   } catch (error) {
     if (shouldSuppressError(error as Error)) {
       // Silent di production, tapi tetap throw error untuk handling aplikasi
-      if (localStorage.getItem('FORCE_NETWORK_LOGS') === 'true') {
+      if (isForceNetworkLogsEnabled()) {
         logger.debug('[FETCH] Network error suppressed:', error);
       }
     } else {
@@ -97,7 +169,7 @@ if (IS_PRODUCTION) {
     const message = args.join(' ');
     if (isNetworkError(message)) {
       // Silent di production
-      if (localStorage.getItem('FORCE_NETWORK_LOGS') === 'true') {
+      if (isForceNetworkLogsEnabled()) {
         originalConsoleError.apply(console, ['[SUPPRESSED]', ...args]);
       }
       return;
@@ -109,7 +181,7 @@ if (IS_PRODUCTION) {
     const message = args.join(' ');
     if (isNetworkError(message)) {
       // Silent di production
-      if (localStorage.getItem('FORCE_NETWORK_LOGS') === 'true') {
+      if (isForceNetworkLogsEnabled()) {
         originalConsoleWarn.apply(console, ['[SUPPRESSED]', ...args]);
       }
       return;
@@ -134,7 +206,7 @@ export function initializeNetworkErrorHandler(): void {
       
       if (['img', 'script', 'link', 'iframe'].includes(tagName)) {
         if (shouldSuppressError('resource loading failed')) {
-          if (localStorage.getItem('FORCE_NETWORK_LOGS') === 'true') {
+          if (isForceNetworkLogsEnabled()) {
             logger.debug(`[RESOURCE] Failed to load ${tagName}:`, target);
           }
           event.preventDefault();
@@ -161,13 +233,13 @@ export function cleanupNetworkErrorHandler(): void {
 export const networkErrorDebug = {
   // Force show network logs di production
   enableNetworkLogs: () => {
-    localStorage.setItem('FORCE_NETWORK_LOGS', 'true');
+    updateForceNetworkLogs(true);
     logger.info('[DEBUG] Network error logging enabled');
   },
-  
+
   // Disable network logs
   disableNetworkLogs: () => {
-    localStorage.removeItem('FORCE_NETWORK_LOGS');
+    updateForceNetworkLogs(false);
     logger.info('[DEBUG] Network error logging disabled');
   },
   
@@ -182,7 +254,8 @@ export const networkErrorDebug = {
   showConfig: () => {
     logger.info('[DEBUG] Network error handler config:', {
       isProduction: IS_PRODUCTION,
-      forceNetworkLogs: localStorage.getItem('FORCE_NETWORK_LOGS') === 'true',
+      forceNetworkLogs: isForceNetworkLogsEnabled(),
+      storageFallback: !storageAvailableForNetworkLogs,
       suppressedPatterns: NETWORK_ERROR_PATTERNS
     });
   }

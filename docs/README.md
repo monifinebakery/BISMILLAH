@@ -28,7 +28,20 @@ Selamat datang di dokumentasi lengkap untuk **HPP by Monifine** - Progressive We
 - Browser support dan performance tips
 - Troubleshooting PWA
 
-#### 2. [User Guide - Offline Features](./USER_GUIDE_OFFLINE.md) 👥
+#### 2. [User Journey Guide](./USER_JOURNEY_GUIDE.md) 👥
+**Panduan lengkap alur pengguna dari awal sampai selesai**
+- Tahap discovery dan awareness
+- Proses instalasi PWA lengkap
+- First time user experience
+- Onboarding dan setup workflow
+- Penggunaan harian dan routine
+- Fitur offline lengkap
+- Manajemen biaya operasional
+- Kalkulasi HPP advanced
+- Laporan dan analytics
+- Troubleshooting dan support
+
+#### 3. [User Guide - Offline Features](./USER_GUIDE_OFFLINE.md) 👥
 **Panduan pengguna untuk fitur offline**
 - Cara menggunakan mode offline
 - Dashboard offline features
@@ -66,9 +79,10 @@ Selamat datang di dokumentasi lengkap untuk **HPP by Monifine** - Progressive We
 3. 🏗️ **Pelajari Architecture** untuk technical implementation understanding
 
 ### Untuk Pengguna
-1. 📖 Mulai dengan [PWA Documentation](./PWA_DOCUMENTATION.md) untuk memahami fitur PWA
-2. 👥 Lanjut ke [User Guide](./USER_GUIDE_OFFLINE.md) untuk panduan penggunaan
-3. 🆘 Gunakan troubleshooting section jika ada masalah
+1. 📖 Mulai dengan [User Journey Guide](./USER_JOURNEY_GUIDE.md) untuk alur lengkap dari discovery sampai expert
+2. 📱 Lanjut ke [PWA Documentation](./PWA_DOCUMENTATION.md) untuk install dan setup
+3. 👥 Gunakan [User Guide](./USER_GUIDE_OFFLINE.md) untuk tips offline features
+4. 🆘 Gunakan troubleshooting section jika ada masalah
 
 ### Untuk Developer
 1. 🔧 Baca [Technical Documentation](./OFFLINE_TECHNICAL_DOCS.md) untuk memahami arsitektur

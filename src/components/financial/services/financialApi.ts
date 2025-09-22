@@ -12,6 +12,7 @@ import {
   UpdateTransactionData,
   FinancialApiResponse
 } from '../types/financial';
+import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 
 // ===========================================
 // ✅ DATABASE INTERFACE
@@ -103,7 +104,7 @@ export const getFinancialTransactions = async (userId: string, limit: number = 5
     // 🚀 PERFORMANCE: Reduced default limit for much faster loading
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
+      .select(OPTIMIZED_SELECTS.financial.detail) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .limit(Math.min(limit, 50)); // Cap at 50 for initial loading performance
@@ -122,7 +123,7 @@ export const getRecentFinancialTransactions = async (userId: string, limit: numb
   try {
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('id, type, category, amount, description, date') // Minimal fields
+      .select(OPTIMIZED_SELECTS.financial.summary) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .limit(limit);
@@ -156,7 +157,7 @@ export const getFinancialTransactionsPaginated = async (
     // Query untuk mendapatkan data dengan pagination
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
+      .select(OPTIMIZED_SELECTS.financial.detail) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
       .eq('user_id', userId)
       .order('date', { ascending: false })
       .range(offset, offset + limit - 1);
@@ -219,7 +220,7 @@ export const addFinancialTransaction = async (
         // Try to fetch the existing transaction
         const { data: existingData, error: fetchError } = await supabase
           .from('financial_transactions')
-          .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
+          .select(OPTIMIZED_SELECTS.financial.detail) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
           .eq('user_id', userId)
           .eq('description', transaction.description)
           .single();
@@ -287,7 +288,7 @@ export const deleteFinancialTransaction = async (id: string): Promise<boolean> =
     // Get the transaction details for cleanup
     const { data: transaction, error: fetchError } = await supabase
       .from('financial_transactions')
-      .select('id, user_id, related_id, type, amount, category, date')
+      .select(OPTIMIZED_SELECTS.financial.minimal) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
       .eq('id', id)
       .single();
       
@@ -349,7 +350,7 @@ export const getTransactionsByDateRange = async (
     
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
+      .select(OPTIMIZED_SELECTS.financial.detail) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
       .eq('user_id', userId)
       .gte('date', startYMD)
       .lte('date', endYMD)
@@ -378,7 +379,7 @@ export const getFinancialTransactionById = async (
   try {
     const { data, error } = await supabase
       .from('financial_transactions')
-      .select('id, user_id, type, category, amount, description, date, related_id, created_at, updated_at')
+      .select(OPTIMIZED_SELECTS.financial.detail) // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
       .eq('id', id)
       .eq('user_id', userId)
       .single();

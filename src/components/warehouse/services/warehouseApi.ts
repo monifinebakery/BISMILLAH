@@ -104,12 +104,8 @@ class CrudService {
 
   async fetchBahanBaku(): Promise<BahanBakuFrontend[]> {
     try {
-      // Boleh keep select legacy cols untuk tampilan, tapi tidak dipakai kalkulasi
-      let query = supabase.from('bahan_baku').select(`
-        id, user_id, nama, kategori, stok, satuan, minimum, harga_satuan, supplier,
-        tanggal_kadaluwarsa, created_at, updated_at,
-        harga_rata_rata
-      `);
+      // ✅ UPDATED: Use OPTIMIZED_SELECTS instead of hardcoded fields
+      let query = supabase.from('bahan_baku').select(OPTIMIZED_SELECTS.warehouse.list);
 
       if (this.config.userId) query = query.eq('user_id', this.config.userId);
 

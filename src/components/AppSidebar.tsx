@@ -308,7 +308,7 @@ export function AppSidebar() {
               () => handleExportAllData(),
               Download,
               (assetsLoading || profitLoading) ? "Memuat..." : "Export Semua Data",
-              "bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-xl ring-2 ring-offset-2 ring-orange-300 animate-pulse"
+              "bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-xl ring-2 ring-offset-2 ring-orange-300"
             )}
           </SidebarMenuItem>
           {settingsItems.map((item) => (

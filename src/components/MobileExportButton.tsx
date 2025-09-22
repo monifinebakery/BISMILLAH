@@ -79,7 +79,7 @@ const MobileExportButton = () => {
       variant="default"
       size="sm"
       onClick={handleExport}
-      className="px-3 py-2 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-semibold shadow-md hover:shadow-lg ring-2 ring-offset-2 ring-orange-300 animate-pulse"
+      className="px-3 py-2 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-semibold shadow-md hover:shadow-lg ring-2 ring-offset-2 ring-orange-300"
       disabled={assetsLoading}
       title={assetsLoading ? "Memuat data aset..." : "Export semua data"}
     >

@@ -1,10 +1,9 @@
 // pages/Dashboard.tsx - Updated to use new trends data
 
-import React, { useState, useMemo, Suspense, lazy, useCallback } from 'react';
+import React, { useState, useMemo, Suspense, lazy } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
-import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { logger } from '@/utils/logger';
@@ -88,11 +87,11 @@ const Dashboard = () => {
     activities: 1,
     worstProducts: 1
   });
-
   // 👤 Get settings from context
-  const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
+  const { settings, isLoading: settingsLoading } = useUserSettings();
   const { ownerName } = settings;
   const isMobile = useIsMobile();
+  const isSettingsLoading = settingsLoading;
 
   // Debug logging for settings
   React.useEffect(() => {
@@ -115,36 +114,10 @@ const Dashboard = () => {
   } = useDashboardData(dateRange);
 
   // 👋 Greeting message
-  const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
-
-  const handleOwnerNameSave = useCallback(async (rawName?: string) => {
-    const name = rawName?.trim();
-    
-    // Debug logging
-    logger.debug('Dashboard - handleOwnerNameSave called:', { 
-      rawName, 
-      name, 
-      currentOwnerName: ownerName 
-    });
-    
-    if (
-      !name ||
-      name === 'Nama Anda' ||
-      (ownerName && name.toLowerCase() === ownerName.trim().toLowerCase())
-    ) {
-      logger.debug('Dashboard - Skipping save due to invalid/duplicate name');
-      return;
-    }
-
-    logger.info('Dashboard - Saving owner name:', name);
-    const saved = await saveSettings({ ownerName: name });
-    
-    if (saved) {
-      logger.success('Dashboard - Owner name saved successfully');
-    } else {
-      logger.error('Dashboard - Failed to save owner name');
-    }
-  }, [ownerName, saveSettings]);
+  const greeting = useMemo(
+    () => getGreeting(!isSettingsLoading ? ownerName : undefined),
+    [isSettingsLoading, ownerName]
+  );
 
   // 🛡️ Safe date range handler - menggunakan unified date utils
   const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
@@ -188,15 +161,13 @@ const Dashboard = () => {
   }
 
   // 🔄 Loading state - Wait for both dateRange and settings to load
-  if (!dateRange || !dateRange.from || !dateRange.to || settingsLoading) {
+  if (!dateRange || !dateRange.from || !dateRange.to) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
           <h2 className="text-xl font-semibold text-gray-700 mb-2">Memuat Dashboard</h2>
-          <p className="text-gray-500">
-            {settingsLoading ? 'Memuat pengaturan...' : 'Sedang menyiapkan data untuk Anda...'}
-          </p>
+          <p className="text-gray-500">Sedang menyiapkan data untuk Anda...</p>
         </div>
       </div>
     );
@@ -217,28 +188,6 @@ const Dashboard = () => {
                 isMobile={isMobile}
               />
               
-              {/* 👤 Owner Name Quick Setting */}
-              <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm">
-                <span className="text-amber-700 font-medium">👋</span>
-                <input
-                  type="text"
-                  placeholder="Masukkan nama Anda..."
-                  className="bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36"
-                  defaultValue={ownerName && ownerName !== 'Nama Anda' ? ownerName : ''}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') {
-                      const input = e.target as HTMLInputElement;
-                      handleOwnerNameSave(input.value);
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const input = e.target as HTMLInputElement;
-                    if (input.value.trim()) {
-                      handleOwnerNameSave(input.value);
-                    }
-                  }}
-                />
-              </div>
             </div>
 
             {/* 📊 Stats Grid with Trends */}

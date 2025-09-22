@@ -5,7 +5,13 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = SelectPrimitive.Root
+type SelectRootProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root>
+const Select: React.FC<SelectRootProps> = (props) => {
+  const { onValueChange, ...rest } = props as SelectRootProps & { onValueChange?: unknown }
+  const safeOnValueChange = typeof onValueChange === "function" ? (onValueChange as (value: string) => void) : undefined
+  return <SelectPrimitive.Root {...rest} onValueChange={safeOnValueChange} />
+}
+Select.displayName = (SelectPrimitive.Root as any).displayName
 
 const SelectGroup = SelectPrimitive.Group
 

@@ -3,19 +3,13 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { FormField } from '@/components/ui/form-field';
-import { ActionButtons } from '@/components/ui/action-buttons';
 import { StatusBadge } from '@/components/ui/status-badge';
 import { EmptyState } from '@/components/ui/empty-state';
 import { LoadingStates } from '@/components/ui/loading-spinner';
 import { 
-  Plus, 
-  Trash2, 
   Package,
   Calculator,
   ShoppingCart,
@@ -35,8 +29,10 @@ import { toast } from 'sonner';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';
 // Import extracted components
-import { NewItemForm } from './components/dialogs/NewItemForm';
+const NewItemForm = React.lazy(() => import('./components/dialogs/NewItemForm').then(module => ({ default: module.NewItemForm })));
 import SupplierComboBox from './components/SupplierComboBox';
+import { ItemRow } from './components/ItemRow';
+import { ItemTotal } from './components/ItemTotal';
 
 // Import Breadcrumb components
 import {
@@ -54,17 +50,8 @@ const PurchaseAddEditPage: React.FC = () => {
   const { suppliers } = useSupplier();
   
   // Safely access the purchase context
-  let purchaseContext;
-  let getPurchaseById;
-  
-  try {
-    purchaseContext = usePurchase();
-    getPurchaseById = purchaseContext?.getPurchaseById;
-  } catch (error) {
-    console.error('Error accessing purchase context:', error);
-    purchaseContext = null;
-    getPurchaseById = undefined;
-  }
+  const purchaseContext = usePurchase();
+  const getPurchaseById = purchaseContext?.getPurchaseById;
 
   const isEditing = !!purchaseId;
   const [purchase, setPurchase] = useState(null);
@@ -114,6 +101,8 @@ const PurchaseAddEditPage: React.FC = () => {
     isSubmitting,
     isDirty,
     validation,
+    validateField,
+    validateForm,
     addItem,
     updateItem,
     removeItem,
@@ -136,6 +125,14 @@ const PurchaseAddEditPage: React.FC = () => {
       toast.error(error);
     },
   });
+
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      validateForm();
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+  }, [formData, validateForm]);
 
   // Item management
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
@@ -191,7 +188,7 @@ const PurchaseAddEditPage: React.FC = () => {
       return;
     }
     await handleSubmit(status);
-  }, [formData.items.length, handleSubmit, total_nilai, purchaseContext]);
+  }, [formData.items.length, handleSubmit, total_nilai]);
 
   // Handle adding new item from form
   const handleAddNewItem = useCallback((item: PurchaseItem) => {
@@ -250,6 +247,59 @@ const PurchaseAddEditPage: React.FC = () => {
           </BreadcrumbList>
         </Breadcrumb>
 
+        {/* Validation Summary */}
+        {(validation?.errors?.length > 0 || validation?.warnings?.length > 0) && (
+          <div 
+            className="mt-4 space-y-3"
+            role="region"
+            aria-live="polite"
+            aria-label="Form validation messages"
+          >
+            {validation.errors.length > 0 && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">Perbaiki kesalahan berikut:</h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {validation.errors.map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {validation.warnings.length > 0 && (
+              <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
+                <div className="flex">
+                  <div className="flex-shrink-0">
+                    <svg className="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-yellow-800">Peringatan:</h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {validation.warnings.map((warning, index) => (
+                          <li key={index}>{warning}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
         {/* Page Title */}
         <div className="mt-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -290,7 +340,7 @@ const PurchaseAddEditPage: React.FC = () => {
         <Card className="border-gray-200">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Package className="h-5 w-5 text-orange-600" />
+              <Package className="h-5 w-5 text-orange-600" aria-hidden="true" />
               Informasi Pembelian
             </CardTitle>
           </CardHeader>
@@ -307,10 +357,10 @@ const PurchaseAddEditPage: React.FC = () => {
                   suppliers={suppliers}
                   disabled={isSubmitting || isViewOnly}
                   placeholder="Pilih atau tulis nama supplier"
-                  hasError={!!(validation?.supplier)}
+                  hasError={!!(validation?.fieldErrors?.supplier)}
                 />
-                {validation?.supplier && (
-                  <p className="text-xs text-red-500">{validation.supplier}</p>
+                {validation?.fieldErrors?.supplier && (
+                  <p className="text-xs text-red-500">{validation.fieldErrors.supplier}</p>
                 )}
               </div>
 
@@ -325,7 +375,7 @@ const PurchaseAddEditPage: React.FC = () => {
                   }
                 }}
                 disabled={isSubmitting || isViewOnly}
-                error={validation?.tanggal}
+                error={validation?.fieldErrors?.tanggal}
                 required
                 icon={Calculator}
                 max={new Date().toISOString().split('T')[0]}
@@ -350,14 +400,41 @@ const PurchaseAddEditPage: React.FC = () => {
         <Card className="border-gray-200">
           <CardHeader className="pb-4">
             <CardTitle className="text-lg flex items-center gap-2">
-              <Package className="h-5 w-5 text-orange-600" />
+              <Package className="h-5 w-5 text-orange-600" aria-hidden="true" />
               Daftar Item Pembelian
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
+            {/* Validation Errors for Items */}
+            {validation?.errors?.length > 0 && validation.errors.some(error => 
+              error.toLowerCase().includes('item') || 
+              error.toLowerCase().includes('minimal satu') ||
+              error.toLowerCase().includes('bahan baku')
+            ) && (
+              <div className="bg-red-50 border border-red-200 rounded-md p-3">
+                <div className="flex">
+                  <div className="ml-3">
+                    <h3 className="text-sm font-medium text-red-800">Ada kesalahan dalam daftar item:</h3>
+                    <div className="mt-2 text-sm text-red-700">
+                      <ul className="list-disc pl-5 space-y-1">
+                        {validation.errors.filter(error => 
+                          error.toLowerCase().includes('item') || 
+                          error.toLowerCase().includes('minimal satu') ||
+                          error.toLowerCase().includes('bahan baku')
+                        ).map((error, index) => (
+                          <li key={index}>{error}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             {/* Add New Item Form */}
             {!isViewOnly && (
-              <NewItemForm onAddItem={handleAddNewItem} />
+              <React.Suspense fallback={<div className="animate-pulse bg-gray-200 h-32 rounded-md"></div>}>
+                <NewItemForm onAddItem={handleAddNewItem} />
+              </React.Suspense>
             )}
 
             {/* Items Table */}
@@ -366,135 +443,61 @@ const PurchaseAddEditPage: React.FC = () => {
                 {/* Mobile Card Layout */}
                 <div className="block md:hidden">
                   {formData.items.map((item, index) => (
-                    <div key={item.bahanBakuId || `item-${index}`} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
-                      <div className="flex justify-between items-start mb-2">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 truncate">{item.nama}</h4>
-                          <p className="text-sm text-gray-500">{item.satuan}</p>
-                          {item.keterangan && (
-                            <p className="text-xs text-gray-400 mt-1 line-clamp-2">{item.keterangan}</p>
-                          )}
-                        </div>
-                        {!isViewOnly && (
-                          <div className="flex items-center gap-1 ml-2 flex-shrink-0">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditItem(index)}
-                              disabled={isSubmitting}
-                              className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
-                            >
-                              <Edit3 className="h-3 w-3 text-gray-600" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => removeItem(index)}
-                              disabled={isSubmitting}
-                              className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
-                            >
-                              <Trash2 className="h-3 w-3 text-red-600" />
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-4 text-sm">
-                        <div>
-                          <span className="text-gray-500">Kuantitas:</span>
-                          <div className="font-medium text-gray-900">{item.quantity} {item.satuan}</div>
-                        </div>
-                        <div>
-                          <span className="text-gray-500">Harga Satuan:</span>
-                          <div className="font-medium text-gray-900">{formatCurrency(item.unitPrice)}</div>
-                        </div>
-                      </div>
-                      <div className="mt-2 pt-2 border-t border-gray-100">
-                        <div className="flex justify-between items-center">
-                          <span className="text-sm font-medium text-gray-700">Subtotal:</span>
-                          <span className="font-bold text-green-600">{formatCurrency(item.subtotal)}</span>
-                        </div>
-                      </div>
-                    </div>
+                    <ItemRow
+                      key={item.bahanBakuId || `item-${index}`}
+                      item={item}
+                      index={index}
+                      isViewOnly={isViewOnly}
+                      isSubmitting={isSubmitting}
+                      onEdit={handleEditItem}
+                      onDelete={removeItem}
+                      variant="mobile"
+                    />
                   ))}
-                  <div className="p-4 bg-gray-50 border-t">
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold text-gray-900">Total Keseluruhan:</span>
-                      <span className="font-bold text-lg text-green-600">{formatCurrency(total_nilai)}</span>
-                    </div>
-                  </div>
+                  <ItemTotal
+                    total_nilai={total_nilai}
+                    variant="mobile"
+                    isViewOnly={isViewOnly}
+                  />
                 </div>
 
                 {/* Desktop Table Layout */}
                 <div className="hidden md:block">
-                  <table className="w-full">
+                  <table 
+                    className="w-full"
+                    role="table"
+                    aria-label="Purchase items table"
+                  >
                     <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Kuantitas</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Harga Satuan</th>
-                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subtotal</th>
+                      <tr role="row">
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" role="columnheader" scope="col">Item</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" role="columnheader" scope="col">Kuantitas</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" role="columnheader" scope="col">Harga Satuan</th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" role="columnheader" scope="col">Subtotal</th>
                         {!isViewOnly && (
-                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Aksi</th>
+                          <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider" role="columnheader" scope="col">Aksi</th>
                         )}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200" role="rowgroup">
                       {formData.items.map((item, index) => (
-                        <tr key={item.bahanBakuId || `item-${index}`} className="hover:bg-gray-50">
-                          <td className="px-4 py-3">
-                            <div className="font-medium text-gray-900">{item.nama}</div>
-                            <div className="text-sm text-gray-500">{item.satuan}</div>
-                            {item.keterangan && (
-                              <div className="text-xs text-gray-400 mt-1">{item.keterangan}</div>
-                            )}
-                          </td>
-                          <td className="px-4 py-3 text-gray-900">
-                            {item.quantity} {item.satuan}
-                          </td>
-                          <td className="px-4 py-3 text-gray-900">
-                            {formatCurrency(item.unitPrice)}
-                          </td>
-                          <td className="px-4 py-3 font-medium text-gray-900">
-                            {formatCurrency(item.subtotal)}
-                          </td>
-                          {!isViewOnly && (
-                            <td className="px-4 py-3 text-right">
-                              <div className="flex items-center justify-end gap-2">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => handleEditItem(index)}
-                                  disabled={isSubmitting}
-                                  className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
-                                >
-                                  <Edit3 className="h-3 w-3 text-gray-600" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={() => removeItem(index)}
-                                  disabled={isSubmitting}
-                                  className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
-                                >
-                                  <Trash2 className="h-3 w-3 text-red-600" />
-                                </Button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
+                        <ItemRow
+                          key={item.bahanBakuId || `item-${index}`}
+                          item={item}
+                          index={index}
+                          isViewOnly={isViewOnly}
+                          isSubmitting={isSubmitting}
+                          onEdit={handleEditItem}
+                          onDelete={removeItem}
+                          variant="desktop"
+                        />
                       ))}
                     </tbody>
-                    <tfoot className="bg-gray-50 font-semibold">
-                      <tr>
-                        <td colSpan={isViewOnly ? 3 : 4} className="px-4 py-3 text-right text-gray-900">
-                          Total
-                        </td>
-                        <td className="px-4 py-3 text-gray-900">
-                          {formatCurrency(total_nilai)}
-                        </td>
-                        {!isViewOnly && <td></td>}
-                      </tr>
-                    </tfoot>
+                    <ItemTotal
+                      total_nilai={total_nilai}
+                      variant="desktop"
+                      isViewOnly={isViewOnly}
+                    />
                   </table>
                 </div>
               </div>

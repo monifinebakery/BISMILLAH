@@ -141,9 +141,13 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
   });
 
   const MobileCardView = () => (
-    <div className="md:hidden space-y-3 p-4">
-      <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200">
-        <div>
+    <div 
+      className="md:hidden space-y-3 p-4"
+      role="table"
+      aria-label="Warehouse items list"
+    >
+      <div className="flex justify-between items-center mb-4 py-2 border-b border-gray-200" role="row">
+        <div role="cell">
           <span className="text-sm font-medium text-gray-700">{items?.length || 0} item</span>
           {lastUpdated && (
             <div className="text-xs text-gray-400 mt-1">
@@ -158,25 +162,32 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             onClick={selectionState.handleRefresh}
             disabled={selectionState.isRefreshing}
             className="flex items-center gap-1"
+            aria-label="Refresh warehouse data"
+            title="Refresh data"
           >
-            <RefreshCw className={`w-3 h-3 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-3 h-3 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
           </Button>
         )}
       </div>
 
       {isSelectionMode && (
-        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4">
+        <div 
+          className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg mb-4"
+          role="row"
+          aria-label="Bulk selection controls"
+        >
           <button
             onClick={selectionState.selectAllCurrent}
             className="flex items-center justify-center w-6 h-6 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
-            aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
+            aria-label={selectionState.allCurrentSelected ? 'Deselect all items' : 'Select all items'}
+            title={selectionState.allCurrentSelected ? 'Deselect all items' : 'Select all items'}
           >
             {selectionState.allCurrentSelected ? (
-              <CheckSquare className="w-5 h-5 text-orange-500" />
+              <CheckSquare className="w-5 h-5 text-orange-500" aria-hidden="true" />
             ) : selectionState.someCurrentSelected ? (
-              <div className="w-3 h-3 bg-orange-500 rounded-sm" />
+              <div className="w-3 h-3 bg-orange-500 rounded-sm" aria-hidden="true" />
             ) : (
-              <Square className="w-5 h-5 text-gray-400" />
+              <Square className="w-5 h-5 text-gray-400" aria-hidden="true" />
             )}
           </button>
           <span className="text-sm font-medium text-gray-700">
@@ -205,8 +216,8 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
 
   const DesktopTableView = () => (
     <div className="hidden md:block overflow-x-auto">
-      <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50">
-        <div>
+      <div className="flex justify-between items-center p-4 border-b border-gray-200 bg-gray-50" role="row">
+        <div role="cell">
           <span className="text-sm font-medium text-gray-700">{items?.length || 0} item tersimpan</span>
           {lastUpdated && (
             <div className="text-xs text-gray-400 mt-1">
@@ -221,8 +232,10 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
             onClick={selectionState.handleRefresh}
             disabled={selectionState.isRefreshing}
             className="flex items-center gap-2"
+            aria-label="Refresh warehouse data"
+            title="Refresh data"
           >
-            <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${selectionState.isRefreshing ? 'animate-spin' : ''}`} aria-hidden="true" />
             {selectionState.isRefreshing ? (
               <div className="flex items-center justify-center p-2"><div className="w-4 h-4 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" /></div>
             ) : 'Refresh'}
@@ -230,66 +243,107 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
         )}
       </div>
 
-      <table className="w-full">
+      <table 
+        className="w-full"
+        role="table"
+        aria-label="Warehouse items table"
+      >
         <thead className="bg-gray-50 border-b border-gray-200">
-          <tr>
+          <tr role="row">
             {isSelectionMode && (
-              <th className="w-12 px-4 py-3 text-left">
+              <th className="w-12 px-4 py-3 text-left" role="columnheader" scope="col">
                 <button
                   onClick={selectionState.selectAllCurrent}
                   className="flex items-center justify-center w-5 h-5 rounded border-2 border-gray-300 hover:border-orange-500 transition-colors"
-                  aria-label={selectionState.allCurrentSelected ? 'Deselect all' : 'Select all'}
+                  aria-label={selectionState.allCurrentSelected ? 'Deselect all items' : 'Select all items'}
+                  title={selectionState.allCurrentSelected ? 'Deselect all items' : 'Select all items'}
                 >
                   {selectionState.allCurrentSelected ? (
-                    <CheckSquare className="w-4 h-4 text-orange-500" />
+                    <CheckSquare className="w-4 h-4 text-orange-500" aria-hidden="true" />
                   ) : selectionState.someCurrentSelected ? (
-                    <div className="w-3 h-3 bg-orange-500 rounded-sm" />
+                    <div className="w-3 h-3 bg-orange-500 rounded-sm" aria-hidden="true" />
                   ) : (
-                    <Square className="w-4 h-4 text-gray-400" />
+                    <Square className="w-4 h-4 text-gray-400" aria-hidden="true" />
                   )}
                 </button>
               </th>
             )}
             <th
-              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
               onClick={() => onSort('nama')}
+              role="columnheader"
+              scope="col"
+              aria-sort={sortConfig.key === 'nama' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <div className="flex items-center gap-1">Nama {getSortIcon('nama')}</div>
+              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+                <span>Nama</span>
+                {getSortIcon('nama')}
+              </button>
             </th>
             <th
-              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
               onClick={() => onSort('kategori')}
+              role="columnheader"
+              scope="col"
+              aria-sort={sortConfig.key === 'kategori' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <div className="flex items-center gap-1">Kategori {getSortIcon('kategori')}</div>
+              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+                <span>Kategori</span>
+                {getSortIcon('kategori')}
+              </button>
             </th>
             <th
-              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
               onClick={() => onSort('stok')}
+              role="columnheader"
+              scope="col"
+              aria-sort={sortConfig.key === 'stok' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <div className="flex items-center gap-1">Stok {getSortIcon('stok')}</div>
+              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+                <span>Stok</span>
+                {getSortIcon('stok')}
+              </button>
             </th>
             <th
-              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
               onClick={() => onSort('harga')}
+              role="columnheader"
+              scope="col"
+              aria-sort={sortConfig.key === 'harga' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <div className="flex items-center gap-1">Harga {getSortIcon('harga')}</div>
+              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+                <span>Harga</span>
+                {getSortIcon('harga')}
+              </button>
             </th>
             <th
-              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
               onClick={() => onSort('expiry')}
+              role="columnheader"
+              scope="col"
+              aria-sort={sortConfig.key === 'expiry' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <div className="flex items-center gap-1">Kadaluarsa {getSortIcon('expiry')}</div>
+              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+                <span>Kadaluarsa</span>
+                {getSortIcon('expiry')}
+              </button>
             </th>
             <th
-              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer"
+              className="px-4 py-3 text-left text-sm font-medium text-gray-700 cursor-pointer hover:bg-gray-100"
               onClick={() => onSort('updatedAt')}
+              role="columnheader"
+              scope="col"
+              aria-sort={sortConfig.key === 'updatedAt' ? (sortConfig.direction === 'asc' ? 'ascending' : 'descending') : 'none'}
             >
-              <div className="flex items-center gap-1">Terakhir Diperbarui {getSortIcon('updatedAt')}</div>
+              <button className="flex items-center gap-1 w-full text-left hover:text-orange-600">
+                <span>Terakhir Diperbarui</span>
+                {getSortIcon('updatedAt')}
+              </button>
             </th>
-            {!isSelectionMode && <th className="w-24" />}
+            {!isSelectionMode && <th className="w-24" role="columnheader" scope="col">Aksi</th>}
           </tr>
         </thead>
-        <tbody>
+        <tbody role="rowgroup">
           {(items || []).map(item => (
             <WarehouseTableRow
               key={item.id}

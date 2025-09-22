@@ -12,17 +12,20 @@ import { validatePurchaseItems } from './itemValidation';
 export const validatePurchaseForm = (data: Partial<PurchaseFormData>): ValidationResult => {
   const errors: string[] = [];
   const warnings: string[] = [];
+  const fieldErrors: Record<string, string> = {};
 
   // Supplier validation
   const supplierValidation = validateSupplier(data.supplier);
   if (!supplierValidation.isValid && supplierValidation.error) {
     errors.push(supplierValidation.error);
+    fieldErrors.supplier = supplierValidation.error;
   }
 
   // Date validation
   const dateValidation = validatePurchaseDate(data.tanggal);
   if (!dateValidation.isValid && dateValidation.error) {
     errors.push(dateValidation.error);
+    fieldErrors.tanggal = dateValidation.error;
   }
   if (dateValidation.warning) {
     warnings.push(dateValidation.warning);
@@ -37,12 +40,14 @@ export const validatePurchaseForm = (data: Partial<PurchaseFormData>): Validatio
   const methodValidation = validateCalculationMethod(data.metode_perhitungan);
   if (!methodValidation.isValid && methodValidation.error) {
     errors.push(methodValidation.error);
+    fieldErrors.metode_perhitungan = methodValidation.error;
   }
 
   return {
     isValid: errors.length === 0,
     errors,
     warnings,
+    fieldErrors,
   };
 };
 

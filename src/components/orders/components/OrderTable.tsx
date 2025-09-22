@@ -1,5 +1,5 @@
-// 🎯 OrderTable.tsx - Proper Implementation using Types & Utils (No Direct DB Calls)
-import React, { useState } from 'react';
+// 🎯 OrderTable.tsx - OPTIMIZED with React.memo, useMemo, useCallback
+import React, { useState, useCallback, useMemo } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -138,7 +138,7 @@ const OrderRowActions: React.FC<{
   if (disabled) {
     return (
       <div className="text-gray-400">
-        <MoreHorizontal className="h-5 w-5" />
+        <MoreHorizontal className="h-6 w-6" />
       </div>
     );
   }
@@ -148,45 +148,48 @@ const OrderRowActions: React.FC<{
       <DropdownMenuTrigger asChild>
         <Button 
           variant="ghost" 
-          className="h-8 w-8 p-0" 
+          className="h-11 w-11 p-0 hover:bg-gray-100 active:bg-gray-200 transition-colors" 
           onClick={(e) => {
             e.stopPropagation();
             logger.info('Dropdown menu clicked for order:', order.order_number);
           }}
+          aria-label="More actions"
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreHorizontal className="h-5 w-5" />
         </Button>
       </DropdownMenuTrigger>
       
-      <DropdownMenuContent align="end" className="w-48 z-50" side="bottom" sideOffset={4}>        
+      <DropdownMenuContent align="end" className="w-56 z-50" side="bottom" sideOffset={8}>        
         <DropdownMenuItem 
           onClick={() => { setIsOpen(false); onEdit(); }}
-          className="cursor-pointer"
+          className="cursor-pointer h-12 px-4 py-3"
         >
-          <Edit className="mr-2 h-4 w-4" />
-          Edit Pesanan
+          <Edit className="mr-3 h-4 w-4" />
+          <span className="text-base">Edit Pesanan</span>
         </DropdownMenuItem>
         
         <DropdownMenuItem 
           onClick={handleFollowUp}
-          className="cursor-pointer"
+          className="cursor-pointer h-12 px-4 py-3"
           disabled={!order.customer_phone && !onFollowUp}
         >
-          <MessageSquare className="mr-2 h-4 w-4" />
-          Follow Up WhatsApp
-          {(!order.customer_phone && !onFollowUp) && (
-            <span className="text-xs text-gray-400 ml-2">(No WhatsApp)</span>
-          )}
+          <MessageSquare className="mr-3 h-4 w-4" />
+          <div className="flex flex-col items-start">
+            <span className="text-base">Follow Up WhatsApp</span>
+            {(!order.customer_phone && !onFollowUp) && (
+              <span className="text-xs text-gray-400">(No WhatsApp)</span>
+            )}
+          </div>
         </DropdownMenuItem>
         
         <DropdownMenuSeparator />
         
         <DropdownMenuItem 
           onClick={handleDelete} 
-          className="text-red-600 focus:text-red-600 cursor-pointer"
+          className="text-red-600 focus:text-red-600 cursor-pointer h-12 px-4 py-3"
         >
-          <Trash2 className="mr-2 h-4 w-4" />
-          Hapus
+          <Trash2 className="mr-3 h-4 w-4" />
+          <span className="text-base">Hapus</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
@@ -297,8 +300,8 @@ const CompletionDateCell: React.FC<{ order: Order }> = ({ order }) => {
   }
 };
 
-// ✅ MAIN: Table Component with proper completion date handling
-const OrderTable: React.FC<OrderTableProps> = ({
+// ✅ MAIN: Table Component with proper completion date handling - OPTIMIZED
+const OrderTable: React.FC<OrderTableProps> = React.memo(({
   uiState,
   loading,
   onEditOrder,
@@ -317,8 +320,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
 
-  // Handle row click logic (unchanged)
-  const handleRowClick = (order: Order, e: React.MouseEvent) => {
+  // ✅ PERFORMANCE: Memoized callback functions to prevent unnecessary re-renders
+  const handleRowClick = useCallback((order: Order, e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (
       target.tagName === 'BUTTON' ||
@@ -335,22 +338,20 @@ const OrderTable: React.FC<OrderTableProps> = ({
     if (isSelectionMode && onSelectionChange) {
       onSelectionChange(order.id);
     }
-  };
+  }, [isSelectionMode, onSelectionChange]);
 
-
-
-  // ✅ FIXED: View detail handler
-  const handleViewDetail = (order: Order) => {
+  // ✅ PERFORMANCE: Memoized view detail handler
+  const handleViewDetail = useCallback((order: Order) => {
     if (onViewDetail) {
       onViewDetail(order);
     } else {
       const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
       alert(`Detail pesanan #${nomor}`);
     }
-  };
+  }, [onViewDetail]);
 
-  // ✅ FIXED: Follow Up handler dengan proper hooks usage
-  const handleFollowUp = (order: Order) => {
+  // ✅ PERFORMANCE: Memoized follow up handler with template processing
+  const handleFollowUp = useCallback((order: Order) => {
     const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
     logger.info('Follow up clicked for order:', nomor);
     
@@ -400,7 +401,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
-  };
+  }, [onFollowUp, getTemplate, processTemplate]);
 
   if (loading) {
     const { LoadingStates } = require('@/components/ui/loading-spinner');
@@ -427,23 +428,28 @@ const OrderTable: React.FC<OrderTableProps> = ({
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden max-w-full">
       <div className="block md:hidden">
         {uiState.currentOrders.map((order: Order) => (
-          <div key={order.id} className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50">
-            <div className="flex justify-between items-start mb-2">
-              <div className="flex items-center gap-3 flex-1 min-w-0">
+          <div 
+            key={order.id} 
+            className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
+            role="row"
+            aria-label={`Order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']} for ${(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}`}
+          >
+            <div className="flex justify-between items-start mb-3">
+              <div className="flex items-center gap-3 flex-1 min-w-0" role="cell">
                 {isSelectionMode && (
                   <Checkbox
                     checked={selectedIds.includes(order.id)}
                     onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
-                    aria-label={`Select order ${order.id}`}
-                    className="mt-1"
+                    aria-label={`Select order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}`}
+                    className="mt-1 flex-shrink-0"
                   />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-gray-900 truncate">
+                  <div className="flex items-start justify-between mb-2">
+                    <h4 className="font-medium text-gray-900 truncate text-base pr-2">
                       #{(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}
                     </h4>
-                    <div className="ml-2">
+                    <div className="flex-shrink-0">
                       <StatusBadge
                         status={order.status}
                         onChange={(newStatus) => onStatusChange(order.id, newStatus)}
@@ -451,24 +457,24 @@ const OrderTable: React.FC<OrderTableProps> = ({
                       />
                     </div>
                   </div>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-sm text-gray-600 mb-1">
                     {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}
                   </p>
-                  <p className="text-xs text-gray-400 mt-1">
+                  <p className="text-xs text-gray-500">
                     {formatDateForDisplay(order.tanggal)} • {formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                <OrderRowActions
-                  order={order}
-                  onEdit={() => onEditOrder(order)}
-                  onDelete={() => onDeleteOrder(order.id)}
-                  onFollowUp={() => handleFollowUp(order)}
-                  onViewDetail={() => handleViewDetail(order)}
-                  disabled={uiState.isSelectionMode}
-                />
-              </div>
+            </div>
+            <div className="flex items-center justify-end pt-2 border-t border-gray-100" role="cell">
+              <OrderRowActions
+                order={order}
+                onEdit={() => onEditOrder(order)}
+                onDelete={() => onDeleteOrder(order.id)}
+                onFollowUp={() => handleFollowUp(order)}
+                onViewDetail={() => handleViewDetail(order)}
+                disabled={uiState.isSelectionMode}
+              />
             </div>
           </div>
         ))}
@@ -478,47 +484,52 @@ const OrderTable: React.FC<OrderTableProps> = ({
       <div className="hidden md:block">
         {/* Table View - Responsive with horizontal scroll */}
         <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 max-w-full">
-          <table className="min-w-[1000px] w-full">
+          <table 
+            className="min-w-[1000px] w-full"
+            role="table"
+            aria-label="Orders table"
+          >
           <thead className="bg-gray-50">
-            <tr>
+            <tr role="row">
               {isSelectionMode && (
-                <th className="w-12 px-3 py-3 text-left">
+                <th className="w-12 px-3 py-3 text-left" role="columnheader" scope="col">
                   <Checkbox
                     checked={isAllSelected}
                     onCheckedChange={() => onSelectAll && onSelectAll()}
                     className="h-4 w-4"
+                    aria-label="Select all orders"
                   />
                 </th>
               )}
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]" role="columnheader" scope="col">
                 No. Pesanan
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[180px]" role="columnheader" scope="col">
                 Nama Pelanggan
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]" role="columnheader" scope="col">
                 Tanggal Order
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]" role="columnheader" scope="col">
                 Tanggal Selesai
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]" role="columnheader" scope="col">
                 Total
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[120px]" role="columnheader" scope="col">
                 Terakhir Diperbarui
               </th>
-              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]">
+              <th className="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[100px]" role="columnheader" scope="col">
                 Status
               </th>
-              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]">
+              <th className="px-3 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[80px]" role="columnheader" scope="col">
                 Aksi
               </th>
             </tr>
           </thead>
 
           {/* ✅ UPDATED: Table Body with Completion Date */}
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white divide-y divide-gray-200" role="rowgroup">
             {uiState.currentOrders.map((order) => (
               <tr 
                 key={order.id}
@@ -528,20 +539,23 @@ const OrderTable: React.FC<OrderTableProps> = ({
                   ${isSelectionMode ? 'hover:bg-orange-50' : ''}
                 `}
                 onClick={(e) => handleRowClick(order, e)}
+                role="row"
+                aria-label={`Order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']} for ${(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}`}
               >
                 {/* Selection Checkbox */}
                 {isSelectionMode && (
-                  <td className="px-3 py-4 whitespace-nowrap">
+                  <td className="px-3 py-4 whitespace-nowrap" role="cell">
                     <Checkbox
                       checked={selectedIds.includes(order.id)}
                       onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
                       className="h-4 w-4"
+                      aria-label={`Select order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}`}
                     />
                   </td>
                 )}
 
                 {/* Order Number */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]" role="cell">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">#
                       {(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}
@@ -551,7 +565,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Customer Info */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[180px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[180px]" role="cell">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">
                       {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}
@@ -570,7 +584,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Order Date */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]" role="cell">
                   <div className="flex flex-col">
                     <div className="text-sm text-gray-900">{formatDateForDisplay(order.tanggal)}</div>
                     <div className="text-xs text-gray-500">
@@ -583,12 +597,12 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* ✅ NEW: Completion Date using proper types/utils */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]" role="cell">
                   <CompletionDateCell order={order} />
                 </td>
 
                 {/* Total Amount */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[100px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[100px]" role="cell">
                   <div className="flex flex-col">
                     <div className="text-sm font-semibold text-gray-900">{formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}</div>
                     {order.items.length > 0 && (
@@ -600,7 +614,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Last Updated */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[120px]" role="cell">
                   <div className="flex flex-col">
                     <div className="text-sm text-gray-900">{formatDateForDisplay((order as any).updated_at || (order as any)['updatedAt'])}</div>
                     <div className="text-xs text-gray-500">
@@ -613,7 +627,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Status */}
-                <td className="px-3 py-4 whitespace-nowrap min-w-[100px]">
+                <td className="px-3 py-4 whitespace-nowrap min-w-[100px]" role="cell">
                   <StatusBadge
                     status={order.status}
                     onChange={(newStatus) => onStatusChange(order.id, newStatus)}
@@ -622,7 +636,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
                 </td>
 
                 {/* Actions */}
-                <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium min-w-[80px]">
+                <td className="px-3 py-4 whitespace-nowrap text-right text-sm font-medium min-w-[80px]" role="cell">
                   <OrderRowActions
                     order={order}
                     onEdit={() => onEditOrder(order)}
@@ -676,6 +690,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
     )}
   </div>
   );
-};
+});
+
+OrderTable.displayName = 'OrderTable';
 
 export default OrderTable;

@@ -2,7 +2,8 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { Purchase, PurchaseFormData, PurchaseItem } from '../types/purchase.types';
-import { validatePurchaseForm, ValidationResult } from '../utils/validation';
+// Lazy load validation utilities to reduce initial bundle size
+import type { ValidationResult } from '../utils/validation';
 import { calculateItemSubtotal, calculatePurchaseTotal } from '../utils/purchaseTransformers';
 import { usePurchase } from './usePurchase';
 import { useSupplierAutoSave } from './useSupplierAutoSave';
@@ -20,7 +21,7 @@ interface UsePurchaseFormReturn {
   // Form data
   formData: PurchaseFormData;
   setFormData: (data: PurchaseFormData, skipValidation?: boolean) => void;
-  updateFormField: (field: keyof PurchaseFormData, value: any) => void; // ✅ NEW
+  updateFormField: <K extends keyof PurchaseFormData>(field: K, value: PurchaseFormData[K]) => void; 
 
 
   // Form state
@@ -49,7 +50,7 @@ const defaultFormData: PurchaseFormData = {
   supplier: '',
   tanggal: new Date(),
   items: [],
-  // ✅ konsisten dengan transformer
+  // konsisten dengan transformer
   metode_perhitungan: 'AVERAGE',
   keterangan: '',
 };
@@ -98,7 +99,7 @@ export const usePurchaseForm = ({
     return defaultFormData;
   });
   
-  // ✅ RE-INITIALIZE form when initialData changes (for edit mode)
+  // RE-INITIALIZE form when initialData changes (for edit mode)
   useEffect(() => {
     if (mode === 'edit' && initialData) {
       console.log('Re-initializing form due to initialData change:', initialData);
@@ -146,7 +147,7 @@ export const usePurchaseForm = ({
   // Expose form data with consistent name
   const formData = formDataState;
 
-  // ✅ ULTRA LIGHTWEIGHT: Skip all validation for form field updates
+  // ✅ LIGHTWEIGHT: Skip all validation for form field updates
   const setFormDataFn = useCallback((data: PurchaseFormData, skipValidation = true) => { // Default skip!
     setFormDataState(data);
     setIsDirty(true);
@@ -155,27 +156,30 @@ export const usePurchaseForm = ({
     if (skipValidation) return;
 
     // Only validate on explicit request (submit/blur)
-
     if (validationTimeoutRef.current) {
       clearTimeout(validationTimeoutRef.current);
     }
 
-    validationTimeoutRef.current = setTimeout(() => {
+    validationTimeoutRef.current = setTimeout(async () => {
+      // Lazy load validation to reduce initial bundle size
+      const { validatePurchaseForm } = await import('../utils/validation');
       const validationResult = validatePurchaseForm(data);
       setValidation(validationResult);
     }, 300);
   }, []); // ✅ FIXED: Empty deps to prevent re-creation
 
-  // ✅ LIGHTWEIGHT: Direct field updater without validation
-  const updateFormField = useCallback((field: keyof PurchaseFormData, value: any) => {
+  // LIGHTWEIGHT: Direct field updater without validation
+  const updateFormField = useCallback((field: keyof PurchaseFormData, value: PurchaseFormData[keyof PurchaseFormData]) => {
     setFormDataState(prev => ({ ...prev, [field]: value }));
     setIsDirty(true);
     // NO validation during typing - only on submit
 
   }, []);
 
-  // ✅ NEW: Manual validation trigger (untuk dipanggil saat submit atau blur)
-  const validateForm = useCallback(() => {
+  // NEW: Manual validation trigger (untuk dipanggil saat submit atau blur)
+  const validateForm = useCallback(async () => {
+    // Lazy load validation to reduce initial bundle size
+    const { validatePurchaseForm } = await import('../utils/validation');
     const validationResult = validatePurchaseForm(formData);
     setValidation(validationResult);
     return validationResult;
@@ -183,13 +187,15 @@ export const usePurchaseForm = ({
 
   // Validate specific field (sederhana: re-validate seluruh form)
   const validateField = useCallback(
-    (_field: string) => {
+    async (_field: string) => {
+      // Lazy load validation to reduce initial bundle size
+      const { validatePurchaseForm } = await import('../utils/validation');
       setValidation(validatePurchaseForm(formData));
     },
     [formData]
   );
 
-  // ✅ FIXED: Items management dengan stable references
+  // FIXED: Items management dengan stable references
   const addItem = useCallback(
     (item: Omit<PurchaseItem, 'subtotal'>) => {
       const newItem: PurchaseItem = {
@@ -273,7 +279,7 @@ export const usePurchaseForm = ({
       return;
     }
     
-    const validationResult = validateForm();
+    const validationResult = await validateForm();
     if (!validationResult.isValid) {
       console.error('DEBUG: Validation failed:', validationResult.errors);
       onError?.(validationResult.errors[0]);
@@ -288,7 +294,7 @@ export const usePurchaseForm = ({
       
       const status = newStatus ?? (mode === 'edit' && initialData ? initialData.status : 'pending' as const);
 
-      // ✅ AUTO-SAVE SUPPLIER: Handle supplier auto-save before purchase
+      // AUTO-SAVE SUPPLIER: Handle supplier auto-save before purchase
       let supplierIdToUse = formData.supplier;
       
       // Check if supplier is a new name (not an existing ID)
@@ -309,7 +315,7 @@ export const usePurchaseForm = ({
       const purchaseData = {
         ...formData,
         supplier: supplierIdToUse, // Use the resolved supplier ID or name
-        total_nilai: total_nilai, // ✅ FIX: Use consistent field name with transformer
+        total_nilai: total_nilai, // FIX: Use consistent field name with transformer
         tanggal: formData.tanggal instanceof Date ? formData.tanggal : new Date(formData.tanggal),
         status,
       };

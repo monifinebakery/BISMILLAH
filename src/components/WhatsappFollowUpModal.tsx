@@ -7,6 +7,7 @@ import { toast } from 'sonner';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import { logger } from '@/utils/logger';
+import { canFollowupOrder, getFollowupRecommendation, getStatusIndicator } from '@/utils/followupValidation';
 
 // Define the props interface for the component
 interface WhatsappFollowUpModalProps {
@@ -127,6 +128,25 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
     return number;
   }, [order?.customerPhone, order?.customer_phone, order?.telepon_pelanggan]); // Re-run when the phone fields change
 
+  // Calculate order age for validation
+  const orderAgeMinutes = useMemo(() => {
+    if (!order?.created_at) return 0;
+    const createdAt = new Date(order.created_at);
+    const now = new Date();
+    return Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60));
+  }, [order?.created_at]);
+
+  // Status validation for followup
+  const followupValidation = useMemo(() => {
+    if (!order) return { canFollowup: false, reason: 'Order tidak tersedia' };
+    return getFollowupRecommendation(order.status, orderAgeMinutes);
+  }, [order, orderAgeMinutes]);
+
+  const statusIndicator = useMemo(() => {
+    if (!order) return null;
+    return getStatusIndicator(order.status);
+  }, [order?.status]);
+
   // Function to handle sending the WhatsApp message
   const handleSendWhatsapp = () => {
     if (!order) {
@@ -179,6 +199,81 @@ const WhatsappFollowUpModal: React.FC<WhatsappFollowUpModalProps> = ({
           </DialogHeader>
 
           <div className="dialog-body space-y-4 py-4">
+          {/* Status Validation Alert */}
+          {!followupValidation.canFollowup && (
+            <div className={`p-4 rounded-lg border ${
+              followupValidation.urgency === 'none'
+                ? 'bg-red-50 border-red-200'
+                : 'bg-yellow-50 border-yellow-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  followupValidation.urgency === 'none' ? 'bg-red-500' : 'bg-yellow-500'
+                }`}>
+                  <span className="text-white text-xs">⚠️</span>
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-semibold text-sm ${
+                    followupValidation.urgency === 'none' ? 'text-red-900' : 'text-yellow-900'
+                  }`}>
+                    {followupValidation.urgency === 'none' ? 'Followup Tidak Dianjurkan' : 'Perhatian'}
+                  </h4>
+                  <p className={`text-sm mt-1 ${
+                    followupValidation.urgency === 'none' ? 'text-red-700' : 'text-yellow-700'
+                  }`}>
+                    {followupValidation.reason}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Status Recommendation */}
+          {followupValidation.canFollowup && followupValidation.recommendation && (
+            <div className={`p-4 rounded-lg border ${
+              followupValidation.urgency === 'high'
+                ? 'bg-red-50 border-red-200'
+                : followupValidation.urgency === 'medium'
+                ? 'bg-yellow-50 border-yellow-200'
+                : 'bg-green-50 border-green-200'
+            }`}>
+              <div className="flex items-start gap-3">
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 ${
+                  followupValidation.urgency === 'high'
+                    ? 'bg-red-500'
+                    : followupValidation.urgency === 'medium'
+                    ? 'bg-yellow-500'
+                    : 'bg-green-500'
+                }`}>
+                  <span className="text-white text-xs">
+                    {followupValidation.urgency === 'high' ? '🔴' :
+                     followupValidation.urgency === 'medium' ? '🟡' : '🟢'}
+                  </span>
+                </div>
+                <div className="flex-1">
+                  <h4 className={`font-semibold text-sm ${
+                    followupValidation.urgency === 'high'
+                      ? 'text-red-900'
+                      : followupValidation.urgency === 'medium'
+                      ? 'text-yellow-900'
+                      : 'text-green-900'
+                  }`}>
+                    Rekomendasi Followup
+                  </h4>
+                  <p className={`text-sm mt-1 ${
+                    followupValidation.urgency === 'high'
+                      ? 'text-red-700'
+                      : followupValidation.urgency === 'medium'
+                      ? 'text-yellow-700'
+                      : 'text-green-700'
+                  }`}>
+                    {followupValidation.recommendation}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Order Details Section */}
           <div className="space-y-1 border-b pb-4">
             <div className="flex justify-between text-sm">

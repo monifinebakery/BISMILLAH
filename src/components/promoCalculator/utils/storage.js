@@ -1,4 +1,5 @@
 // 💾 Storage utilities untuk localStorage management
+import { safeStorageSet, safeStorageGet, safeStorageSetJSON, safeStorageGetJSON, safeStorageRemove } from '@/utils/auth/safeStorage';
 
 export const storage = {
   // Keys for localStorage
@@ -9,14 +10,13 @@ export const storage = {
   },
 
   // Save form data to localStorage
-  saveFormData: (formData) => {
+  saveFormData: async (formData) => {
     try {
       const dataToSave = {
         ...formData,
         timestamp: new Date().toISOString()
       };
-      localStorage.setItem(storage.keys.PROMO_FORM_DATA, JSON.stringify(dataToSave));
-      return true;
+      return await safeStorageSetJSON(storage.keys.PROMO_FORM_DATA, dataToSave);
     } catch (error) {
       console.warn('Failed to save form data:', error);
       return false;
@@ -26,15 +26,14 @@ export const storage = {
   // Load form data from localStorage
   loadFormData: () => {
     try {
-      const saved = localStorage.getItem(storage.keys.PROMO_FORM_DATA);
-      if (!saved) return null;
-      const data = JSON.parse(saved);
-      
+      const data = safeStorageGetJSON(storage.keys.PROMO_FORM_DATA);
+      if (!data) return null;
+
       // Check if data is not too old (24 hours)
       const timestamp = new Date(data.timestamp);
       const now = new Date();
       const hoursDiff = (now - timestamp) / (1000 * 60 * 60);
-      
+
       if (hoursDiff > 24) {
         storage.clearFormData();
         return null;
@@ -47,10 +46,9 @@ export const storage = {
   },
 
   // Clear form data
-  clearFormData: () => {
+  clearFormData: async () => {
     try {
-      localStorage.removeItem(storage.keys.PROMO_FORM_DATA);
-      return true;
+      return await safeStorageRemove(storage.keys.PROMO_FORM_DATA);
     } catch (error) {
       console.warn('Failed to clear form data:', error);
       return false;
@@ -58,10 +56,9 @@ export const storage = {
   },
 
   // Save user preferences
-  savePreferences: (preferences) => {
+  savePreferences: async (preferences) => {
     try {
-      localStorage.setItem(storage.keys.PROMO_PREFERENCES, JSON.stringify(preferences));
-      return true;
+      return await safeStorageSetJSON(storage.keys.PROMO_PREFERENCES, preferences);
     } catch (error) {
       console.warn('Failed to save preferences:', error);
       return false;
@@ -71,9 +68,7 @@ export const storage = {
   // Load user preferences
   loadPreferences: () => {
     try {
-      const saved = localStorage.getItem(storage.keys.PROMO_PREFERENCES);
-      if (!saved) return null;
-      return JSON.parse(saved);
+      return safeStorageGetJSON(storage.keys.PROMO_PREFERENCES);
     } catch (error) {
       console.warn('Failed to load preferences:', error);
       return null;
@@ -81,14 +76,13 @@ export const storage = {
   },
 
   // Save draft promo
-  saveDraft: (draftData) => {
+  saveDraft: async (draftData) => {
     try {
       const dataToSave = {
         ...draftData,
         timestamp: new Date().toISOString()
       };
-      localStorage.setItem(storage.keys.PROMO_DRAFT, JSON.stringify(dataToSave));
-      return true;
+      return await safeStorageSetJSON(storage.keys.PROMO_DRAFT, dataToSave);
     } catch (error) {
       console.warn('Failed to save draft:', error);
       return false;
@@ -98,9 +92,7 @@ export const storage = {
   // Load draft promo
   loadDraft: () => {
     try {
-      const saved = localStorage.getItem(storage.keys.PROMO_DRAFT);
-      if (!saved) return null;
-      return JSON.parse(saved);
+      return safeStorageGetJSON(storage.keys.PROMO_DRAFT);
     } catch (error) {
       console.warn('Failed to load draft:', error);
       return null;
@@ -108,10 +100,9 @@ export const storage = {
   },
 
   // Clear draft
-  clearDraft: () => {
+  clearDraft: async () => {
     try {
-      localStorage.removeItem(storage.keys.PROMO_DRAFT);
-      return true;
+      return await safeStorageRemove(storage.keys.PROMO_DRAFT);
     } catch (error) {
       console.warn('Failed to clear draft:', error);
       return false;
@@ -119,12 +110,11 @@ export const storage = {
   },
 
   // Clear all promo calculator data
-  clearAll: () => {
+  clearAll: async () => {
     try {
-      Object.values(storage.keys).forEach(key => {
-        localStorage.removeItem(key);
-      });
-      return true;
+      const keys = Object.values(storage.keys);
+      const results = await Promise.all(keys.map(key => safeStorageRemove(key)));
+      return results.every(result => result === true);
     } catch (error) {
       console.warn('Failed to clear all data:', error);
       return false;

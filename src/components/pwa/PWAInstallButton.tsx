@@ -3,6 +3,7 @@ import { usePWA } from '@/utils/pwaUtils';
 import { Download, Wifi, WifiOff, RefreshCw, Smartphone } from 'lucide-react';
 import MobilePWAInstructions from './MobilePWAInstructions';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+import { safeStorageGet, safeStorageSet } from '@/utils/auth/safeStorage';
 
 
 interface PWAInstallButtonProps {
@@ -158,8 +159,8 @@ export function PWAStatus() {
     hasManifest: false
   });
   const [isVisible, setIsVisible] = React.useState(() => {
-    // Get initial visibility state from localStorage
-    return localStorage.getItem('pwa-debug-visible') !== 'false';
+    // Get initial visibility state from safeStorage
+    return safeStorageGet('pwa-debug-visible') !== 'false';
   });
 
   React.useEffect(() => {
@@ -185,7 +186,9 @@ export function PWAStatus() {
   const toggleVisibility = () => {
     const newVisibility = !isVisible;
     setIsVisible(newVisibility);
-    localStorage.setItem('pwa-debug-visible', newVisibility.toString());
+    safeStorageSet('pwa-debug-visible', newVisibility.toString()).catch(() => {
+      // Best effort, ignore errors
+    });
   };
 
   const isMobile = /android|iphone|ipad|ipod/.test(deviceInfo.userAgent);

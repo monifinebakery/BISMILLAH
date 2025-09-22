@@ -1,5 +1,6 @@
 // src/utils/queryPersistence.ts - IndexedDB-backed React Query cache persistence
 import { dehydrate, QueryClient } from '@tanstack/react-query';
+import { safeStorageSetJSON, safeStorageGetJSON, safeStorageRemove } from '@/utils/auth/safeStorage';
 
 const DB_NAME = 'rqCacheDB';
 const STORE_NAME = 'rqCacheStore';
@@ -82,17 +83,18 @@ export async function loadPersistedQueryState(): Promise<unknown | null> {
   const fromIDB = await idbGet<PersistedState>(STORAGE_KEY);
   if (fromIDB && typeof fromIDB.ts === 'number' && Date.now() - fromIDB.ts <= MAX_AGE_MS) {
     return fromIDB.data ?? null;
-  }
-  // Fallback to localStorage (legacy)
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = safeParse(raw);
-    if (!parsed || typeof parsed.ts !== 'number') return null;
-    if (Date.now() - parsed.ts > MAX_AGE_MS) return null;
-    return parsed.data ?? null;
-  } catch {
-    return null;
+  } else {
+    // Fallback to localStorage (legacy)
+    try {
+      const raw = window.localStorage?.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const parsed = safeParse(raw);
+      if (!parsed || typeof parsed.ts !== 'number') return null;
+      if (Date.now() - parsed.ts > MAX_AGE_MS) return null;
+      return parsed.data ?? null;
+    } catch {
+      return null;
+    }
   }
 }
 
@@ -122,7 +124,7 @@ async function persistNow(queryClient: QueryClient) {
     await idbSet(STORAGE_KEY, payload);
     // Keep legacy localStorage as a tiny fallback (optional)
     try {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+      window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(payload));
     } catch (storageError) {
       console.warn('queryPersistence: failed to persist cache to localStorage', storageError);
     }
@@ -167,7 +169,7 @@ export async function clearPersistedQueryState() {
     console.warn('queryPersistence: failed to remove cached state from IndexedDB', error);
   }
   try {
-    window.localStorage.removeItem(STORAGE_KEY);
+    window.localStorage?.removeItem(STORAGE_KEY);
   } catch (storageError) {
     console.warn('queryPersistence: failed to remove cached state from localStorage', storageError);
   }

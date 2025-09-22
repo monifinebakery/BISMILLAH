@@ -470,7 +470,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between">
                           <h4 className="font-medium text-gray-900 truncate">
-                            {getSupplierName ? getSupplierName(purchase.supplier) : (purchase.supplier || 'Supplier Tidak Diketahui')}
+                            {purchase.supplier || 'Supplier Tidak Diketahui'}
                           </h4>
                           <div className="ml-2">
                             <StatusBadge status={purchase.status} />
@@ -588,7 +588,6 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
                       onDelete={openDelete}
                       onStatusChange={(id, newStatus) => Promise.resolve(handleStatusChange(id, newStatus))}
                       onEditStatus={setEditingStatusId}
-                      getSupplierName={getSupplierName}
                     />
                   ))}
                 </TableBody>

@@ -40,7 +40,8 @@ interface WarehouseTableProps {
   isPagePartiallySelected?: boolean;
 }
 
-const WarehouseTable: React.FC<WarehouseTableProps> = ({
+// ✅ OPTIMIZED with React.memo, useMemo, useCallback
+const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
   items,
   isLoading,
   isSelectionMode,
@@ -374,7 +375,9 @@ const WarehouseTable: React.FC<WarehouseTableProps> = ({
       <DesktopTableView />
     </div>
   );
-};
+});
+
+WarehouseTable.displayName = 'WarehouseTable';
 
 export default WarehouseTable;
 

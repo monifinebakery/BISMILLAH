@@ -1,5 +1,5 @@
-// 🎯 OrderTable.tsx - Proper Implementation using Types & Utils (No Direct DB Calls)
-import React, { useState } from 'react';
+// 🎯 OrderTable.tsx - OPTIMIZED with React.memo, useMemo, useCallback
+import React, { useState, useCallback, useMemo } from 'react';
 import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -297,8 +297,8 @@ const CompletionDateCell: React.FC<{ order: Order }> = ({ order }) => {
   }
 };
 
-// ✅ MAIN: Table Component with proper completion date handling
-const OrderTable: React.FC<OrderTableProps> = ({
+// ✅ MAIN: Table Component with proper completion date handling - OPTIMIZED
+const OrderTable: React.FC<OrderTableProps> = React.memo(({
   uiState,
   loading,
   onEditOrder,
@@ -317,8 +317,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
 
-  // Handle row click logic (unchanged)
-  const handleRowClick = (order: Order, e: React.MouseEvent) => {
+  // ✅ PERFORMANCE: Memoized callback functions to prevent unnecessary re-renders
+  const handleRowClick = useCallback((order: Order, e: React.MouseEvent) => {
     const target = e.target as HTMLElement;
     if (
       target.tagName === 'BUTTON' ||
@@ -335,22 +335,20 @@ const OrderTable: React.FC<OrderTableProps> = ({
     if (isSelectionMode && onSelectionChange) {
       onSelectionChange(order.id);
     }
-  };
+  }, [isSelectionMode, onSelectionChange]);
 
-
-
-  // ✅ FIXED: View detail handler
-  const handleViewDetail = (order: Order) => {
+  // ✅ PERFORMANCE: Memoized view detail handler
+  const handleViewDetail = useCallback((order: Order) => {
     if (onViewDetail) {
       onViewDetail(order);
     } else {
       const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
       alert(`Detail pesanan #${nomor}`);
     }
-  };
+  }, [onViewDetail]);
 
-  // ✅ FIXED: Follow Up handler dengan proper hooks usage
-  const handleFollowUp = (order: Order) => {
+  // ✅ PERFORMANCE: Memoized follow up handler with template processing
+  const handleFollowUp = useCallback((order: Order) => {
     const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
     logger.info('Follow up clicked for order:', nomor);
     
@@ -400,7 +398,7 @@ const OrderTable: React.FC<OrderTableProps> = ({
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(fallbackMessage)}`;
       window.open(whatsappUrl, '_blank');
     }
-  };
+  }, [onFollowUp, getTemplate, processTemplate]);
 
   if (loading) {
     const { LoadingStates } = require('@/components/ui/loading-spinner');
@@ -689,6 +687,8 @@ const OrderTable: React.FC<OrderTableProps> = ({
     )}
   </div>
   );
-};
+});
+
+OrderTable.displayName = 'OrderTable';
 
 export default OrderTable;

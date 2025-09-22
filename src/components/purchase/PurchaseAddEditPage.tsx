@@ -1,6 +1,6 @@
 // src/components/purchase/PurchaseAddEditPage.tsx
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -199,14 +199,13 @@ const PurchaseAddEditPage: React.FC = () => {
   const canEdit = !purchase || purchase.status !== 'cancelled';
   const isViewOnly = !canEdit;
 
-
-  // Breadcrumb items
-  const breadcrumbItems = [
+  // ✅ PERFORMANCE: Memoized breadcrumb items to prevent unnecessary re-renders
+  const breadcrumbItems = useMemo(() => [
     { label: 'Purchase', href: '/purchase' },
     { 
       label: isEditing ? 'Edit Pembelian' : 'Tambah Pembelian'
     }
-  ];
+  ], [isEditing]);
 
   if (isLoading) {
     return (

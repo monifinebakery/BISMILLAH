@@ -16,7 +16,7 @@ interface ItemRowProps {
   variant: 'mobile' | 'desktop';
 }
 
-export const ItemRow: React.FC<ItemRowProps> = ({
+export const ItemRow: React.FC<ItemRowProps> = React.memo(({
   item,
   index,
   isViewOnly,
@@ -27,40 +27,44 @@ export const ItemRow: React.FC<ItemRowProps> = ({
 }) => {
   const key = item.bahanBakuId || `item-${index}`;
 
-  // Common action buttons
-  const actionButtons = !isViewOnly && (
-    <div 
-      className={`flex items-center gap-1 ${variant === 'mobile' ? 'ml-2 flex-shrink-0' : 'justify-end gap-2'}`}
-      role="group"
-      aria-label={`Actions for ${item.nama}`}
-    >
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => onEdit(index)}
-        disabled={isSubmitting}
-        className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
-        aria-label={`Edit item ${item.nama}`}
-        title={`Edit ${item.nama}`}
-      >
-        <Edit3 className="h-3 w-3 text-gray-600" aria-hidden="true" />
-      </Button>
-      <Button
-        size="sm"
-        variant="outline"
-        onClick={() => onDelete(index)}
-        disabled={isSubmitting}
-        className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
-        aria-label={`Delete item ${item.nama}`}
-        title={`Delete ${item.nama}`}
-      >
-        <Trash2 className="h-3 w-3 text-red-600" aria-hidden="true" />
-      </Button>
-    </div>
-  );
+  // ✅ PERFORMANCE: Memoized action buttons to prevent unnecessary re-renders
+  const actionButtons = React.useMemo(() => {
+    if (isViewOnly) return null;
 
-  // Common item info
-  const itemInfo = (
+    return (
+      <div 
+        className={`flex items-center gap-1 ${variant === 'mobile' ? 'ml-2 flex-shrink-0' : 'justify-end gap-2'}`}
+        role="group"
+        aria-label={`Actions for ${item.nama}`}
+      >
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onEdit(index)}
+          disabled={isSubmitting}
+          className="h-8 w-8 p-0 border-gray-300 hover:bg-orange-50"
+          aria-label={`Edit item ${item.nama}`}
+          title={`Edit ${item.nama}`}
+        >
+          <Edit3 className="h-3 w-3 text-gray-600" aria-hidden="true" />
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => onDelete(index)}
+          disabled={isSubmitting}
+          className="h-8 w-8 p-0 border-red-300 hover:bg-red-50"
+          aria-label={`Delete item ${item.nama}`}
+          title={`Delete ${item.nama}`}
+        >
+          <Trash2 className="h-3 w-3 text-red-600" aria-hidden="true" />
+        </Button>
+      </div>
+    );
+  }, [isViewOnly, variant, item.nama, index, isSubmitting, onEdit, onDelete]);
+
+  // ✅ PERFORMANCE: Memoized item info to prevent unnecessary re-renders
+  const itemInfo = React.useMemo(() => (
     <>
       <div className="font-medium text-gray-900">{item.nama}</div>
       <div className={`text-sm text-gray-500 ${variant === 'mobile' ? '' : ''}`}>{item.satuan}</div>
@@ -70,10 +74,10 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         </div>
       )}
     </>
-  );
+  ), [item.nama, item.satuan, item.keterangan, variant]);
 
-  // Common quantity, unit price, and subtotal display
-  const itemDetails = (
+  // ✅ PERFORMANCE: Memoized item details
+  const itemDetails = React.useMemo(() => (
     <>
       <div className={variant === 'mobile' ? 'text-gray-500' : 'text-gray-900'}>
         {variant === 'mobile' ? 'Kuantitas:' : ''} {item.quantity} {item.satuan}
@@ -82,11 +86,11 @@ export const ItemRow: React.FC<ItemRowProps> = ({
         {variant === 'mobile' ? 'Harga Satuan:' : ''} {formatCurrency(item.unitPrice)}
       </div>
     </>
-  );
+  ), [variant, item.quantity, item.satuan, item.unitPrice]);
 
-  const subtotalDisplay = (
+  const subtotalDisplay = React.useMemo(() => (
     <span className="font-bold text-green-600">{formatCurrency(item.subtotal)}</span>
-  );
+  ), [item.subtotal]);
 
   if (variant === 'mobile') {
     return (
@@ -148,4 +152,6 @@ export const ItemRow: React.FC<ItemRowProps> = ({
       )}
     </tr>
   );
-};
+});
+
+ItemRow.displayName = 'ItemRow';

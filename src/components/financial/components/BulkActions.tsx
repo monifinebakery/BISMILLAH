@@ -33,6 +33,7 @@ import {
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/shared';
 import { useTransactionBulk, type FinancialTransaction, type BulkEditData } from '../hooks/useTransactionBulk';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface BulkActionsProps {
   selectedTransactions: FinancialTransaction[];
@@ -58,6 +59,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
     category: undefined,
     description: undefined,
   });
+  const isMobile = useIsMobile();
 
   const {
     bulkDelete,
@@ -116,11 +118,12 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
   return (
     <>
-      <Card className="mb-4 border-blue-200 bg-blue-50">
-        <CardContent className="p-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-2">
+      <Card className={`mb-4 border-blue-200 bg-blue-50 ${isMobile ? 'mx-4' : ''}`}>
+        <CardContent className={`${isMobile ? 'p-4' : 'p-4'}`}>
+          <div className={`flex ${isMobile ? 'flex-col space-y-4' : 'flex-col sm:flex-row sm:items-center sm:justify-between gap-4'}`}>
+            {/* Selection Info - Mobile Optimized */}
+            <div className={`flex ${isMobile ? 'flex-col space-y-2' : 'items-center gap-4'}`}>
+              <div className="flex items-center gap-3">
                 <Badge variant="secondary" className="bg-blue-100 text-blue-800">
                   {selectedIds.length} dipilih
                 </Badge>
@@ -128,19 +131,20 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                   dari {totalCount} transaksi
                 </div>
               </div>
-              
-              <div className="flex items-center gap-4 text-sm">
+
+              {/* Transaction Summary */}
+              <div className={`flex ${isMobile ? 'flex-wrap gap-3' : 'items-center gap-4'} text-sm`}>
                 {incomeCount > 0 && (
-                  <div className="text-green-600">
+                  <div className="text-green-600 font-medium">
                     {incomeCount} pemasukan
                   </div>
                 )}
                 {expenseCount > 0 && (
-                  <div className="text-red-600">
+                  <div className="text-red-600 font-medium">
                     {expenseCount} pengeluaran
                   </div>
                 )}
-                <div className={`font-medium ${
+                <div className={`font-bold text-lg ${
                   totalAmount >= 0 ? 'text-green-600' : 'text-red-600'
                 }`}>
                   Total: {formatCurrency(Math.abs(totalAmount))}
@@ -149,57 +153,66 @@ const BulkActions: React.FC<BulkActionsProps> = ({
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={isAllSelected ? onClearSelection : onSelectAll}
-                className="flex items-center gap-2"
-              >
-                {isAllSelected ? (
-                  <>
-                    <CheckSquare className="h-4 w-4" />
-                    Batalkan Semua
-                  </>
-                ) : (
-                  <>
-                    <Square className="h-4 w-4" />
-                    Pilih Semua
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEditDialog(true)}
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                <Edit3 className="h-4 w-4" />
-                Edit Massal
-              </Button>
-              
-              <Button
-                variant="destructive"
-                size="sm"
-                onClick={() => setShowDeleteDialog(true)}
-                disabled={isLoading}
-                className="flex items-center gap-2"
-              >
-                <Trash2 className="h-4 w-4" />
-                Hapus Massal
-              </Button>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={onClearSelection}
-                className="flex items-center gap-2"
-              >
-                <X className="h-4 w-4" />
-                Batal
-              </Button>
+            {/* Action Buttons - Mobile Optimized */}
+            <div className={`flex ${isMobile ? 'flex-col space-y-2 w-full' : 'items-center gap-2'}`}>
+              <div className={`flex ${isMobile ? 'flex-col space-y-2 w-full' : 'items-center gap-2'}`}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={isAllSelected ? onClearSelection : onSelectAll}
+                  className={`flex items-center gap-2 ${isMobile ? 'flex-1 h-11 justify-center' : ''}`}
+                  aria-label={isAllSelected ? 'Deselect all transactions' : 'Select all transactions'}
+                >
+                  {isAllSelected ? (
+                    <>
+                      <CheckSquare className="h-4 w-4" />
+                      <span className={isMobile ? 'hidden' : ''}>Batalkan Semua</span>
+                    </>
+                  ) : (
+                    <>
+                      <Square className="h-4 w-4" />
+                      <span className={isMobile ? 'hidden' : ''}>Pilih Semua</span>
+                    </>
+                  )}
+                </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEditDialog(true)}
+                  disabled={isLoading}
+                  className={`flex items-center gap-2 bg-blue-50 hover:bg-blue-100 active:bg-blue-200 transition-colors ${isMobile ? 'flex-1 h-11 justify-center' : ''}`}
+                  aria-label="Edit selected transactions"
+                >
+                  <Edit3 className="h-4 w-4" />
+                  <span>Edit Massal</span>
+                </Button>
+              </div>
+
+              <div className={`flex ${isMobile ? 'flex-col space-y-2 w-full' : 'items-center gap-2'}`}>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteDialog(true)}
+                  disabled={isLoading}
+                  className={`flex items-center gap-2 bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors ${isMobile ? 'flex-1 h-11 justify-center' : ''}`}
+                  aria-label="Delete selected transactions"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  <span>Hapus Massal</span>
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClearSelection}
+                  className={`flex items-center gap-2 hover:bg-gray-100 active:bg-gray-200 transition-colors ${isMobile ? 'h-11 px-4 justify-center' : ''}`}
+                  aria-label="Cancel bulk selection"
+                >
+                  <X className="h-4 w-4" />
+                  <span className={isMobile ? 'hidden' : ''}>Batal</span>
+                </Button>
+              </div>
             </div>
           </div>
         </CardContent>

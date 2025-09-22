@@ -1,11 +1,16 @@
 import { useCallback, useMemo } from 'react';
-import { AlertCircle } from 'lucide-react';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { Edit, Trash2, AlertCircle } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Table } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
 
 import { cn } from '@/lib/utils';
+import { formatCurrency } from '@/lib/shared';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupplier } from '@/contexts/SupplierContext';
@@ -165,7 +170,7 @@ const TransactionTableComponent = ({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <Table>
+            <Table role="table" aria-label="Financial transactions table">
               <TransactionRows
                 transactions={visibleTransactions}
                 selectedIds={selectedIds}
@@ -181,6 +186,86 @@ const TransactionTableComponent = ({
                 onAddTransaction={onAddTransaction}
               />
             </Table>
+          </div>
+        )}
+
+        {/* Mobile Card View */}
+        {!showInitialLoading && isMobile && visibleTransactions.length > 0 && (
+          <div className="md:hidden space-y-3 p-4">
+            {visibleTransactions.map((transaction) => (
+              <div
+                key={transaction.id}
+                className="border border-gray-200 rounded-lg p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
+                role="row"
+                aria-label={`Transaction: ${getDisplayDescription(transaction.description)} - ${formatCurrency(transaction.amount)}`}
+              >
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 mb-2">
+                      {isSelectionMode && (
+                        <Checkbox
+                          checked={selectedIds.includes(transaction.id)}
+                          onCheckedChange={() => onSelectionChange?.(transaction.id, !selectedIds.includes(transaction.id))}
+                          aria-label={`Select transaction ${getDisplayDescription(transaction.description)}`}
+                          className="flex-shrink-0"
+                        />
+                      )}
+                      <Badge variant={transaction.type === 'income' ? 'default' : 'destructive'} className="text-xs">
+                        {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                      </Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {transaction.category}
+                      </Badge>
+                    </div>
+                    <h4 className="font-medium text-gray-900 truncate mb-1">
+                      {getDisplayDescription(transaction.description)}
+                    </h4>
+                    <div className="text-sm text-gray-500">
+                      {transaction.date ? (() => {
+                        try {
+                          const date = new Date(transaction.date);
+                          if (!Number.isNaN(date.getTime())) {
+                            return format(date, 'dd MMM yyyy', { locale: id });
+                          }
+                        } catch (error) {
+                          // Ignore date parsing errors
+                        }
+                        return 'Tanggal tidak valid';
+                      })() : 'Tanggal tidak tersedia'}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                    <div className="text-right">
+                      <div className={`font-bold text-lg ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end pt-2 border-t border-gray-100 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onEditTransaction?.(transaction)}
+                    disabled={isDeleting}
+                    className="h-9 w-9 p-0 hover:bg-blue-50 active:bg-blue-100"
+                    aria-label={`Edit transaction ${getDisplayDescription(transaction.description)}`}
+                  >
+                    <Edit className="h-4 w-4 text-blue-600" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleDeleteTransaction(transaction)}
+                    disabled={isDeleting}
+                    className="h-9 w-9 p-0 hover:bg-red-50 active:bg-red-100"
+                    aria-label={`Delete transaction ${getDisplayDescription(transaction.description)}`}
+                  >
+                    <Trash2 className="h-4 w-4 text-red-600" />
+                  </Button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </CardContent>

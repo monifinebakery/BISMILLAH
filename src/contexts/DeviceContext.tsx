@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+import { safeStorageSet, safeStorageGet } from '@/utils/auth/safeStorage';
 
 
 // Device type definition
@@ -38,8 +39,8 @@ const DeviceContext = createContext<DeviceContextType | undefined>(undefined);
 
 // Helper function to generate a unique device ID with enhanced stability
 const generateDeviceId = (): string => {
-  // Try to use existing device ID from localStorage
-  let deviceId = localStorage.getItem('device_id');
+  // Try to use existing device ID from safeStorage
+  let deviceId = safeStorageGet('device_id');
   
   if (!deviceId) {
     // Generate a more stable device ID based on comprehensive browser characteristics
@@ -105,15 +106,12 @@ const generateDeviceId = (): string => {
     deviceId = `device_${hashString}_${storageTest}_${Date.now()}`;
     
     try {
-      localStorage.setItem('device_id', deviceId);
-      // Test localStorage persistence
-      const testRead = localStorage.getItem('device_id');
-      if (testRead !== deviceId) {
+      safeStorageSet('device_id', deviceId).catch(() => {
         // Storage might be disabled or in private mode
         deviceId = `temp_${hashString}_${Date.now()}`;
-      }
+      });
     } catch (e) {
-      // localStorage not available, use session-based ID
+      // safeStorage not available, use session-based ID
       deviceId = `session_${hashString}_${Date.now()}`;
     }
   }

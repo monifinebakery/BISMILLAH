@@ -11,6 +11,7 @@ import { DesktopLayout } from "./DesktopLayout";
 import { AutoLinkingPopup } from "@/components/popups";
 import { logger } from "@/utils/logger";
 import { supabase } from '@/integrations/supabase/client';
+import { safeStorageGet, safeStorageRemove } from '@/utils/auth/safeStorage';
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
@@ -36,7 +37,7 @@ export const AppLayout = () => {
       try {
         // If a refresh is already in progress, skip showing update banner
         try {
-          if (localStorage.getItem('appUpdateRefreshing') === '1') {
+          if (safeStorageGet('appUpdateRefreshing') === '1') {
             logger.debug('[AppLayout] App update in progress, skipping version check');
             return;
           }
@@ -84,7 +85,9 @@ export const AppLayout = () => {
   // After full load, clear the in-progress flag so future updates can show
   useEffect(() => {
     try {
-      localStorage.removeItem('appUpdateRefreshing');
+      safeStorageRemove('appUpdateRefreshing').catch(() => {
+        // Best effort, ignore errors
+      });
     } catch (error) {
       console.warn('AppLayout: unable to clear appUpdateRefreshing flag', error);
     }

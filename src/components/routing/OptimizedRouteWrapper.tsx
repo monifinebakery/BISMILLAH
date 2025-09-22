@@ -3,6 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useCodeSplittingContext } from '@/providers/CodeSplittingProvider';
 import { Loader2 } from 'lucide-react';
 import { pwaManager } from '@/utils/pwaUtils';
+import { RouteErrorFallback } from './RouteErrorFallback';
+import { preloadLogger, classifyError } from '@/utils/routing/preloadLogger';
 
 interface OptimizedRouteWrapperProps {
   children: React.ReactNode;
@@ -39,6 +41,14 @@ class CustomErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Log error with centralized logger
+    preloadLogger.logRouteError({
+      routeName: this.props.routeName || 'unknown',
+      errorType: classifyError(error),
+      errorMessage: error.message,
+      errorStack: error.stack
+    });
+
     if (this.props.onError) {
       this.props.onError(error, errorInfo);
     }
@@ -74,84 +84,20 @@ const DefaultLoadingFallback: React.FC<{ routeName?: string }> = ({ routeName })
 );
 
 /**
- * Error fallback component yang dapat dikustomisasi
+ * Enhanced Error fallback component with comprehensive recovery options
  */
 const DefaultErrorFallback: React.FC<{ 
   error: Error; 
   resetErrorBoundary: () => void;
   routeName?: string;
 }> = ({ error, resetErrorBoundary, routeName }) => {
-  const [isFixing, setIsFixing] = React.useState(false);
-
-  const isChunkError = /dynamically imported module|ChunkLoadError|Importing a module script failed/i.test(
-    error?.message || ''
-  );
-
-  const handleFix = async () => {
-    try {
-      setIsFixing(true);
-      // 1) Try to clear caches that may contain stale assets
-      if ('caches' in window) {
-        const keys = await caches.keys();
-        await Promise.all(
-          keys
-            .filter((k) => /hpp-|static|dynamic|api|workbox|vite|assets/i.test(k))
-            .map((k) => caches.delete(k))
-        );
-      }
-      // 2) Ask SW to check for updates and immediately activate
-      await pwaManager.updateServiceWorker();
-      pwaManager.skipWaiting();
-    } catch (e) {
-      console.warn('Chunk error recovery encountered an issue:', e);
-    } finally {
-      // 3) Hard reload with cache-busting param
-      const url = new URL(window.location.href);
-      url.searchParams.set('v', Date.now().toString());
-      window.location.replace(url.toString());
-    }
-  };
-
   return (
-    <div className="flex items-center justify-center min-h-[400px] bg-red-50">
-      <div className="text-center max-w-md mx-auto p-6">
-        <div className="text-red-500 mb-4">
-          <svg className="h-12 w-12 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 19.5c-.77.833.192 2.5 1.732 2.5z" />
-          </svg>
-        </div>
-        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-          Gagal Memuat {routeName ? `Halaman ${routeName}` : 'Komponen'}
-        </h3>
-        <p className="text-gray-600 text-sm mb-4">
-          {error.message || 'Terjadi kesalahan saat memuat komponen'}
-        </p>
-        <div className="flex flex-col sm:flex-row gap-3 justify-center">
-          <button
-            onClick={resetErrorBoundary}
-            className="px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors"
-            disabled={isFixing}
-          >
-            Coba Lagi
-          </button>
-          {isChunkError && (
-            <button
-              onClick={handleFix}
-              className="px-4 py-2 bg-orange-500 text-white rounded-md hover:bg-orange-600 transition-colors disabled:opacity-70"
-              disabled={isFixing}
-            >
-              {isFixing ? 'Memperbarui Aset…' : 'Perbaiki & Muat Ulang'}
-            </button>
-          )}
-        </div>
-        {isChunkError && (
-          <p className="text-xs text-gray-500 mt-3">
-            Tip: Ini biasanya terjadi karena cache versi lama. Tombol “Perbaiki & Muat Ulang” akan
-            menyegarkan aset aplikasi Anda.
-          </p>
-        )}
-      </div>
-    </div>
+    <RouteErrorFallback
+      error={error}
+      resetErrorBoundary={resetErrorBoundary}
+      routeName={routeName}
+      showLoginFallback={true}
+    />
   );
 };
 
@@ -179,15 +125,21 @@ export const OptimizedRouteWrapper: React.FC<OptimizedRouteWrapperProps> = ({
       setLoadStartTime(Date.now());
       setIsPreloading(true);
       
+      // Start preload logging
+      preloadLogger.startPreload(routeName);
+      
       preloadRoute(routeName)
         .then(() => {
           if (loadStartTime) {
             const loadTime = Date.now() - loadStartTime;
-            console.log(`✅ Route '${routeName}' loaded in ${loadTime}ms`);
+            preloadLogger.markPreloadSuccess(routeName, { 
+              cacheHit: false, // Could be enhanced to detect cache hits
+              chunkSize: undefined // Could be enhanced to measure chunk size
+            });
           }
         })
         .catch((error) => {
-          console.error(`❌ Failed to preload route '${routeName}':`, error);
+          preloadLogger.markPreloadFailure(routeName, error);
         })
         .finally(() => {
           setIsPreloading(false);

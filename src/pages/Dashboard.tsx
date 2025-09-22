@@ -88,7 +88,6 @@ const Dashboard = () => {
     activities: 1,
     worstProducts: 1
   });
-  const [ownerNameDraft, setOwnerNameDraft] = useState('');
 
   // 👤 Get settings from context
   const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
@@ -119,12 +118,11 @@ const Dashboard = () => {
   const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
 
   const handleOwnerNameSave = useCallback(async (rawName?: string) => {
-    const name = (rawName ?? ownerNameDraft).trim();
+    const name = rawName?.trim();
     
     // Debug logging
     logger.debug('Dashboard - handleOwnerNameSave called:', { 
       rawName, 
-      ownerNameDraft, 
       name, 
       currentOwnerName: ownerName 
     });
@@ -143,11 +141,10 @@ const Dashboard = () => {
     
     if (saved) {
       logger.success('Dashboard - Owner name saved successfully');
-      setOwnerNameDraft('');
     } else {
       logger.error('Dashboard - Failed to save owner name');
     }
-  }, [ownerNameDraft, ownerName, saveSettings]);
+  }, [ownerName, saveSettings]);
 
   // 🛡️ Safe date range handler - menggunakan unified date utils
   const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
@@ -221,29 +218,27 @@ const Dashboard = () => {
               />
               
               {/* 👤 Owner Name Quick Setting */}
-              {(!ownerName || ownerName.trim() === '' || ownerName === 'Nama Anda') && (
-                <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm">
-                  <span className="text-amber-700 font-medium">💡</span>
-                  <input
-                    type="text"
-                    placeholder="Masukkan nama Anda..."
-                    className="bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36"
-                    value={ownerNameDraft}
-                    onChange={(e) => setOwnerNameDraft(e.target.value)}
-                    onKeyDown={async (e) => {
-                      if (e.key !== 'Enter') {
-                        return;
-                      }
-
-                      e.preventDefault();
-                      await handleOwnerNameSave();
-                    }}
-                    onBlur={() => {
-                      void handleOwnerNameSave();
-                    }}
-                  />
-                </div>
-              )}
+              <div className="flex items-center space-x-2 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-sm">
+                <span className="text-amber-700 font-medium">👋</span>
+                <input
+                  type="text"
+                  placeholder="Masukkan nama Anda..."
+                  className="bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36"
+                  defaultValue={ownerName && ownerName !== 'Nama Anda' ? ownerName : ''}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      const input = e.target as HTMLInputElement;
+                      handleOwnerNameSave(input.value);
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const input = e.target as HTMLInputElement;
+                    if (input.value.trim()) {
+                      handleOwnerNameSave(input.value);
+                    }
+                  }}
+                />
+              </div>
             </div>
 
             {/* 📊 Stats Grid with Trends */}

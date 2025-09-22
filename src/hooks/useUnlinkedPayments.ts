@@ -72,7 +72,7 @@ export const useUnlinkedPayments = (
         .limit(10);
 
       const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Fetch timeout')), 15000)
+        setTimeout(() => reject(new Error('Fetch timeout')), 5000)
       );
 
       const { data, error: fetchError } = await Promise.race([fetchPromise, timeoutPromise]) as any;
@@ -137,10 +137,10 @@ export const useUnlinkedPayments = (
       if (webhookDetectedPayments.length > 0 && user) {
         logger.info('useUnlinkedPayments: Found', webhookDetectedPayments.length, 'unlinked payments');
         
-        // ✅ Delay popup to avoid blocking initial load
+        // ✅ Delay popup to avoid blocking initial load (reduced from 2000ms)
         setTimeout(() => {
           setShowAutoLinkPopup(true);
-        }, 2000);
+        }, 1000);
       }
 
     } catch (err: any) {
@@ -166,10 +166,10 @@ export const useUnlinkedPayments = (
     if (currentUser && supabaseClient) {
       logger.debug('useUnlinkedPayments: User available, scheduling fetch');
       
-      // ✅ Delay initial fetch to not block app startup
+      // ✅ Delay initial fetch to not block app startup (reduced from 1000ms)
       const timer = setTimeout(() => {
         fetchUnlinkedPayments();
-      }, 1000);
+      }, 500);
       
       return () => clearTimeout(timer);
     } else {

@@ -117,7 +117,7 @@ export const PaymentProvider: React.FC<{ children: React.ReactNode }> = ({ child
       logger.debug('PaymentContext: Refreshing access status for valid user:', user?.email);
       
 const accessPromise = getUserAccessStatus();
-      const accessStatus = await withTimeout(accessPromise, 8000, 'Access status timeout') as any; // ✅ OPTIMIZED: Increased timeout for mobile compatibility
+      const accessStatus = await withTimeout(accessPromise, 3000, 'Access status timeout') as any; // ✅ OPTIMIZED: Reduced timeout from 8s to 3s for better UX
       
       logger.debug('Access status result:', {
         hasAccess: accessStatus.hasAccess,

@@ -69,21 +69,40 @@ class PWAManager {
 
       console.log('[PWA] Service worker registered:', this.registration.scope);
 
-      // Handle service worker updates
+      const handleInstalledWorker = (worker: ServiceWorker | null | undefined) => {
+        if (!worker) return;
+
+        // Dispatch custom event for state changes
+        window.dispatchEvent(new CustomEvent('sw-state-change', { detail: worker.state }));
+
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          console.log('[PWA] New service worker available');
+          this.notifyUpdate();
+        }
+      };
+
+      // Handle service worker updates discovered after registration
       safeDom.addEventListener(this.registration, 'updatefound', () => {
         const newWorker = this.registration?.installing;
         if (newWorker) {
           safeDom.addEventListener(newWorker, 'statechange', () => {
-            // Dispatch custom event for state changes
-            window.dispatchEvent(new CustomEvent('sw-state-change', { detail: newWorker.state }));
-
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[PWA] New service worker available');
-              this.notifyUpdate();
-            }
+            handleInstalledWorker(newWorker);
           }, undefined);
         }
       }, undefined);
+
+      // If there's already an updated worker waiting (e.g., app reopened after deploy), notify immediately
+      if (this.registration.waiting && navigator.serviceWorker.controller) {
+        console.log('[PWA] Waiting service worker detected on registration - notifying update');
+        handleInstalledWorker(this.registration.waiting);
+      }
+
+      // Some browsers set the worker as installing but already in installed state
+      const installingWorker = this.registration.installing;
+      if (installingWorker && installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+        console.log('[PWA] Installing worker already installed - notifying update');
+        handleInstalledWorker(installingWorker);
+      }
 
       return this.registration;
     } catch (error) {

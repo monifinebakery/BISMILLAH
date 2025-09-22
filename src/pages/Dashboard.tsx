@@ -87,6 +87,7 @@ const Dashboard = () => {
     activities: 1,
     worstProducts: 1
   });
+  
   // 👤 Get settings from context
   const { settings, isLoading: settingsLoading } = useUserSettings();
   const { ownerName } = settings;

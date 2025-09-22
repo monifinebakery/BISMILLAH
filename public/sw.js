@@ -25,6 +25,8 @@ function swError(...args) {
 const CACHE_PREFIX = 'v5';
 const VERSION_URL = new URL('version.json', self.location.origin).href;
 
+// TEST UPDATE: Force cache refresh by changing this comment
+
 const cacheConfigPromise = resolveCacheConfig();
 
 async function resolveCacheConfig() {

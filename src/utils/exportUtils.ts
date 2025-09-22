@@ -2,6 +2,9 @@
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { safeCalculateMargins } from './profitValidation';
+import { formatCurrency } from '@/lib/shared/formatters';
+import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
+import { getStatusText } from '@/components/orders/constants';
 
 /**
  * Lazy load XLSX library hanya saat dibutuhkan
@@ -147,15 +150,13 @@ export const exportAllDataToExcel = async (
       {
         name: "Pembelian",
         data: (allData.purchases || []).flatMap((p: any) => {
-          // For purchases, supplier is already the supplier name (not ID)
-          // This is based on the Purchase type definition where supplier is string (nama supplier)
           return (p.items || []).map((item: any) => ({
             ...item,
-            tanggal: p.tanggal,
+            tanggal: p.tanggal ? formatDateForDisplay(p.tanggal) : '',
             supplierName: p.supplier || 'Supplier Tidak Dikenal',
             status: p.status,
-            hargaSatuan: item.hargaSatuan ? `Rp${item.hargaSatuan.toLocaleString()}` : 'Rp0',
-            totalHarga: item.totalHarga ? `Rp${item.totalHarga.toLocaleString()}` : 'Rp0'
+            hargaSatuan: formatCurrency(Number(item.hargaSatuan ?? item.harga_satuan ?? 0)),
+            totalHarga: formatCurrency(Number(item.totalHarga ?? item.total_harga ?? 0))
           }));
         }),
         headers: {
@@ -174,16 +175,16 @@ export const exportAllDataToExcel = async (
         data: (allData.orders || []).flatMap((o: any) =>
           (o.items || []).map((item: any) => ({
             ...item,
-            nomorPesanan: o.nomorPesanan,
-            tanggal: o.tanggal,
-            namaPelanggan: o.namaPelanggan,
-            teleponPelanggan: o.teleponPelanggan,
-            alamatPengiriman: o.alamatPengiriman,
-            totalPesanan: o.totalPesanan ? `Rp${o.totalPesanan.toLocaleString()}` : 'Rp0',
-            status: o.status,
+            nomorPesanan: o.nomorPesanan ?? o.order_number ?? o.nomor_pesanan,
+            tanggal: o.tanggal ? formatDateForDisplay(o.tanggal) : '',
+            namaPelanggan: o.namaPelanggan ?? o.customer_name,
+            teleponPelanggan: o.teleponPelanggan ?? o.customer_phone,
+            alamatPengiriman: o.alamatPengiriman ?? o.alamat_pengiriman,
+            totalPesanan: formatCurrency(Number(o.totalPesanan ?? o.total_amount ?? o.total_pesanan ?? 0)),
+            status: getStatusText((o.status ?? 'pending') as any),
             catatan: o.catatan,
-            hargaSatuan: item.hargaSatuan ? `Rp${item.hargaSatuan.toLocaleString()}` : 'Rp0',
-            totalHarga: item.totalHarga ? `Rp${item.totalHarga.toLocaleString()}` : 'Rp0'
+            hargaSatuan: formatCurrency(Number(item.hargaSatuan ?? item.price ?? 0)),
+            totalHarga: formatCurrency(Number(item.totalHarga ?? item.total ?? ((item.quantity || 0) * (item.price || 0))))
           }))
         ),
         headers: {
@@ -204,12 +205,25 @@ export const exportAllDataToExcel = async (
       {
         name: "Manajemen Resep",
         data: (allData.recipes || []).map((recipe: any) => {
-          // Process bahanResep to make it readable
+          const supplierList = Array.isArray(allData.suppliers) ? allData.suppliers : [];
+          const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+          const resolveSupplier = (b: any) => {
+            const raw = b?.supplier_name ?? b?.supplierName ?? b?.supplier ?? b?.supplier_id ?? b?.supplierId ?? '';
+            if (!raw) return '';
+            if (typeof raw === 'string' && !uuidRegex.test(raw)) return raw;
+            const id = String(raw);
+            const found = supplierList.find((s: any) => s.id === id);
+            return found?.nama || id;
+          };
+
           let bahanResepText = '';
-          if (recipe.bahanResep && Array.isArray(recipe.bahanResep)) {
-            bahanResepText = recipe.bahanResep.map((b: any) => 
-              `${b.nama} (${b.jumlah} ${b.satuan})`
-            ).join(', ');
+          const list = recipe.bahanResep || recipe.bahan_resep || [];
+          if (Array.isArray(list)) {
+            bahanResepText = list.map((b: any) => {
+              const supplierName = resolveSupplier(b);
+              const base = `${b.nama} (${b.jumlah} ${b.satuan})`;
+              return supplierName ? `${base} [Supplier: ${supplierName}]` : base;
+            }).join(', ');
           }
           
           return {

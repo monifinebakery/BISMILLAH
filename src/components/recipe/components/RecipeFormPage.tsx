@@ -1,7 +1,7 @@
 // src/components/recipe/components/RecipeFormPage.tsx
 // Full page recipe form without dialog wrapper
 
-import React, { useState, useEffect, useRef, Suspense } from 'react';
+import React, { useState, useEffect, useRef, Suspense, useCallback, useMemo } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -66,7 +66,7 @@ const STEPS: { key: RecipeFormStep; title: string; description: string }[] = [
   { key: 'costs', title: 'Kalkulasi HPP', description: 'Biaya produksi dan margin keuntungan' },
 ];
 
-const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
+const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
   mode,
   initialData,
   onNavigate,
@@ -301,21 +301,21 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
     isEnhancedHppActive,
   ]);
 
-  // Update form field
-  const updateField = (field: keyof NewRecipe, value: any) => {
+  // ✅ PERFORMANCE: Memoized callback functions to prevent unnecessary re-renders
+  const updateField = useCallback((field: keyof NewRecipe, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
-  };
+  }, [errors]);
 
-  // Enhanced HPP callback to track when enhanced mode is active
-  const handleEnhancedHppModeChange = (isActive: boolean) => {
+  // ✅ PERFORMANCE: Memoized enhanced HPP callback
+  const handleEnhancedHppModeChange = useCallback((isActive: boolean) => {
     setIsEnhancedHppActive(isActive);
-  };
+  }, []);
 
-  // Validate current step
-  const validateCurrentStep = (): boolean => {
+  // ✅ PERFORMANCE: Memoized step validation
+  const validateCurrentStep = useCallback((): boolean => {
     const stepErrors: { [key: string]: string } = {};
     switch (currentStep) {
       case 'basic':
@@ -363,10 +363,10 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
     }
     setErrors(stepErrors);
     return Object.keys(stepErrors).length === 0;
-  };
+  }, [currentStep, formData]);
 
-  // Navigate to next step
-  const handleNext = () => {
+  // ✅ PERFORMANCE: Memoized navigation functions
+  const handleNext = useCallback(() => {
     if (!validateCurrentStep()) {
       toast.error('Mohon perbaiki kesalahan pada form');
       return;
@@ -375,18 +375,17 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
     if (nextIndex < STEPS.length) {
       setCurrentStep(STEPS[nextIndex].key);
     }
-  };
+  }, [validateCurrentStep, currentStepIndex]);
 
-  // Navigate to previous step
-  const handlePrevious = () => {
+  const handlePrevious = useCallback(() => {
     const prevIndex = currentStepIndex - 1;
     if (prevIndex >= 0) {
       setCurrentStep(STEPS[prevIndex].key);
     }
-  };
+  }, [currentStepIndex]);
 
-  // Submit form
-  const handleSubmit = async () => {
+  // ✅ PERFORMANCE: Memoized submit handler
+  const handleSubmit = useCallback(async () => {
     const validation = validateRecipeData(formData);
     if (!validation.isValid) {
       toast.error(`Form tidak valid: ${validation.errors[0]}`);
@@ -415,12 +414,12 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
     } catch (error) {
       logger.error('RecipeFormPage: Error in handleSubmit:', error);
     }
-  };
+  }, [formData, isEditMode, initialData?.id, createRecipeMutation, updateRecipeMutation]);
 
-  // Handle back to list
-  const handleBack = () => {
+  // ✅ PERFORMANCE: Memoized back handler
+  const handleBack = useCallback(() => {
     onNavigate('list');
-  };
+  }, [onNavigate]);
 
   // Render step content
   const renderStepContent = () => {
@@ -625,6 +624,8 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = ({
       </div>
     </div>
   );
-};
+});
+
+RecipeFormPage.displayName = 'RecipeFormPage';
 
 export default RecipeFormPage;

@@ -21,6 +21,7 @@ import {
   Edit3,
   ChefHat
 } from 'lucide-react';
+import { useIsMobile } from '@/hooks/use-mobile';
 import type { Recipe } from '../types';
 
 export interface BulkActionsProps {
@@ -46,6 +47,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 }) => {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const isMobile = useIsMobile();
 
   if (!isVisible) return null;
 
@@ -72,11 +74,12 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
   return (
     <>
-      {/* Bulk Actions Toolbar */}
-      <Card className="border-orange-200 bg-orange-50 shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+      {/* Bulk Actions Toolbar - Mobile Optimized */}
+      <Card className={`border-orange-200 bg-orange-50 shadow-sm ${isMobile ? 'mx-4' : ''}`}>
+        <CardContent className={`${isMobile ? 'p-4' : 'p-4'}`}>
+          <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'items-center justify-between'}`}>
+            {/* Selection Info */}
+            <div className={`flex items-center gap-3 ${isMobile ? 'justify-center' : ''}`}>
               <div className="flex items-center gap-2">
                 <ChefHat className="h-5 w-5 text-orange-600" />
                 <span className="font-medium text-orange-900">
@@ -84,61 +87,62 @@ const BulkActions: React.FC<BulkActionsProps> = ({
                 </span>
               </div>
               
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onSelectAll}
-                  className="flex items-center gap-2 border-orange-300 text-orange-700 hover:bg-orange-100"
-                >
-                  {isAllSelected ? (
-                    <>
-                      <Square className="h-4 w-4" />
-                      Batalkan Semua
-                    </>
-                  ) : (
-                    <>
-                      <CheckSquare className="h-4 w-4" />
-                      Pilih Semua ({totalFilteredCount})
-                    </>
-                  )}
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={onCancel}
-                  className="flex items-center gap-2 border-gray-300 text-gray-700 hover:bg-gray-100"
-                >
-                  <X className="h-4 w-4" />
-                  Batal
-                </Button>
-              </div>
+              {/* Select All Button - Touch Friendly */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onSelectAll}
+                className={`flex items-center gap-2 border-orange-300 text-orange-700 hover:bg-orange-100 active:bg-orange-200 transition-colors ${isMobile ? 'h-9 px-3' : ''}`}
+                aria-label={isAllSelected ? 'Deselect all recipes' : 'Select all recipes'}
+              >
+                {isAllSelected ? (
+                  <>
+                    <Square className="h-4 w-4" />
+                    <span className={isMobile ? 'hidden' : ''}>Batalkan Semua</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className="h-4 w-4" />
+                    <span className={isMobile ? 'hidden' : ''}>Pilih Semua</span>
+                  </>
+                )}
+              </Button>
             </div>
-
-            {hasSelection && (
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkEdit}
-                  className="flex items-center gap-2 border-blue-300 text-blue-700 hover:bg-blue-100"
-                >
-                  <Edit3 className="h-4 w-4" />
-                  Edit Massal
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleBulkDelete}
-                  className="flex items-center gap-2 border-red-300 text-red-700 hover:bg-red-100"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Hapus ({selectedCount})
-                </Button>
-              </div>
-            )}
+            
+            {/* Action Buttons - Mobile Optimized */}
+            <div className={`flex ${isMobile ? 'flex-col space-y-2 w-full' : 'gap-2'}`}>
+              <Button
+                onClick={handleBulkEdit}
+                disabled={!hasSelection}
+                className={`bg-blue-500 hover:bg-blue-600 active:bg-blue-700 transition-colors ${isMobile ? 'flex-1 h-11' : 'h-9'}`}
+                aria-label="Edit selected recipes"
+              >
+                <Edit3 className="h-4 w-4 mr-2" />
+                <span>Edit ({selectedCount})</span>
+              </Button>
+              
+              <Button
+                onClick={handleBulkDelete}
+                disabled={!hasSelection}
+                variant="destructive"
+                className={`bg-red-500 hover:bg-red-600 active:bg-red-700 transition-colors ${isMobile ? 'flex-1 h-11' : 'h-9'}`}
+                aria-label="Delete selected recipes"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                <span>Hapus ({selectedCount})</span>
+              </Button>
+              
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onCancel}
+                className={`border-gray-300 text-gray-700 hover:bg-gray-100 active:bg-gray-200 transition-colors ${isMobile ? 'h-11 px-4' : 'h-9'}`}
+                aria-label="Cancel bulk selection"
+              >
+                <X className="h-4 w-4 mr-2" />
+                <span className={isMobile ? 'hidden' : ''}>Batal</span>
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>

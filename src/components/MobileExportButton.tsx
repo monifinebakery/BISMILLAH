@@ -19,7 +19,7 @@ import { useAssetQuery } from "@/components/assets";
 import { useAuth } from '@/contexts/AuthContext';
 
 // --- Import Export Functions ---
-import { exportAllDataToExcel } from "@/utils/exportUtils";
+import ExportService from "@/services/export/ExportService";
 
 const MobileExportButton = () => {
   // Get user for asset query
@@ -60,37 +60,31 @@ const MobileExportButton = () => {
     enableRealtime: false // No need for realtime in export
   });
 
-  const handleExport = (format: 'xlsx' | 'csv' = 'xlsx') => {
-    // Check if assets are still loading
-    if (assetsLoading) {
-      return; // Could show loading toast here
-    }
-
-    const allAppData = {
-      bahanBaku,
+  const handleExport = () => {
+    if (assetsLoading) return;
+    const bn = (settings?.businessName || 'bisnis_anda').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    ExportService.generateXLSXWorkbook({
+      warehouse: bahanBaku,
       suppliers,
       purchases,
-      recipes,
-      activities,
       orders,
-      assets, // Will be empty array during debug
-      financialTransactions,
-    };
-
-    // Call export function with business name from settings
-    exportAllDataToExcel(allAppData, settings.businessName, format);
+      recipes,
+      financial_transactions: financialTransactions,
+      assets,
+    }, `semua_data_${bn}.xlsx`);
   };
 
   return (
     <Button
-      variant="ghost"
+      variant="default"
       size="sm"
-      onClick={() => handleExport('xlsx')}
-      className="px-2 py-1"
+      onClick={handleExport}
+      className="px-3 py-2 bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-semibold shadow-md hover:shadow-lg ring-2 ring-offset-2 ring-orange-300 animate-pulse"
       disabled={assetsLoading}
       title={assetsLoading ? "Memuat data aset..." : "Export semua data"}
     >
-      <Download className="h-4 w-4" />
+      <Download className="h-4 w-4 mr-2" />
+      Export
     </Button>
   );
 };

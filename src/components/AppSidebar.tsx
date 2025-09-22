@@ -45,7 +45,7 @@ import { purchaseQueryKeys } from "@/components/purchase/query/purchase.queryKey
 import { PurchaseApiService } from "@/components/purchase/services/purchaseApi";
 
 import { useProfitAnalysis } from "@/components/profitAnalysis";
-import { exportAllDataToExcel } from "@/utils/exportUtils";
+import ExportService from "@/services/export/ExportService";
 import { useIsMobile } from "@/hooks/use-mobile";
 import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
@@ -157,16 +157,22 @@ export function AppSidebar() {
     "--active-text": "#c2410c",
   } as React.CSSProperties;
 
-  const handleExportAllData = (format: 'xlsx' | 'csv' = 'xlsx') => {
+  const handleExportAllData = () => {
     if (assetsLoading) { toast.info("Tunggu sebentar, sedang memuat data aset..."); return; }
-    exportAllDataToExcel({
-      bahanBaku, suppliers, purchases, recipes, activities, orders, assets,
-      financialTransactions, promos,
-      operationalCosts: operationalCostState.costs,
-      allocationSettings: operationalCostState.allocationSettings,
-      costSummary: operationalCostState.summary,
-      profitAnalysis, profitHistory,
-    }, settings.businessName, format);
+    const bn = (settings?.businessName || 'bisnis_anda').replace(/[^a-z0-9]/gi, '_').toLowerCase();
+    ExportService.generateXLSXWorkbook({
+      warehouse: bahanBaku,
+      suppliers,
+      purchases,
+      orders,
+      recipes,
+      operational_costs: operationalCostState?.costs || [],
+      financial_transactions: financialTransactions,
+      profit_analysis: profitAnalysis ? [profitAnalysis] : [],
+      assets,
+      promos,
+      business: settings ? [settings] : [],
+    }, `semua_data_${bn}.xlsx`);
   };
 
   // Prefetch Financial data to avoid flicker when navigating
@@ -298,7 +304,12 @@ export function AppSidebar() {
             </SidebarMenuItem>
           )}
           <SidebarMenuItem className="w-full">
-            {renderActionButton(() => handleExportAllData('xlsx'), Download, (assetsLoading || profitLoading) ? "Memuat..." : "Export Semua Data")}
+            {renderActionButton(
+              () => handleExportAllData(),
+              Download,
+              (assetsLoading || profitLoading) ? "Memuat..." : "Export Semua Data",
+              "bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-semibold shadow-lg hover:shadow-xl ring-2 ring-offset-2 ring-orange-300 animate-pulse"
+            )}
           </SidebarMenuItem>
           {settingsItems.map((item) => (
             <SidebarMenuItem key={item.title} className="w-full">

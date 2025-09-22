@@ -9,6 +9,7 @@ import type {
   ValidationResult,
   RecipeStats
 } from '../types';
+import { formatCurrency as formatCurrencyShared } from '@/lib/shared/formatters';
 
 /**
  * Recipe Utilities and Calculations
@@ -454,67 +455,112 @@ export const generateRecipeSlug = (namaResep: string): string => {
  */
 export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe => {
   return {
-    nama_resep: newName,
-    jumlah_porsi: recipe.jumlah_porsi,
-    kategori_resep: recipe.kategori_resep,
+    namaResep: newName,
+    jumlahPorsi: recipe.jumlah_porsi,
+    kategoriResep: recipe.kategori_resep,
     deskripsi: recipe.deskripsi,
-    foto_url: recipe.foto_url,
-    bahan_resep: recipe.bahan_resep.map(bahan => ({ ...bahan })), // Deep copy
-    biaya_tenaga_kerja: recipe.biaya_tenaga_kerja,
-    biaya_overhead: recipe.biaya_overhead,
-    margin_keuntungan_persen: recipe.margin_keuntungan_persen,
-    total_hpp: recipe.total_hpp,
-    hpp_per_porsi: recipe.hpp_per_porsi,
-    harga_jual_porsi: recipe.harga_jual_porsi,
-    jumlah_pcs_per_porsi: recipe.jumlah_pcs_per_porsi,
-    hpp_per_pcs: recipe.hpp_per_pcs,
-    harga_jual_per_pcs: recipe.harga_jual_per_pcs,
+    fotoUrl: recipe.foto_url,
+    fotoBase64: recipe.foto_base64,
+    bahanResep: recipe.bahan_resep.map(bahan => ({ ...bahan })), // Deep copy
+    biayaTenagaKerja: recipe.biaya_tenaga_kerja,
+    biayaOverhead: recipe.biaya_overhead,
+    marginKeuntunganPersen: recipe.margin_keuntungan_persen,
+    totalHpp: recipe.total_hpp,
+    hppPerPorsi: recipe.hpp_per_porsi,
+    hargaJualPorsi: recipe.harga_jual_porsi,
+    jumlahPcsPerPorsi: recipe.jumlah_pcs_per_porsi,
+    hppPerPcs: recipe.hpp_per_pcs,
+    hargaJualPerPcs: recipe.harga_jual_per_pcs,
   };
 };
 
 /**
  * Export recipes to CSV format
  */
-export const exportRecipesToCSV = (recipes: Array<any>): string => {
+export const exportRecipesToCSV = (
+  recipes: Array<any>,
+  suppliers?: Array<{ id: string; nama: string }>
+): string => {
   const headers = [
     'Nama Resep',
-    'Kategori',
     'Jumlah Porsi',
-    'Total HPP',
-    'HPP per Porsi',
-    'Harga Jual per Porsi',
+    'Kategori',
+    'Deskripsi',
+    'Bahan Resep',
+    'Biaya Tenaga Kerja (Rp)',
+    'Biaya Overhead (Rp)',
     'Margin (%)',
-    'Profitabilitas',
-    'Tanggal Dibuat'
+    'Total HPP (Rp)',
+    'HPP per Porsi (Rp)',
+    'Harga Jual per Porsi (Rp)',
+    'Jumlah Pcs per Porsi',
+    'HPP per Pcs (Rp)',
+    'Harga Jual per Pcs (Rp)'
   ];
+
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  const resolveSupplierName = (bahan: any): string => {
+    const raw = bahan?.supplier_name ?? bahan?.supplierName ?? bahan?.supplier ?? bahan?.supplier_id ?? bahan?.supplierId ?? '';
+    if (!raw) return '';
+    if (typeof raw === 'string' && !uuidRegex.test(raw)) return raw;
+    const id = String(raw);
+    const found = suppliers?.find(s => s.id === id);
+    return found?.nama || id;
+  };
 
   const rows = recipes.map((recipe) => {
     const nama = recipe.nama_resep ?? recipe.namaResep ?? '';
     const kategori = recipe.kategori_resep ?? recipe.kategoriResep ?? '';
-    const jumlahPorsi = (recipe.jumlah_porsi ?? recipe.jumlahPorsi ?? 0).toString();
-    const totalHpp = (recipe.total_hpp ?? recipe.totalHpp ?? 0).toString();
-    const hppPerPorsi = (recipe.hpp_per_porsi ?? recipe.hppPerPorsi ?? 0).toString();
-    const hargaJualPorsi = (recipe.harga_jual_porsi ?? recipe.hargaJualPorsi ?? 0).toString();
-    const margin = recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0;
-    const profitLevel = getProfitabilityLevel(Number(margin) || 0);
-    const created = recipe.created_at ?? recipe.createdAt ?? null;
-    const createdStr = created ? (created instanceof Date ? created : new Date(created)).toLocaleDateString('id-ID') : '';
+    const deskripsi = recipe.deskripsi ?? recipe.deskripsi_resep ?? '';
+    const jumlahPorsiNum = Number(recipe.jumlah_porsi ?? recipe.jumlahPorsi ?? 0) || 0;
+    const jumlahPorsi = String(jumlahPorsiNum);
+
+    const biayaTKLNum = Number(recipe.biaya_tenaga_kerja ?? recipe.biayaTenagaKerja ?? 0) || 0;
+    const biayaOverheadNum = Number(recipe.biaya_overhead ?? recipe.biayaOverhead ?? 0) || 0;
+    const marginNum = Number(recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0) || 0;
+
+    const totalHppNum = Number(recipe.total_hpp ?? recipe.totalHpp ?? 0) || 0;
+    const hppPerPorsiNum = Number(recipe.hpp_per_porsi ?? recipe.hppPerPorsi ?? 0) || 0;
+    const hargaJualPorsiNum = Number(recipe.harga_jual_porsi ?? recipe.hargaJualPorsi ?? 0) || 0;
+    const jumlahPcsPerPorsiNum = Number(recipe.jumlah_pcs_per_porsi ?? recipe.jumlahPcsPerPorsi ?? 0) || 0;
+    const hppPerPcsNum = Number(recipe.hpp_per_pcs ?? recipe.hppPerPcs ?? 0) || 0;
+    const hargaJualPerPcsNum = Number(recipe.harga_jual_per_pcs ?? recipe.hargaJualPerPcs ?? 0) || 0;
+
+    const bahanList: any[] = Array.isArray(recipe.bahan_resep ?? recipe.bahanResep)
+      ? (recipe.bahan_resep ?? recipe.bahanResep)
+      : [];
+    const bahanSummary = bahanList
+      .map((b: any) => {
+        const namaBahan = b?.nama ?? '';
+        const qty = Number(b?.jumlah ?? 0) || 0;
+        const satuan = b?.satuan ?? '';
+        const supplierName = resolveSupplierName(b);
+        return supplierName
+          ? `${namaBahan} (${qty} ${satuan}) [Supplier: ${supplierName}]`
+          : `${namaBahan} (${qty} ${satuan})`;
+      })
+      .join('; ');
 
     return [
       nama,
-      kategori,
       jumlahPorsi,
-      totalHpp,
-      hppPerPorsi,
-      hargaJualPorsi,
-      String(margin),
-      profitLevel,
-      createdStr
+      kategori,
+      deskripsi,
+      bahanSummary,
+      formatCurrencyShared(biayaTKLNum),
+      formatCurrencyShared(biayaOverheadNum),
+      String(marginNum),
+      formatCurrencyShared(totalHppNum),
+      formatCurrencyShared(hppPerPorsiNum),
+      formatCurrencyShared(hargaJualPorsiNum),
+      String(jumlahPcsPerPorsiNum),
+      formatCurrencyShared(hppPerPcsNum),
+      formatCurrencyShared(hargaJualPerPcsNum)
     ];
   });
 
   const csvContent = [headers, ...rows]
-    .map(row => row.map(cell => `"${cell}"`).join(','))
+    .map(row => row.map(cell => `"${(cell ?? '').toString().replace(/"/g, '""')}"`).join(','))
     .join('\n');
 
   return csvContent;

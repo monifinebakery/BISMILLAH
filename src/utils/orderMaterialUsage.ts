@@ -63,13 +63,13 @@ export async function syncOrderMaterialUsage(order: any, userId: string): Promis
 
     if (recipeItemEntries.length === 0) return true;
 
-    const recipeIds = Array.from(new Set(recipeItemEntries.map((r: any) => r.recipe_id)));
+    const recipeIds = Array.from(new Set(recipeItemEntries.map((r: any) => r.recipe_id))) as string[];
     const recipes = await fetchRecipes(recipeIds);
     if (!recipes || recipes.length === 0) return true;
 
     const bahanRows: Array<{ bahan_baku_id: string; qty_base: number }> = [];
     const quantityByRecipe: Record<string, number> = {};
-    recipeItemEntries.forEach(r => { quantityByRecipe[r.recipe_id] = (quantityByRecipe[r.recipe_id] || 0) + r.quantity; });
+    recipeItemEntries.forEach((r: any) => { quantityByRecipe[r.recipe_id] = (quantityByRecipe[r.recipe_id] || 0) + r.quantity; });
 
     recipes.forEach((r: any) => {
       const q = quantityByRecipe[r.id] || 0;
@@ -85,7 +85,7 @@ export async function syncOrderMaterialUsage(order: any, userId: string): Promis
 
     if (bahanRows.length === 0) return true;
 
-    const bahanIds = Array.from(new Set(bahanRows.map(b => b.bahan_baku_id)));
+    const bahanIds = Array.from(new Set(bahanRows.map(b => b.bahan_baku_id))) as string[];
     const hargaMap = await fetchBahanHarga(bahanIds);
 
     const tanggal = (order.tanggal_selesai || order.tanggal || new Date()).toString().slice(0, 10);
@@ -115,7 +115,63 @@ export async function syncOrderMaterialUsage(order: any, userId: string): Promis
       logger.error('orderMaterialUsage: insert error', insertErr);
       return false;
     }
-    logger.success('orderMaterialUsage: usage recorded for order', order.id);
+
+    // ✅ BARU: Kurangi stok bahan baku setelah mencatat pemakaian
+    const stockUpdates = bahanRows.map(row => ({
+      bahan_baku_id: row.bahan_baku_id,
+      qty_to_deduct: row.qty_base
+    }));
+
+    for (const update of stockUpdates) {
+      // First get current stock to ensure we have enough
+      const { data: bahanData, error: fetchError } = await supabase
+        .from('bahan_baku')
+        .select('stok')
+        .eq('id', update.bahan_baku_id)
+        .eq('user_id', userId)
+        .single();
+
+      if (fetchError || !bahanData) {
+        logger.error('orderMaterialUsage: failed to fetch current stock for bahan_baku_id', update.bahan_baku_id, fetchError);
+        continue;
+      }
+
+      const currentStock = Number(bahanData.stok || 0);
+      if (currentStock < update.qty_to_deduct) {
+        logger.warn('orderMaterialUsage: insufficient stock for bahan_baku_id', {
+          bahan_baku_id: update.bahan_baku_id,
+          current_stock: currentStock,
+          required: update.qty_to_deduct
+        });
+        // Still deduct what we can, but log warning
+      }
+
+      const newStock = Math.max(0, currentStock - update.qty_to_deduct);
+
+      const { error: stockError } = await supabase
+        .from('bahan_baku')
+        .update({
+          stok: newStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', update.bahan_baku_id)
+        .eq('user_id', userId);
+
+      if (stockError) {
+        logger.error('orderMaterialUsage: failed to deduct stock for bahan_baku_id', update.bahan_baku_id, stockError);
+        // Note: We don't return false here because usage was already recorded
+        // Stock deduction failure should be logged but not block order completion
+      } else {
+        logger.info('orderMaterialUsage: deducted stock', {
+          bahan_baku_id: update.bahan_baku_id,
+          previous_stock: currentStock,
+          deducted: update.qty_to_deduct,
+          new_stock: newStock
+        });
+      }
+    }
+
+    logger.success('orderMaterialUsage: usage recorded and stock deducted for order', order.id);
     return true;
   } catch (e) {
     logger.error('orderMaterialUsage: unexpected error', e);

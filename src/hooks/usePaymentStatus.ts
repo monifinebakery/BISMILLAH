@@ -209,7 +209,7 @@ export const usePaymentStatus = () => {
 
         currentUserRef.current = user;
 
-        // ✅ Small delay to prevent rapid re-creation
+        // ✅ Small delay to prevent rapid re-creation (reduced from 200ms)
         setupTimeoutRef.current = setTimeout(() => {
           if (!mounted) return;
 

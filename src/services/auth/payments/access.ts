@@ -50,19 +50,18 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
 
     logger.info('[AccessCheck] User authenticated, checking payment status:', user.email);
 
-    // ✅ STEP 1: Check if user has linked payment (OPTIMIZED query)
-    const { data: linkedPayments, error: linkedError } = await supabase
+    // ✅ OPTIMIZED: Single combined query for both linked and unlinked payments
+    const { data: payments, error: paymentsError } = await supabase
       .from('user_payments')
-      .select('id,user_id,name,order_id,is_paid,payment_status,email,created_at,updated_at') // ✅ FIXED: Use existing schema columns
-      .eq('user_id', user.id)
+      .select('id,user_id,name,order_id,is_paid,payment_status,email,created_at,updated_at')
       .eq('is_paid', true)
       .eq('payment_status', 'settled')
+      .or(`user_id.eq.${user.id},and(user_id.is.null,email.eq.${user.email})`)
       .order('updated_at', { ascending: false })
-      .limit(1)
-      .single(); // ✅ FIXED: Use single() for better performance
+      .limit(2); // Get max 2 results for efficiency
 
-    if (linkedError) {
-      logger.error('[AccessCheck] Error checking linked payments:', linkedError);
+    if (paymentsError) {
+      logger.error('[AccessCheck] Error checking payments:', paymentsError);
       return {
         hasAccess: false,
         isAuthenticated: true,
@@ -73,49 +72,39 @@ export const getUserAccessStatus = async (): Promise<UserAccessStatus> => {
       };
     }
 
-    // ✅ User has linked payment - FULL ACCESS
-    if (linkedPayments && !linkedError) {
+    // ✅ Check for linked payment first (highest priority)
+    const linkedPayment = payments?.find(p => p.user_id === user.id);
+    if (linkedPayment) {
       logger.success('[AccessCheck] User has valid linked payment:', {
-        orderId: linkedPayments.order_id,
-        userId: linkedPayments.user_id
+        orderId: linkedPayment.order_id,
+        userId: linkedPayment.user_id
       });
       return {
         hasAccess: true,
         isAuthenticated: true,
-        paymentRecord: linkedPayments,
+        paymentRecord: linkedPayment as PaymentRecord,
         needsOrderVerification: false,
         needsLinking: false,
         message: 'Akses penuh tersedia'
       };
     }
 
-    // ✅ STEP 2: Check for unlinked payments - OPTIMIZED query
-    const { data: unlinkedPayments, error: unlinkedError } = await supabase
-      .from('user_payments')
-      .select('id,name,order_id,email,is_paid,payment_status,created_at') // ✅ FIXED: Use existing schema columns
-      .eq('email', user.email)
-      .is('user_id', null)
-      .eq('is_paid', true)
-      .eq('payment_status', 'settled')
-      .order('created_at', { ascending: false })
-      .limit(1)
-      .single(); // ✅ FIXED: Use single() for better performance
-
-    if (!unlinkedError && unlinkedPayments) {
+    // ✅ Check for unlinked payment
+    const unlinkedPayment = payments?.find(p => !p.user_id && p.email === user.email);
+    if (unlinkedPayment) {
       logger.info('[AccessCheck] Found unlinked payment for user email - NO AUTO-LINK');
       
-      // ✅ REMOVED AUTO-LINK - Let user manually link via popup
       return {
         hasAccess: false,
         isAuthenticated: true,
-        paymentRecord: unlinkedPayments as PaymentRecord,
+        paymentRecord: unlinkedPayment as PaymentRecord,
         needsOrderVerification: false,
         needsLinking: true,
         message: 'Pembayaran ditemukan, silakan hubungkan dengan Order ID'
       };
     }
 
-    // ✅ STEP 3: No payment found - need order verification
+    // ✅ No payment found - need order verification
     logger.info('[AccessCheck] No payment found for user');
     return {
       hasAccess: false,

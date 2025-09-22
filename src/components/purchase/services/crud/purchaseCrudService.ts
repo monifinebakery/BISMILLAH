@@ -2,6 +2,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { withRetry, handleSupabaseError, recordError } from '@/utils/supabaseErrorHandler';
+import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 import type { Purchase } from '../../types/purchase.types';
 import {
   transformPurchasesFromDB,
@@ -23,68 +24,64 @@ interface PaginatedResponse<T> {
 }
 
 /**
- * Get all purchases for a user
+ * Get all purchases for a user (optimized version)
  */
-export async function fetchPurchases(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
+export async function fetchPurchasesOptimized(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
   try {
-    const data = await withRetry(async () => {
-      const { data, error } = await supabase
-        .from('purchases')
-        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-        .eq('user_id', userId)
-        .order('tanggal', { ascending: false });
+    const data = await new OptimizedQueryBuilder('purchases', 'purchases_list')
+      .select(OPTIMIZED_SELECTS.purchases.list)
+      .eq('user_id', userId)
+      .order('tanggal', { ascending: false })
+      .limit(50) // Reduced from unlimited
+      .execute();
 
-      if (error) {
-        recordError(error, 'fetchPurchases');
-        throw error;
-      }
-      return data;
-    }, {
-      maxRetries: 4,
-      onRetry: (attempt, error) => {
-        logger.warn(`🔄 Retrying fetchPurchases (${attempt}/4):`, error.message);
-      }
-    });
-    
-    return { data: transformPurchasesFromDB(data ?? []), error: null };
+    return { data: transformPurchasesFromDB(data || []), error: null };
   } catch (err: any) {
-    logger.error('Error fetching purchases:', err);
+    logger.error('Error fetching optimized purchases:', err);
     handleSupabaseError(err, 'memuat data pembelian');
     return { data: null, error: err.message || 'Gagal memuat data pembelian' };
   }
 }
 
 /**
- * Get purchases with pagination
+ * Get purchases with pagination (optimized version)
  */
-export async function fetchPaginatedPurchases(
+export async function fetchPaginatedPurchasesOptimized(
   userId: string,
   page: number,
   limit: number,
   searchQuery?: string
 ): Promise<PaginatedResponse<Purchase>> {
   try {
-    let query = supabase
-      .from('purchases')
-      .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at', { count: 'exact' })
-      .eq('user_id', userId)
-      .range((page - 1) * limit, page * limit - 1)
-      .order('tanggal', { ascending: false });
+    const result = await PaginationOptimizer.fetchWithPagination<Purchase>(
+      'purchases',
+      userId,
+      {
+        page,
+        limit: Math.min(limit, 25), // Cap at 25 items per page
+        selectFields: OPTIMIZED_SELECTS.purchases.list,
+        orderBy: 'tanggal',
+        cachePrefix: 'purchases_paginated'
+      }
+    );
 
+    // Apply search filter if provided
+    let filteredData = result.data;
     if (searchQuery) {
-      query = query.or(`supplier.ilike.%${searchQuery}%,catatan.ilike.%${searchQuery}%`);
+      const query = searchQuery.toLowerCase();
+      filteredData = result.data.filter(purchase =>
+        purchase.supplier?.toLowerCase().includes(query) ||
+        purchase.keterangan?.toLowerCase().includes(query)
+      );
     }
 
-    const { data, error, count } = await query;
-
-    if (error) throw new Error(error.message);
-    return { data: transformPurchasesFromDB(data ?? []), error: null, totalCount: count || 0 };
+    return {
+      data: transformPurchasesFromDB(filteredData || []),
+      error: null,
+      totalCount: result.totalCount
+    };
   } catch (err: any) {
-    logger.error('Error fetching paginated purchases:', err);
-    // Check if it's a 503 error and provide a more user-friendly message
-    if (err.message && err.message.includes('503')) {
-      // Note: toast is not available here, should be handled by caller
-    }
+    logger.error('Error fetching paginated optimized purchases:', err);
     return { data: null, error: err.message || 'Gagal memuat data pembelian', totalCount: 0 };
   }
 }

@@ -7,6 +7,7 @@ import { transformOrderFromDB, transformOrderToDB, validateOrderData, toSafeISOS
 import type { Order, OrderItem, CreateOrderData, UpdateOrderData, OrderStatus, NewOrder } from '../types';
 import { generateOrderNumber } from '@/utils/formatUtils';
 import { to_snake_order } from '../utils';
+import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 
 // ✅ FIXED: Valid status values matching application values
 const VALID_ORDER_STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'delivered', 'cancelled', 'completed'];
@@ -533,83 +534,51 @@ export async function bulkUpdateStatus(userId: string, ids: string[], newStatus:
 }
 
 // ULTRA OPTIMIZED: Bulk delete dengan batching and financial cleanup
-export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<void> {
-  logger.info('🗑️ Starting bulk delete with financial cleanup for orders:', ids.length);
-  
-  // ✅ STEP 1: Get order data for financial cleanup
-  const { data: ordersData, error: fetchError } = await supabase
-    .from('orders')
-    .select('id, nomor_pesanan, total_pesanan, status')
-    .in('id', ids)
-    .eq('user_id', userId);
+// ================= OPTIMIZED FUNCTIONS FOR REDUCED EGRESS =================
 
-  if (fetchError) {
-    logger.error('Error fetching orders for bulk deletion:', fetchError);
-    throw fetchError;
-  }
-
-  const orderNumbers = ordersData?.map(order => order.nomor_pesanan) || [];
-  
-  // ✅ STEP 2: Clean up financial transactions for all orders
-  if (orderNumbers.length > 0) {
-    try {
-      const descriptions = orderNumbers.map(num => `Pesanan ${num}`);
-      
-      const { error: financialError } = await supabase
-        .from('financial_transactions')
-        .delete()
-        .eq('user_id', userId)
-        .eq('type', 'income')
-        .in('description', descriptions);
-
-      if (financialError) {
-        logger.warn('Error deleting related financial transactions:', financialError);
-        // Don't throw - continue with order deletion even if financial cleanup fails
-      } else {
-        logger.success(`✅ Deleted ${descriptions.length} related financial transactions`);
-      }
-    } catch (cleanupError) {
-      logger.warn('Financial cleanup failed (non-critical):', cleanupError);
-    }
-  }
-
-  // ✅ STEP 3: Delete orders with batching
-  // PERFORMANCE: Batch processing
-  const BATCH_SIZE = 25;
-  const batches = [];
-  
-  for (let i = 0; i < ids.length; i += BATCH_SIZE) {
-    batches.push(ids.slice(i, i + BATCH_SIZE));
-  }
-  
-  // CONCURRENT: Process batches secara parallel
-  const promises = batches.map(async (batch, index) => {
-    // PERFORMANCE: Stagger untuk stability
-    if (index > 0) {
-      await new Promise(resolve => setTimeout(resolve, 30 * index));
-    }
-    
-    const { error } = await supabase
-      .from('orders')
-      .delete()
-      .in('id', batch)
-      .eq('user_id', userId);
-
-    if (error) {
-      logger.error(`Error bulk deleting batch ${index + 1}:`, error);
-      throw error;
-    }
-  });
-  
-  await Promise.all(promises);
-  
-  logger.success(`✅ Successfully bulk deleted ${ids.length} orders and cleaned up financial data`);
-  
-  // ✅ STEP 4: Emit events for immediate UI updates and financial report synchronization
+// OPTIMIZED: Fetch orders with caching and selective fields
+export async function fetchOrdersOptimized(userId: string): Promise<Order[]> {
   try {
-    ids.forEach(id => emitOrderDeleted(id));
-    logger.debug(`✅ Bulk order deletion events emitted for ${ids.length} orders`);
-  } catch (eventError) {
-    logger.warn('Could not emit bulk order deletion events (non-critical):', eventError);
+    const data = await new OptimizedQueryBuilder('orders', 'orders_list')
+      .select(OPTIMIZED_SELECTS.orders.list)
+      .eq('user_id', userId)
+      .order('tanggal', { ascending: false })
+      .limit(50) // Reduced from unlimited
+      .execute();
+
+    return (data || []).map(transformOrderFromDB);
+  } catch (error) {
+    logger.error('Error fetching optimized orders:', error);
+    throw error;
+  }
+}
+
+// OPTIMIZED: Fetch orders with pagination
+export async function fetchOrdersPaginatedOptimized(
+  userId: string,
+  page: number = 1,
+  limit: number = 20
+): Promise<{ orders: Order[]; totalCount: number; totalPages: number }> {
+  try {
+    const result = await PaginationOptimizer.fetchWithPagination<Order>(
+      'orders',
+      userId,
+      {
+        page,
+        limit: Math.min(limit, 25), // Cap at 25 items per page
+        selectFields: OPTIMIZED_SELECTS.orders.list,
+        orderBy: 'tanggal',
+        cachePrefix: 'orders_paginated'
+      }
+    );
+
+    return {
+      orders: (result.data || []).map(transformOrderFromDB),
+      totalCount: result.totalCount,
+      totalPages: Math.ceil(result.totalCount / limit)
+    };
+  } catch (error) {
+    logger.error('Error fetching paginated optimized orders:', error);
+    throw error;
   }
 }

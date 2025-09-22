@@ -11,10 +11,11 @@ import {
   calculateEnhancedWac, 
   validateWacCalculation 
 } from './wacCalculationService';
-import { 
-  findExistingMaterialByName, 
+import {
+  findExistingMaterialByName,
   findMaterialById,
-  normalizeUnit 
+  normalizeMaterialName,
+  normalizeUnit
 } from './materialSearchService';
 
 /**
@@ -29,6 +30,35 @@ const deriveUnitPrice = (item: any, qty: number): number => {
   const subtotal = toNum(item.subtotal);
   if (qty > 0 && subtotal > 0) return subtotal / qty;
   return 0;
+};
+
+/**
+ * Resolusi nama item dengan mempertimbangkan alias lama
+ */
+const resolveItemName = (item: any): { name: string; raw: string; source: string | null } => {
+  const nameCandidates: Array<{ key: string; value: unknown }> = [
+    { key: 'nama', value: item?.nama },
+    { key: 'namaBarang', value: item?.namaBarang },
+    { key: 'nama_barang', value: item?.nama_barang },
+    { key: 'nama_bahan', value: item?.nama_bahan },
+    { key: 'namaBahan', value: item?.namaBahan },
+    { key: 'name', value: item?.name },
+    { key: 'item_name', value: item?.item_name },
+    { key: 'itemName', value: item?.itemName },
+    { key: 'description', value: item?.description },
+    { key: 'title', value: item?.title },
+  ];
+
+  for (const candidate of nameCandidates) {
+    if (typeof candidate.value === 'string') {
+      const normalized = normalizeMaterialName(candidate.value);
+      if (normalized) {
+        return { name: normalized, raw: candidate.value, source: candidate.key };
+      }
+    }
+  }
+
+  return { name: '', raw: '', source: null };
 };
 
 /**
@@ -47,7 +77,8 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
   for (const item of purchase.items) {
     // Database stores 'bahan_baku_id', frontend might use 'bahanBakuId'
     const itemId = (item as any).bahan_baku_id || (item as any).bahanBakuId || (item as any).id;
-    const itemName = (item as any).nama ?? '';
+    const nameResolution = resolveItemName(item as any);
+    const itemName = nameResolution.name;
     const itemSatuan = (item as any).satuan ?? '';
     const itemSatuanNorm = normalizeUnit(itemSatuan);
     // Database stores 'jumlah', but frontend might use 'quantity'
@@ -57,6 +88,8 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
     logger.debug('🔄 [PURCHASE SYNC] Processing item:', {
       itemId,
       itemName,
+      itemNameSource: nameResolution.source,
+      rawItemName: nameResolution.raw,
       itemSatuan,
       qty,
       unitPrice,
@@ -67,6 +100,7 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
       logger.warn('⚠️ [PURCHASE SYNC] Skipping invalid item:', {
         itemId,
         itemName,
+        itemNameSource: nameResolution.source,
         qty,
         unitPrice,
       });

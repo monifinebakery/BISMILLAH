@@ -10,7 +10,7 @@ import { logger } from '@/utils/logger';
 export const normalizeUnit = (raw: string | undefined | null): string => {
   const u = String(raw || '').toLowerCase().trim();
   if (!u) return '';
-  
+
   const unitMap: Record<string, string> = {
     gr: 'gram', g: 'gram', gram: 'gram',
     kg: 'kg', kilogram: 'kg',
@@ -24,6 +24,19 @@ export const normalizeUnit = (raw: string | undefined | null): string => {
 };
 
 /**
+ * Normalisasi nama bahan untuk menghilangkan spasi ganda atau underscore
+ */
+export const normalizeMaterialName = (raw: string | undefined | null): string => {
+  if (raw == null) return '';
+
+  const asString = String(raw);
+  return asString
+    .replace(/[_\s]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+};
+
+/**
  * Helper function to find existing material by name and satuan
  * This enables stock accumulation for the same material from different suppliers
  */
@@ -34,16 +47,18 @@ export const findExistingMaterialByName = async (
 ): Promise<any | null> => {
   try {
     // Normalize name for better matching
-    const normalizedName = materialName.toLowerCase().trim();
+    const standardizedName = normalizeMaterialName(materialName);
+    const normalizedName = standardizedName.toLowerCase();
     const normalizedUnit = normalizeUnit(rawSatuan);
-    
+
     logger.debug('🔍 [MATERIAL SEARCH] Searching for existing material:', {
       originalName: materialName,
+      standardizedName,
       normalizedName,
       satuan: normalizedUnit,
       userId
     });
-    
+
     const { data: materials, error } = await supabase
       .from('bahan_baku')
       .select('id, nama, satuan, stok, harga_rata_rata, harga_satuan, supplier')
@@ -54,14 +69,16 @@ export const findExistingMaterialByName = async (
       logger.error('❌ [MATERIAL SEARCH] Error searching materials by name:', error);
       return null;
     }
-    
+
     // If multiple matches, prefer exact name match first
     if (materials && materials.length > 0) {
       // Filter by normalized unit first
       const unitMatches = materials.filter(m => normalizeUnit(m.satuan) === normalizedUnit);
       if (unitMatches.length > 0) {
         // Prefer exact name match among unit matches
-        const exactUnitMatch = unitMatches.find(m => m.nama.toLowerCase().trim() === normalizedName);
+        const exactUnitMatch = unitMatches.find(m =>
+          normalizeMaterialName(m.nama).toLowerCase() === normalizedName
+        );
         if (exactUnitMatch) {
           logger.debug('✅ [MATERIAL SEARCH] Found exact name+unit match:', exactUnitMatch);
           return exactUnitMatch;
@@ -69,12 +86,12 @@ export const findExistingMaterialByName = async (
         logger.debug('✅ [MATERIAL SEARCH] Found unit-normalized match:', unitMatches[0]);
         return unitMatches[0];
       }
-      
+
       // First try exact match (case insensitive)
-      const exactMatch = materials.find(m => 
-        m.nama.toLowerCase().trim() === normalizedName
+      const exactMatch = materials.find(m =>
+        normalizeMaterialName(m.nama).toLowerCase() === normalizedName
       );
-      
+
       if (exactMatch) {
         logger.debug('✅ [MATERIAL SEARCH] Found exact name match:', exactMatch);
         return exactMatch;

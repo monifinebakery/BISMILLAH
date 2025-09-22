@@ -59,44 +59,19 @@ export async function fetchOrdersSnake(userId: string): Promise<any[]> {
   return orders.map(to_snake_order);
 }
 
-// Get single order by ID
-export async function getOrderById(userId: string, orderId: string): Promise<Order | null> {
-  try {
-    const { data, error } = await supabase
-      .from('orders')
-      .select(`
-        id,
-        nomor_pesanan,
-        tanggal,
-        nama_pelanggan,
-        telepon_pelanggan,
-        email_pelanggan,
-        alamat_pengiriman,
-        status,
-        total_pesanan,
-        catatan,
-        items,
-        created_at,
-        updated_at
-      `)
-      .eq('id', orderId)
-      .eq('user_id', userId)
-      .single();
-
-    if (error) {
-      if (error.code === 'PGRST116') {
-        // No rows returned - order not found
-        return null;
-      }
-      logger.error('Error fetching order by ID:', error);
-      throw error;
-    }
-
-    return transformOrderFromDB(data);
-  } catch (error) {
-    logger.error('Error in getOrderById:', error);
-    throw error;
+// Bulk delete orders
+export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<void> {
+  if (!userId || !ids || ids.length === 0) {
+    throw new Error('Invalid parameters for bulk delete');
   }
+
+  logger.debug(`🗑️ Bulk deleting ${ids.length} orders for user ${userId}`);
+
+  // Delete orders one by one (Supabase doesn't have native bulk delete for complex operations)
+  const deletePromises = ids.map(id => deleteOrder(userId, id));
+  await Promise.all(deletePromises);
+
+  logger.info(`✅ Successfully bulk deleted ${ids.length} orders`);
 }
 
 // Fetch orders with pagination for lazy loading

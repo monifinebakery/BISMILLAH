@@ -1,9 +1,10 @@
 // pages/Dashboard.tsx - Updated to use new trends data
 
-import React, { useState, useMemo, Suspense, lazy } from 'react';
+import React, { useState, useMemo, Suspense, lazy, useCallback } from 'react';
 import { useDashboardData } from '@/hooks/useDashboardData';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
+import UpdateBanner from '@/components/UpdateBanner';
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import DashboardHeader from '@/components/dashboard/DashboardHeader';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -88,6 +89,7 @@ const Dashboard = () => {
     activities: 1,
     worstProducts: 1
   });
+  const [ownerNameDraft, setOwnerNameDraft] = useState('');
 
   // 👤 Get settings from context
   const { settings, saveSettings, isLoading: settingsLoading } = useUserSettings();
@@ -107,6 +109,22 @@ const Dashboard = () => {
 
   // 👋 Greeting message
   const greeting = useMemo(() => getGreeting(ownerName), [ownerName]);
+
+  const handleOwnerNameSave = useCallback(async (rawName?: string) => {
+    const name = (rawName ?? ownerNameDraft).trim();
+    if (
+      !name ||
+      name === 'Nama Anda' ||
+      (ownerName && name.toLowerCase() === ownerName.trim().toLowerCase())
+    ) {
+      return;
+    }
+
+    const saved = await saveSettings({ ownerName: name });
+    if (saved) {
+      setOwnerNameDraft('');
+    }
+  }, [ownerNameDraft, ownerName, saveSettings]);
 
   // 🛡️ Safe date range handler - menggunakan unified date utils
   const handleDateRangeChange = (newRange: { from: Date; to: Date }) => {
@@ -164,6 +182,7 @@ const Dashboard = () => {
 
   return (
     <ErrorBoundary>
+      <UpdateBanner />
       <div className="min-h-screen bg-background">
         <div className="container-safe max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
           
@@ -185,11 +204,18 @@ const Dashboard = () => {
                     type="text"
                     placeholder="Masukkan nama Anda..."
                     className="bg-transparent border-none outline-none placeholder-amber-500 text-amber-800 font-medium w-36"
-                    onKeyPress={async (e) => {
-                      const name = (e.target as HTMLInputElement).value.trim();
-                      if (e.key === 'Enter' && name !== 'Nama Anda') {
-                        await saveSettings({ ownerName: name });
+                    value={ownerNameDraft}
+                    onChange={(e) => setOwnerNameDraft(e.target.value)}
+                    onKeyDown={async (e) => {
+                      if (e.key !== 'Enter') {
+                        return;
                       }
+
+                      e.preventDefault();
+                      await handleOwnerNameSave();
+                    }}
+                    onBlur={() => {
+                      void handleOwnerNameSave();
                     }}
                   />
                 </div>

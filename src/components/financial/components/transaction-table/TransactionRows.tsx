@@ -60,7 +60,7 @@ const TransactionRowComponent = ({
   return (
     <TableRow className="hover:bg-gray-50">
       {onToggleSelect && (
-        <TableCell className="w-12">
+        <TableCell className="w-12 hidden md:table-cell">
           <Checkbox
             checked={isSelected}
             onCheckedChange={handleToggleSelect}
@@ -68,7 +68,7 @@ const TransactionRowComponent = ({
           />
         </TableCell>
       )}
-      <TableCell className="min-w-[140px]">
+      <TableCell className="min-w-[120px] md:min-w-[140px]">
         {transaction.date ? (
           (() => {
             try {
@@ -92,7 +92,7 @@ const TransactionRowComponent = ({
                 return (
                   <div className="text-sm">
                     <div className="font-medium text-gray-900">{dateStr}</div>
-                    <div className="text-gray-500 text-xs">{timeStr} WIB</div>
+                    <div className="text-gray-500 text-xs md:inline hidden">{timeStr} WIB</div>
                   </div>
                 );
               }
@@ -100,13 +100,13 @@ const TransactionRowComponent = ({
               return (
                 <div className="text-sm">
                   <div className="font-medium text-gray-900">{dateStr}</div>
-                  <div className="text-gray-400 text-xs">Tanggal saja</div>
+                  <div className="text-gray-500 text-xs">Tanpa waktu</div>
                 </div>
               );
             } catch (error) {
               return (
                 <div className="text-gray-400 text-sm">
-                  <div>Format tidak valid</div>
+                  <div>Tanggal tidak valid</div>
                 </div>
               );
             }
@@ -117,35 +117,53 @@ const TransactionRowComponent = ({
           </div>
         )}
       </TableCell>
-      <TableCell className="max-w-[200px] truncate">
-        {getDisplayDescription(transaction.description)}
+      <TableCell className="min-w-[150px] md:min-w-[200px]">
+        <div className="max-w-[200px] md:max-w-none">
+          <div className="font-medium text-gray-900 truncate">
+            {getDisplayDescription(transaction.description)}
+          </div>
+          {/* Mobile: Show category and type inline */}
+          <div className="flex gap-2 mt-1 md:hidden">
+            <Badge variant="outline" className="text-xs px-1.5 py-0.5">
+              {transaction.category}
+            </Badge>
+            <Badge 
+              variant={transaction.type === 'income' ? 'default' : 'destructive'} 
+              className="text-xs px-1.5 py-0.5"
+            >
+              {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+            </Badge>
+          </div>
+        </div>
       </TableCell>
-      <TableCell>
-        <Badge variant="outline">{transaction.category || 'Lainnya'}</Badge>
-      </TableCell>
-      <TableCell>
-        <Badge
-          variant={transaction.type === 'income' ? 'default' : 'destructive'}
-          className={
-            transaction.type === 'income'
-              ? 'bg-green-100 text-green-800 hover:bg-green-200'
-              : ''
-          }
-        >
-          {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+      <TableCell className="hidden sm:table-cell min-w-[100px]">
+        <Badge variant="outline" className="text-xs">
+          {transaction.category}
         </Badge>
       </TableCell>
-      <TableCell
-        className={`text-right font-medium ${
-          transaction.type === 'income' ? 'text-green-600' : 'text-red-600'
-        }`}
-      >
-        {formatCurrency(transaction.amount)}
+      <TableCell className="hidden md:table-cell min-w-[80px]">
+        <Badge 
+          variant={transaction.type === 'income' ? 'default' : 'destructive'} 
+          className="text-xs"
+        >
+          {transaction.type === 'income' ? 'Masuk' : 'Keluar'}
+        </Badge>
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right min-w-[100px] md:min-w-[120px]">
+        <div className={`font-semibold ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+          {transaction.type === 'income' ? '+' : '-'}
+          {formatCurrency(Math.abs(transaction.amount))}
+        </div>
+      </TableCell>
+      <TableCell className="text-right min-w-[80px] md:min-w-[100px]">
         <div className="flex items-center justify-end gap-1">
           {onEdit && (
-            <Button variant="ghost" size="sm" onClick={handleEdit}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleEdit}
+              className="h-8 w-8 p-0"
+            >
               <Edit className="h-4 w-4" />
             </Button>
           )}
@@ -154,7 +172,7 @@ const TransactionRowComponent = ({
             size="sm"
             onClick={handleDelete}
             disabled={isDeleting}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -192,22 +210,23 @@ const TransactionRows = ({
     <>
       <TableHeader>
         <TableRow>
-          {isSelectionMode && (
-            <TableHead className="w-12">
+          {onSelectionChange && (
+            <TableHead className="w-12 hidden md:table-cell">
               <Checkbox
                 checked={isAllSelected}
-                onCheckedChange={() => onSelectAll?.()}
+                onCheckedChange={onSelectAll}
                 aria-label="Pilih semua transaksi"
               />
             </TableHead>
           )}
-          <TableHead className="min-w-[140px]">
+          <TableHead className="min-w-[120px] md:min-w-[140px]">
             <div className="flex items-center gap-2">
-              <span>Tanggal &amp; Waktu</span>
+              <span className="hidden sm:inline">Tanggal &amp; Waktu</span>
+              <span className="sm:hidden">Tanggal</span>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-gray-400 cursor-help" />
+                    <Info className="h-3 w-3 text-gray-400 cursor-help hidden md:inline" />
                   </TooltipTrigger>
                   <TooltipContent side="top" className="max-w-xs">
                     <div className="text-xs space-y-1">
@@ -223,11 +242,11 @@ const TransactionRows = ({
               </TooltipProvider>
             </div>
           </TableHead>
-          <TableHead>Deskripsi</TableHead>
-          <TableHead>Kategori</TableHead>
-          <TableHead>Tipe</TableHead>
-          <TableHead className="text-right">Jumlah</TableHead>
-          <TableHead className="text-right">Aksi</TableHead>
+          <TableHead className="min-w-[150px] md:min-w-[200px]">Deskripsi</TableHead>
+          <TableHead className="hidden sm:table-cell min-w-[100px]">Kategori</TableHead>
+          <TableHead className="hidden md:table-cell min-w-[80px]">Tipe</TableHead>
+          <TableHead className="text-right min-w-[100px] md:min-w-[120px]">Jumlah</TableHead>
+          <TableHead className="text-right min-w-[80px] md:min-w-[100px]">Aksi</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -246,7 +265,7 @@ const TransactionRows = ({
           ))
         ) : (
           <TransactionEmptyState
-            colSpan={isSelectionMode ? 7 : 6}
+            colSpan={isSelectionMode ? 6 : 5} // Responsive: fewer columns on mobile
             dateRange={dateRange}
             onAddTransaction={onAddTransaction}
           />

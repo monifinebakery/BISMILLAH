@@ -332,11 +332,11 @@ export const usePurchaseImport = ({ onImportComplete }: { onImportComplete: () =
             items: purchaseData.items.map(item => {
               // 🔧 AUTOMATIC UNIT PRICE CALCULATION: Same as manual entry
               // Calculate unit price from total payment ÷ quantity
-              const calculatedUnitPrice = item.quantity > 0
-? Math.round((purchaseData.total_nilai / item.quantity) * 100) / 100
+              const calculatedUnitPrice = item.kuantitas > 0
+? Math.round((purchaseData.total_nilai / item.kuantitas) * 100) / 100
 : 0;
 
-const subtotal = item.quantity * calculatedUnitPrice;
+const subtotal = item.kuantitas * calculatedUnitPrice;
               
               // 🔄 WAREHOUSE LINKING: Find existing warehouse item by name and unit
               let bahanBakuId = '';
@@ -372,10 +372,10 @@ const subtotal = item.quantity * calculatedUnitPrice;
               return {
                 ...item,
                 bahanBakuId: bahanBakuId,
-                quantity: item.quantity, // Map kuantitas to quantity for PurchaseItem interface
+                quantity: item.kuantitas, // Map kuantitas to quantity for PurchaseItem interface
                 unitPrice: calculatedUnitPrice,
                 subtotal: subtotal,
-                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.total_nilai.toLocaleString('id-ID')} ÷ ${item.quantity} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
+                keterangan: `[IMPORTED] Harga otomatis: Rp ${purchaseData.total_nilai.toLocaleString('id-ID')} ÷ ${item.kuantitas} = Rp ${calculatedUnitPrice.toLocaleString('id-ID')}${bahanBakuId ? ' | Linked to warehouse' : ' | New item'}`
               };
             }),
             total_nilai: purchaseData.total_nilai,
@@ -386,8 +386,13 @@ const subtotal = item.quantity * calculatedUnitPrice;
           console.log('🔄 [IMPORT] Creating purchase with automatic calculation:', purchase);
 
           const success = await addPurchase(purchase);
+          console.log('🔄 [IMPORT] addPurchase result:', success);
+          
           if (success) {
             successCount++;
+            console.log('✅ [IMPORT] Purchase created successfully, count:', successCount);
+          } else {
+            console.log('❌ [IMPORT] Purchase creation failed for:', purchase);
           }
         } catch (error) {
           logger.error('Error importing purchase:', error);

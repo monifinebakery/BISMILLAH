@@ -398,58 +398,92 @@ const TransactionTableComponent = ({
             </div>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <Table role="table" aria-label="Financial transactions table">
-              <TransactionRows
-                transactions={visibleTransactions}
-                selectedIds={selectedIds}
-                isSelectionMode={isSelectionMode}
-                isAllSelected={isAllSelected}
-                onSelectAll={onSelectAll}
-                onSelectionChange={onSelectionChange}
-                onEditTransaction={onEditTransaction}
-                onDeleteTransaction={handleDeleteTransaction}
-                isDeleting={isDeleting}
-                getDisplayDescription={getDisplayDescription}
-                dateRange={dateRange}
-                onAddTransaction={onAddTransaction}
-              />
-            </Table>
-          </div>
-        )}
+          <>
+            {/* Desktop Table View - Hidden on Mobile */}
+            <div className="hidden md:block">
+              <div className="overflow-x-auto">
+                <Table role="table" aria-label="Financial transactions table">
+                  <TransactionRows
+                    transactions={visibleTransactions}
+                    selectedIds={selectedIds}
+                    isSelectionMode={isSelectionMode}
+                    isAllSelected={isAllSelected}
+                    onSelectAll={onSelectAll}
+                    onSelectionChange={onSelectionChange}
+                    onEditTransaction={onEditTransaction}
+                    onDeleteTransaction={handleDeleteTransaction}
+                    isDeleting={isDeleting}
+                    getDisplayDescription={getDisplayDescription}
+                    dateRange={dateRange}
+                    onAddTransaction={onAddTransaction}
+                  />
+                </Table>
+              </div>
+            </div>
 
-        {/* ✅ NEW: Enhanced Mobile Card View with Expandable Details */}
-        {!showInitialLoading && isMobile && visibleTransactions.length > 0 && (
-          <div className="md:hidden space-y-3 p-4">
-            {visibleTransactions.map((transaction) => (
-              <MobileTransactionRow
-                key={transaction.id}
-                transaction={transaction}
-                isSelected={selectedIds.includes(transaction.id)}
-                isSelectionMode={isSelectionMode}
-                onSelectionChange={onSelectionChange}
-                onEdit={() => onEditTransaction?.(transaction)}
-                onDelete={() => handleDeleteTransaction(transaction)}
-                isDeleting={isDeleting}
-              />
-            ))}
-          </div>
+            {/* ✅ FULLY RESPONSIVE Mobile Card View - Like OrderTable */}
+            <div className="block md:hidden">
+              {visibleTransactions.length > 0 ? (
+                <div className="space-y-3 p-4">
+                  {visibleTransactions.map((transaction) => (
+                    <MobileTransactionRow
+                      key={transaction.id}
+                      transaction={transaction}
+                      isSelected={selectedIds.includes(transaction.id)}
+                      isSelectionMode={isSelectionMode}
+                      onSelectionChange={onSelectionChange}
+                      onEdit={() => onEditTransaction?.(transaction)}
+                      onDelete={() => handleDeleteTransaction(transaction)}
+                      isDeleting={isDeleting}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="p-8 text-center">
+                  <div className="text-gray-400 mb-2">📊</div>
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">Tidak ada transaksi</h3>
+                  <p className="text-xs text-gray-500">Belum ada transaksi untuk ditampilkan</p>
+                </div>
+              )}
+            </div>
+          </>
         )}
       </CardContent>
 
-      {hasTransactions && !showInitialLoading && (
-        <TransactionPagination
-          itemsPerPage={itemsPerPage}
-          onItemsPerPageChange={setItemsPerPage}
-          currentPage={currentPage}
-          totalPages={totalPages}
-          totalItems={totalItems}
-          startItem={startItem}
-          endItem={endItem}
-          onPageChange={handlePageChange}
-          onNextPage={handleNextPage}
-          onPreviousPage={handlePreviousPage}
-        />
+      {/* ✅ RESPONSIVE PAGINATION CONTROLS - like OrderTable */}
+      {totalPages > 1 && !showInitialLoading && (
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 px-3 py-3 border-t">
+          <div className="text-sm text-gray-700 text-center sm:text-left">
+            <span className="sm:hidden">
+              {startItem}-{endItem} / {totalItems}
+            </span>
+            <span className="hidden sm:inline">
+              Menampilkan {startItem} - {endItem} dari {totalItems} transaksi
+            </span>
+          </div>
+
+          <div className="flex items-center justify-center gap-2">
+            <button
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handlePreviousPage}
+              disabled={currentPage === 1}
+            >
+              Sebelumnya
+            </button>
+
+            <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded text-sm font-medium">
+              {currentPage}
+            </span>
+
+            <button
+              className="inline-flex items-center px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleNextPage}
+              disabled={currentPage === totalPages}
+            >
+              Selanjutnya
+            </button>
+          </div>
+        </div>
       )}
 
       {showBackgroundLoading && (

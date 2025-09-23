@@ -36,7 +36,7 @@ export const queryClient = new QueryClient({
       // CRITICAL: Disable semua auto-refetch untuk performa maksimal
       refetchOnWindowFocus: false,
       refetchOnReconnect: false, // Disable untuk performa, user bisa manual refresh
-      refetchOnMount: 'always', // Hanya refetch jika data benar-benar stale
+      refetchOnMount: false, // Disable refetch saat mount untuk mencegah flicker saat tab switching
       refetchInterval: false, // Disable auto polling
       
       // OPTIMIZED: Retry strategy yang lebih efisien

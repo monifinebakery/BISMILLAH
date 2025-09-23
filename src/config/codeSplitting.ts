@@ -84,6 +84,8 @@ export const FinancialComponents = {
     import(/* webpackChunkName: "debt-tracker" */ '@/components/financial/components/DebtTracker')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat debt tracker') }))
   )
+
+  // TransactionTable added to smartLazyLoading.ts instead due to type conflicts
 };
 
 // ===================================
@@ -141,14 +143,15 @@ export const preloadComponents = {
     try {
       logger.debug('Code Splitting: Preloading high priority components');
       
-  // Preload komponen yang sering digunakan
-  await Promise.allSettled([
-    import(/* webpackChunkName: "order-table" */ '@/components/orders/components/OrderTable'),
-    import(/* webpackChunkName: "warehouse-table" */ '@/components/warehouse/components/WarehouseTable'),
-    // ✅ NEW: Preload enhanced financial components
-    import(/* webpackChunkName: "financial-report" */ '@/components/financial/FinancialReportPage'),
-    import(/* webpackChunkName: "debt-tracker" */ '@/components/financial/components/DebtTracker')
-  ]);
+      // Preload komponen yang sering digunakan
+      await Promise.allSettled([
+        import(/* webpackChunkName: "order-table" */ '@/components/orders/components/OrderTable'),
+        import(/* webpackChunkName: "warehouse-table" */ '@/components/warehouse/components/WarehouseTable'),
+        // ✅ NEW: Preload enhanced financial components
+        import(/* webpackChunkName: "financial-report" */ '@/components/financial/FinancialReportPage'),
+        import(/* webpackChunkName: "debt-tracker" */ '@/components/financial/components/DebtTracker'),
+        import(/* webpackChunkName: "transaction-table" */ '@/components/financial/components/TransactionTable')
+      ]);
       
       logger.debug('Code Splitting: High priority components preloaded');
     } catch (error) {
@@ -185,6 +188,7 @@ export const preloadComponents = {
             // ✅ NEW: Preload financial components when navigating to financial routes
             import('@/components/financial/FinancialReportPage'),
             import('@/components/financial/components/DebtTracker'),
+            import('@/components/financial/components/TransactionTable'),
             import('@/components/operational-costs/components/CostList')
           ]);
           break;
@@ -245,6 +249,7 @@ export const BUNDLE_INFO = {
   'cost-list': { estimatedSize: '~35KB', priority: 'medium' },
   'financial-report': { estimatedSize: '~65KB', priority: 'high' }, // ✅ NEW: FinancialReportPage
   'debt-tracker': { estimatedSize: '~40KB', priority: 'medium' }, // ✅ NEW: DebtTracker
+  'transaction-table': { estimatedSize: '~55KB', priority: 'high' }, // ✅ NEW: TransactionTable with mobile enhancements
   'invoice-generator': { estimatedSize: '~55KB', priority: 'medium' },
   'recipe-form': { estimatedSize: '~30KB', priority: 'low' },
   'recipe-calculator': { estimatedSize: '~40KB', priority: 'low' },

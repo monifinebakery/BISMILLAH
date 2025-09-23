@@ -41,6 +41,11 @@ export const HeavyComponents = {
     import('@/components/warehouse/components/WarehouseTable')
   ),
 
+  // ✅ NEW: TransactionTable dengan mobile enhancements
+  TransactionTable: React.lazy(() =>
+    import('@/components/financial/components/TransactionTable')
+  ),
+
   // ✅ NEW: Enhanced table components with mobile support
   OrderTable: React.lazy(() =>
     import('@/components/orders/components/OrderTable')

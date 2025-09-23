@@ -12,6 +12,7 @@ import {
   MoreVertical,
 } from 'lucide-react';
 import { warehouseUtils } from '../services/warehouseUtils';
+import { normalizeStockValue } from '@/utils/unitConversion';
 import type { BahanBakuFrontend } from '../types';
 import { logger } from '@/utils/logger';
 import { useSupplier } from '@/contexts/SupplierContext';
@@ -48,6 +49,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
     // ✅ FIXED: Use getSupplierName utility to resolve supplier ID to name
     return getSupplierName(item.supplier || '', suppliers) || '-';
   }, [item.supplier, suppliers]);
+
+  // ✅ NEW: Get normalized stock for base unit display
+  const normalizedStock = useMemo(() => {
+    const normalized = normalizeStockValue(item.stok, item.satuan);
+    return normalized;
+  }, [item.stok, item.satuan]);
 
   const highlightText = (text: string, term: string) => {
     if (!term) return text;
@@ -148,6 +155,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                     <p className="text-sm text-gray-500 mt-1">
                       {highlightText(item.kategori, searchTerm)} • {formatIDNumber(item.stok)}{' '}
                       {item.satuan}
+                      {/* ✅ NEW: Show normalized stock in base unit */}
+                      {normalizedStock && normalizedStock.value !== item.stok && (
+                        <span className="text-xs text-gray-400 ml-2">
+                          ({formatIDNumber(normalizedStock.value)} {normalizedStock.unit})
+                        </span>
+                      )}
                     </p>
 
                     <div className="flex flex-col gap-1 mt-2">
@@ -222,6 +235,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
                         {item.stok}
                       </span>
                       <span className="text-gray-500 ml-1">{item.satuan}</span>
+                      {/* ✅ NEW: Show normalized stock in base unit for mobile */}
+                      {normalizedStock && normalizedStock.value !== item.stok && (
+                        <div className="text-xs text-gray-400 mt-1">
+                          ({formatIDNumber(normalizedStock.value)} {normalizedStock.unit})
+                        </div>
+                      )}
                     </div>
                     <div className="text-sm font-medium text-gray-900">
                       {warehouseUtils.formatCurrency(
@@ -406,6 +425,12 @@ const WarehouseTableRow: React.FC<WarehouseTableRowProps> = ({
           <span className="text-sm text-gray-500">{item.satuan}</span>
         </div>
         <div className="text-xs text-gray-400">Min: {formatIDNumber(item.minimum)}</div>
+        {/* ✅ NEW: Show normalized stock in base unit for desktop */}
+        {normalizedStock && normalizedStock.value !== item.stok && (
+          <div className="text-xs text-gray-400 mt-1">
+            ({formatIDNumber(normalizedStock.value)} {normalizedStock.unit})
+          </div>
+        )}
       </td>
 
       <td className="px-4 py-4">

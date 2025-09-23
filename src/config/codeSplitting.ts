@@ -34,6 +34,12 @@ export const OrderComponents = {
   OrderDialogs: React.lazy(() => 
     import(/* webpackChunkName: "order-dialogs" */ '@/components/orders/components/OrderDialogs')
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat dialog pesanan') }))
+  ),
+
+  // OrdersPage dengan mobile enhancements
+  OrdersPage: React.lazy(() =>
+    import(/* webpackChunkName: "orders-page" */ '@/components/orders/components/OrdersPage')
+      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat halaman pesanan') }))
   )
 };
 
@@ -65,7 +71,21 @@ export const FinancialComponents = {
     import(/* webpackChunkName: "invoice-template" */ '@/components/invoice/templates/InvoiceTemplate')
       .then(module => ({ default: module.InvoiceTemplate }))
       .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat template invoice') }))
+  ),
+
+  // Financial reporting components
+  FinancialReportPage: React.lazy(() =>
+    import(/* webpackChunkName: "financial-report" */ '@/components/financial/FinancialReportPage')
+      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat laporan keuangan') }))
+  ),
+
+  // Debt tracker component
+  DebtTracker: React.lazy(() =>
+    import(/* webpackChunkName: "debt-tracker" */ '@/components/financial/components/DebtTracker')
+      .catch(() => ({ default: () => React.createElement('div', { className: 'p-4 text-center text-red-500' }, 'Gagal memuat debt tracker') }))
   )
+
+  // TransactionTable added to smartLazyLoading.ts instead due to type conflicts
 };
 
 // ===================================
@@ -126,7 +146,11 @@ export const preloadComponents = {
       // Preload komponen yang sering digunakan
       await Promise.allSettled([
         import(/* webpackChunkName: "order-table" */ '@/components/orders/components/OrderTable'),
-        import(/* webpackChunkName: "warehouse-table" */ '@/components/warehouse/components/WarehouseTable')
+        import(/* webpackChunkName: "warehouse-table" */ '@/components/warehouse/components/WarehouseTable'),
+        // ✅ NEW: Preload enhanced financial components
+        import(/* webpackChunkName: "financial-report" */ '@/components/financial/FinancialReportPage'),
+        import(/* webpackChunkName: "debt-tracker" */ '@/components/financial/components/DebtTracker'),
+        import(/* webpackChunkName: "transaction-table" */ '@/components/financial/components/TransactionTable')
       ]);
       
       logger.debug('Code Splitting: High priority components preloaded');
@@ -156,6 +180,16 @@ export const preloadComponents = {
         case 'warehouse':
           await Promise.allSettled([
             import('@/components/warehouse/components/WarehouseTable')
+          ]);
+          break;
+
+        case 'financial':
+          await Promise.allSettled([
+            // ✅ NEW: Preload financial components when navigating to financial routes
+            import('@/components/financial/FinancialReportPage'),
+            import('@/components/financial/components/DebtTracker'),
+            import('@/components/financial/components/TransactionTable'),
+            import('@/components/operational-costs/components/CostList')
           ]);
           break;
       }
@@ -209,9 +243,13 @@ export const BUNDLE_INFO = {
   'order-form': { estimatedSize: '~60KB', priority: 'high' },
   'order-table': { estimatedSize: '~50KB', priority: 'high' },
   'order-bulk': { estimatedSize: '~40KB', priority: 'medium' },
+  'orders-page': { estimatedSize: '~75KB', priority: 'high' }, // ✅ NEW: Enhanced OrdersPage
   'warehouse-table': { estimatedSize: '~45KB', priority: 'high' },
   'stock-management': { estimatedSize: '~55KB', priority: 'medium' },
   'cost-list': { estimatedSize: '~35KB', priority: 'medium' },
+  'financial-report': { estimatedSize: '~65KB', priority: 'high' }, // ✅ NEW: FinancialReportPage
+  'debt-tracker': { estimatedSize: '~40KB', priority: 'medium' }, // ✅ NEW: DebtTracker
+  'transaction-table': { estimatedSize: '~55KB', priority: 'high' }, // ✅ NEW: TransactionTable with mobile enhancements
   'invoice-generator': { estimatedSize: '~55KB', priority: 'medium' },
   'recipe-form': { estimatedSize: '~30KB', priority: 'low' },
   'recipe-calculator': { estimatedSize: '~40KB', priority: 'low' },

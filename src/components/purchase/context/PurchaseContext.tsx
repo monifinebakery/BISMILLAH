@@ -483,15 +483,36 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Public actions -------------------
   const addPurchase = useCallback(async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-    if (!user) { toast.error('Anda harus login'); return false; }
+    if (!user) { 
+      logger.error('addPurchase: User not logged in');
+      toast.error('Anda harus login'); 
+      return false; 
+    }
+    
+    logger.debug('addPurchase: Starting purchase creation', { 
+      supplier: purchase.supplier,
+      itemCount: purchase.items?.length,
+      totalNilai: purchase.total_nilai
+    });
+    
     const errs = validatePurchaseData(purchase);
-    if (errs.length) { toast.error(errs[0]); return false; }
+    if (errs.length) { 
+      logger.error('addPurchase: Validation failed', { errors: errs });
+      toast.error(errs[0]); 
+      return false; 
+    }
+    
     try {
+      logger.debug('addPurchase: Ensuring bahan baku IDs');
       const items = await ensureBahanBakuIds(purchase.items || [], purchase.supplier);
+      logger.debug('addPurchase: Bahan baku IDs ensured', { itemCount: items.length });
+      
+      logger.debug('addPurchase: Calling createMutation');
       await createMutation.mutateAsync({ ...purchase, items });
+      logger.debug('addPurchase: Purchase created successfully');
       return true;
     } catch (e) {
-      logger.error('Add purchase failed', e);
+      logger.error('addPurchase: Purchase creation failed', e);
       return false;
     }
   }, [user, createMutation, ensureBahanBakuIds]);

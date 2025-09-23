@@ -4,7 +4,7 @@ import React, { useState, useCallback, useMemo, useEffect, Suspense } from 'reac
 import { SafeSuspense } from '@/components/common/UniversalErrorBoundary';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
-import { useQuery } from '@tanstack/react-query';
+// import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
@@ -53,7 +53,7 @@ import ContextDebugger from '@/components/debug/ContextDebugger';
 import OrderUpdateMonitor from '@/components/debug/OrderUpdateMonitor';
 
 // ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
-import { fetchOrdersPaginated } from '../services/orderService';
+// import { fetchOrdersPaginated } from '../services/orderService';
 
 // ✅ OPTIMIZED: Lazy loading with better error boundaries
 const OrderTable = React.lazy(() => 
@@ -142,28 +142,28 @@ const OrdersPage: React.FC = () => {
 
   // Snake_case operations are handled inside useOrderActions hook
 
-  // ✅ LAZY LOADING STATE: State untuk kontrol lazy loading
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
-  const [useLazyLoading] = useState(true);
-  const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
+  // ✅ SIMPLIFIED: Remove duplicate pagination states - useOrderUI handles everything
+  // const [currentPage, setCurrentPage] = useState(1);
+  // const [itemsPerPage, setItemsPerPage] = useState(10);
+  // const [useLazyLoading] = useState(true);
+  // const [paginationInfo, setPaginationInfo] = useState({ totalCount: 0, totalPages: 0 });
 
-  // ✅ LAZY LOADING QUERY: Fetch paginated data when lazy loading is enabled
-  const { 
-    data: paginatedData, 
-    isLoading: isPaginatedLoading, 
-    error: paginatedError,
-    refetch: refetchPaginated
-  } = useQuery({
-    queryKey: ['orders-paginated', user?.id, currentPage, itemsPerPage],
-    queryFn: async () => {
-      if (!user?.id) throw new Error('User not authenticated');
-      return fetchOrdersPaginated(user.id, currentPage, itemsPerPage);
-    },
-    enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    placeholderData: (prev) => prev,
-  });
+  // ✅ REMOVED: Remove server-side pagination query - use client-side only
+  // const { 
+  //   data: paginatedData, 
+  //   isLoading: isPaginatedLoading, 
+  //   error: paginatedError,
+  //   refetch: refetchPaginated
+  // } = useQuery({
+  //   queryKey: ['orders-paginated', user?.id, currentPage, itemsPerPage],
+  //   queryFn: async () => {
+  //     if (!user?.id) throw new Error('User not authenticated');
+  //     return fetchOrdersPaginated(user.id, currentPage, itemsPerPage);
+  //   },
+  //   enabled: !!user?.id,
+  //   staleTime: 5 * 60 * 1000, // 5 minutes
+  //   placeholderData: (prev) => prev,
+  // });
 
   // ✅ TEMPLATE INTEGRATION: Gunakan hook khusus untuk follow up
   const { getWhatsappUrl } = useOrderFollowUp();
@@ -189,20 +189,20 @@ const OrdersPage: React.FC = () => {
     };
   }, [finalOrders]);
 
-  // ✅ UI STATE: Optimized with memoization
-  const uiState = useOrderUI(finalOrders, itemsPerPage);
+  // ✅ UI STATE: Optimized with memoization - ONLY ONE SYSTEM
+  const uiState = useOrderUI(finalOrders, 10); // Default 10 items per page
 
-  // ✅ UPDATE PAGINATION INFO: Calculate from filtered orders
-  React.useEffect(() => {
-    const filteredCount = uiState?.filtered_orders?.length || finalOrders.length;
-    const calculatedPages = Math.max(1, Math.ceil(filteredCount / itemsPerPage));
-    setPaginationInfo({ 
-      totalCount: filteredCount, 
-      totalPages: calculatedPages 
-    });
-  }, [finalOrders, uiState?.filtered_orders, itemsPerPage]);
+  // ✅ REMOVED: Remove duplicate pagination info calculation - useOrderUI handles this
+  // React.useEffect(() => {
+  //   const filteredCount = uiState?.filtered_orders?.length || finalOrders.length;
+  //   const calculatedPages = Math.max(1, Math.ceil(filteredCount / itemsPerPage));
+  //   setPaginationInfo({ 
+  //     totalCount: filteredCount, 
+  //     totalPages: calculatedPages 
+  //   });
+  // }, [finalOrders, uiState?.filtered_orders, itemsPerPage]);
 
-  // ✅ BULK OPERATIONS: Table selection state
+  // ✅ BULK OPERATIONS: Table selection state - SIMPLIFIED
   const {
     selectedIds,
     selectedOrders,
@@ -213,7 +213,7 @@ const OrdersPage: React.FC = () => {
     clearSelection,
     enterSelectionMode,
     exitSelectionMode,
-  } = useOrderTable(finalOrders);
+  } = useOrderTable(uiState.currentOrders); // Use paginated orders from useOrderUI
 
   // ✅ CONSOLIDATED: Single state object
   const [pageState, setPageState] = useState<OrdersPageState>(initialState);
@@ -346,13 +346,17 @@ const OrdersPage: React.FC = () => {
   logger.debug('OrdersPage render state:', {
     ordersCount: finalOrders.length,
     isLoading: finalIsLoading,
-    useLazyLoading,
-    currentPage,
-    totalPages: paginationInfo.totalPages,
+    // Removed: useLazyLoading, currentPage, totalPages - now handled by useOrderUI
     selectedOrdersCount: selectedIds.length,
     dialogsOpen: pageState.dialogs,
     isEditingOrder: !!pageState.editingOrder,
-    hasUpdateOrderStatus: typeof updateOrderStatus === 'function'
+    hasUpdateOrderStatus: typeof updateOrderStatus === 'function',
+    uiState: {
+      currentPage: uiState.currentPage,
+      totalPages: uiState.totalPages,
+      totalItems: uiState.totalItems,
+      hasActiveFilters: uiState.hasActiveFilters
+    }
   });
 
   // ✅ EARLY RETURN: Loading state
@@ -478,14 +482,16 @@ const OrdersPage: React.FC = () => {
           isAllSelected={isAllSelected}
         />
         
-        {/* ✅ Extracted: Pagination - Updated to use filtered counts */}
-        <OrderPagination
-          currentPage={uiState.current_page}
-          totalPages={uiState.total_pages}
-          totalCount={uiState.total_items}
-          onPrev={() => uiState.setCurrentPage(Math.max(1, uiState.current_page - 1))}
-          onNext={() => uiState.setCurrentPage(Math.min(uiState.total_pages, uiState.current_page + 1))}
-        />
+        {/* ✅ Extracted: Pagination - Only show when needed */}
+        {uiState.hasActiveFilters && (
+          <OrderPagination
+            currentPage={uiState.currentPage}
+            totalPages={uiState.totalPages}
+            totalCount={uiState.totalItems}
+            onPrev={() => uiState.setCurrentPage(Math.max(1, uiState.currentPage - 1))}
+            onNext={() => uiState.setCurrentPage(Math.min(uiState.totalPages, uiState.currentPage + 1))}
+          />
+        )}
         
         <OrderDialogs
           showDetailDialog={pageState.dialogs.detail}

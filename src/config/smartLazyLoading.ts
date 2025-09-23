@@ -24,22 +24,60 @@ const MinimalLoader: React.FC<{ className?: string }> = ({ className }) => (
 
 export const HeavyComponents = {
   // Only the heaviest components
-  ProfitAnalysisDashboard: React.lazy(() => 
+  ProfitAnalysisDashboard: React.lazy(() =>
     import('@/components/profitAnalysis/components/ImprovedProfitDashboard')
   ),
-  
-  InvoicePage: React.lazy(() => 
+
+  InvoicePage: React.lazy(() =>
     import('@/components/invoice/InvoicePage')
   ),
-  
-  RecipeFormRefactored: React.lazy(() => 
+
+  RecipeFormRefactored: React.lazy(() =>
     import('@/components/EnhancedRecipeFormRefactored')
   ),
-  
+
   // Large data tables only
-  WarehouseTable: React.lazy(() => 
+  WarehouseTable: React.lazy(() =>
     import('@/components/warehouse/components/WarehouseTable')
-  )
+  ),
+
+  // ✅ NEW: TransactionTable dengan mobile enhancements
+  TransactionTable: React.lazy(() =>
+    import('@/components/financial/components/TransactionTable')
+  ),
+
+  // ✅ NEW: Enhanced table components with mobile support
+  OrderTable: React.lazy(() =>
+    import('@/components/orders/components/OrderTable')
+  ),
+
+  OrdersPage: React.lazy(() =>
+    import('@/components/orders/components/OrdersPage')
+  ),
+
+  // Financial components with mobile enhancements
+  FinancialReportPage: React.lazy(() =>
+    import('@/components/financial/FinancialReportPage')
+  ),
+
+  DebtTracker: React.lazy(() =>
+    import('@/components/financial/components/DebtTracker')
+  ),
+
+  SavingsGoalTracker: React.lazy(() =>
+    import('@/components/financial/components/SavingsGoalTracker')
+  ),
+
+  // Analytics components - commented out due to export issues
+  // SummaryCards: React.lazy(() =>
+  //   import('@/components/financial/components/SummaryCards')
+  //     .then(module => ({ default: module.default }))
+  // ),
+
+  // FinancialCharts: React.lazy(() =>
+  //   import('@/components/financial/components/FinancialCharts')
+  //     .then(module => ({ default: module.default }))
+  // )
 };
 
 const QuickFallback: React.FC = () => (

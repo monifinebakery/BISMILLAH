@@ -54,14 +54,17 @@ export const FinancialProvider: React.FC<{ children: ReactNode }> = ({ children 
       return;
     }
 
+    // Declare retryTimer at useEffect scope to avoid ReferenceError in cleanup
+    let retryTimer: NodeJS.Timeout | null = null;
+    let channel: any = null;
+
     // 🚀 PERFORMANCE: Significantly defer real-time subscription to avoid blocking UI
     const timeoutId = setTimeout(() => {
       logger.context('FinancialContext', 'Setting up heavily deferred real-time subscription for user:', user.id);
 
-    let channel: any = null;
     let retryCount = 0;
     const maxRetries = 3;
-    let retryTimer: NodeJS.Timeout | null = null;
+    // retryTimer and channel are already declared above
 
     const setupSubscription = () => {
       try {

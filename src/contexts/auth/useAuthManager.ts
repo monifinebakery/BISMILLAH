@@ -98,19 +98,14 @@ export const useAuthManager = (): AuthContextValue => {
       }
     };
 
-    // ✅ ANTI-FLICKER: Longer delay to prevent immediate cache clearing
-    if (typeof requestIdleCallback !== "undefined") {
-      requestIdleCallback(
-        () => {
-          void clearCaches();
-        },
-        { timeout: 2000 }, // Reduced timeout for faster cache clearing
-      );
-    } else {
-      setTimeout(() => {
-        void clearCaches();
-      }, 100); // Reduced delay from 300ms to 100ms for faster auth loading
-    }
+    // ✅ FIX: Perpanjang timeout untuk menghindari tab focus flicker
+    // ✅ FIX: Tambah cleanup untuk mencegah memory leaks
+    const timeoutId = setTimeout(() => {
+      void clearCaches();
+    }, 1000); // Increased from 100ms to 1000ms to prevent tab switching flicker
+
+    // Return cleanup function to prevent memory leaks
+    return () => clearTimeout(timeoutId);
   }, [user?.id]);
 
   // Development debug tools

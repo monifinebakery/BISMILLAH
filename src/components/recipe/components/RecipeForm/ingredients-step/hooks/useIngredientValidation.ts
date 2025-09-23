@@ -17,7 +17,8 @@ export const useIngredientValidation = ({ showToast = true }: ValidationOptions 
   const validateNewIngredient = useCallback((ingredient: Partial<BahanResep>): ValidationResult => {
     const errors: string[] = [];
 
-    if (!ingredient.warehouseId) {
+    // ✅ FIXED: Use correct field names (snake_case)
+    if (!ingredient.warehouse_id) {
       errors.push('Bahan harus dipilih dari warehouse');
     }
     if (!ingredient.nama?.trim()) {
@@ -29,7 +30,8 @@ export const useIngredientValidation = ({ showToast = true }: ValidationOptions 
     if ((ingredient.jumlah || 0) <= 0) {
       errors.push('Jumlah harus lebih dari 0');
     }
-    if ((ingredient.hargaSatuan || 0) <= 0) {
+    // ✅ FIXED: Use correct field name (snake_case)
+    if ((ingredient.harga_satuan || 0) <= 0) {
       errors.push('Harga satuan harus lebih dari 0');
     }
 

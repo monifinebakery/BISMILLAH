@@ -77,7 +77,7 @@ function getCacheConfig() {
 // Files to cache immediately
 const STATIC_ASSETS = [
   '/',
-  // '/index.html', // do not precache HTML to avoid version mismatch
+  '/index.html', // IMPORTANT: Cache index.html for SPA navigation
   '/manifest.json',
   '/favicon.ico',
   '/monifine-192.png',
@@ -318,8 +318,22 @@ async function handleAPIRequest(request) {
   }
 }
 
-// Handle navigation with cache-first, fallback to index.html
+// Handle navigation with cache-first strategy for SPA routing
 async function handleNavigation(request) {
+  const url = new URL(request.url);
+
+  // For SPA, always serve index.html from cache first
+  // This allows React Router to handle client-side routing
+  const cachedIndex = await caches.match('/index.html');
+  if (cachedIndex) {
+    const contentType = cachedIndex.headers.get('content-type') || '';
+    if (contentType.includes('text/html') || contentType === '') {
+      swLog('[SW] Serving cached index.html for navigation:', url.pathname);
+      return cachedIndex;
+    }
+  }
+
+  // Fallback to network
   try {
     const networkResponse = await fetch(request);
     if (networkResponse.ok) {
@@ -327,7 +341,7 @@ async function handleNavigation(request) {
     }
     throw new Error('Network response not ok');
   } catch (error) {
-    console.log('[SW] Navigation failed, attempting cached fallback');
+    swLog('[SW] Navigation network failed, trying cache fallback');
 
     const fallbackCandidates = [request, '/'];
 
@@ -341,17 +355,6 @@ async function handleNavigation(request) {
 
         swLog('[SW] Skipping non-HTML cached response for navigation:', candidate);
       }
-    }
-
-    // Do not serve cached index.html if unavailable; return 503 to avoid HTML-as-JS issues
-    const cachedIndex = await caches.match('/index.html');
-    if (cachedIndex) {
-      const contentType = cachedIndex.headers.get('content-type') || '';
-      if (contentType.includes('text/html') || contentType === '') {
-        return cachedIndex;
-      }
-
-      swLog('[SW] Skipping cached index.html due to unexpected MIME type:', contentType);
     }
 
     return new Response('App not available offline', {

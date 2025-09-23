@@ -12,7 +12,7 @@ import { CodeSplittingProvider } from "@/providers/CodeSplittingProvider";
 import { initializeRoutePreloaders, preloadCriticalRoutes } from "@/utils/route-preloader";
 // Unified: Update banner is handled in AppLayout via useUpdateNotification
 import InstallBanner from '@/components/InstallBanner';
-import { OfflineIndicator } from '@/components/common/OfflineIndicator';
+// import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
@@ -172,8 +172,8 @@ const App = () => {
             {/* PWA Install Banner */}
             <InstallBanner />
 
-            {/* PWA Offline Indicator */}
-            <OfflineIndicator />
+            {/* PWA Offline Indicator - DISABLED */}
+            {/* <OfflineIndicator /> */}
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

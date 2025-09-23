@@ -1,6 +1,6 @@
 // 🎯 OrderTable.tsx - OPTIMIZED with React.memo, useMemo, useCallback
 import React, { useState, useCallback, useMemo } from 'react';
-import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, Edit, Trash2, MessageSquare, Eye, ShoppingCart, Search, Plus, ChevronDown, ChevronRight, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -101,98 +101,263 @@ const OrderRowActions: React.FC<{
     }
   };
 
-  const handleFollowUp = () => {
-    setIsOpen(false);
-    if (onFollowUp) {
-      onFollowUp();
-    } else {
-      // Fallback behavior
-      const nama = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
-      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
-      const phone = (order as any).telepon_pelanggan || (order as any).customer_phone || (order as any)['customerPhone'];
-      const email = (order as any).email_pelanggan || (order as any).customer_email || (order as any)['customerEmail'];
-      const message = `Halo ${nama}, saya ingin menanyakan status pesanan #${nomor}`;
-      if (phone) {
-        const whatsappUrl = `https://wa.me/${String(phone).replace(/\D/g, '')}?text=${encodeURIComponent(message)}`;
-        window.open(whatsappUrl, '_blank');
-      } else if (email) {
-        const emailUrl = `mailto:${email}?subject=Follow Up Pesanan #${nomor}&body=${encodeURIComponent(message)}`;
-        window.location.href = emailUrl;
-      } else {
-        alert('Tidak ada kontak yang tersedia untuk follow up');
-      }
-    }
-  };
-
-  const handleViewDetail = () => {
-    setIsOpen(false);
-    if (onViewDetail) {
-      onViewDetail();
-    } else {
-      const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
-      logger.info('View detail clicked for order:', nomor);
-      alert(`Detail pesanan #${nomor} akan ditampilkan`);
-    }
-  };
-
-  if (disabled) {
-    return (
-      <div className="text-gray-400">
-        <MoreHorizontal className="h-6 w-6" />
-      </div>
-    );
-  }
-
   return (
     <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
       <DropdownMenuTrigger asChild>
-        <Button 
-          variant="ghost" 
-          className="h-11 w-11 p-0 hover:bg-gray-100 active:bg-gray-200 transition-colors" 
-          onClick={(e) => {
-            e.stopPropagation();
-            logger.info('Dropdown menu clicked for order:', order.order_number);
-          }}
-          aria-label="More actions"
-        >
-          <MoreHorizontal className="h-5 w-5" />
+        <Button variant="ghost" className="h-8 w-8 p-0" disabled={disabled}>
+          <span className="sr-only">Open menu</span>
+          <MoreHorizontal className="h-4 w-4" />
         </Button>
       </DropdownMenuTrigger>
-      
-      <DropdownMenuContent align="end" className="w-56 z-50" side="bottom" sideOffset={8}>        
-        <DropdownMenuItem 
-          onClick={() => { setIsOpen(false); onEdit(); }}
-          className="cursor-pointer h-12 px-4 py-3"
-        >
-          <Edit className="mr-3 h-4 w-4" />
-          <span className="text-base">Edit Pesanan</span>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={() => { onEdit(); setIsOpen(false); }}>
+          <Edit className="mr-2 h-4 w-4" />
+          <span>Edit</span>
         </DropdownMenuItem>
-        
-        <DropdownMenuItem 
-          onClick={handleFollowUp}
-          className="cursor-pointer h-12 px-4 py-3"
-          disabled={!order.customer_phone && !onFollowUp}
-        >
-          <MessageSquare className="mr-3 h-4 w-4" />
-          <div className="flex flex-col items-start">
-            <span className="text-base">Follow Up WhatsApp</span>
-            {(!order.customer_phone && !onFollowUp) && (
-              <span className="text-xs text-gray-400">(No WhatsApp)</span>
-            )}
-          </div>
-        </DropdownMenuItem>
-        
+        {onFollowUp && (
+          <DropdownMenuItem onClick={() => { onFollowUp(); setIsOpen(false); }}>
+            <MessageSquare className="mr-2 h-4 w-4" />
+            <span>Follow Up</span>
+          </DropdownMenuItem>
+        )}
+        {onViewDetail && (
+          <DropdownMenuItem onClick={() => { onViewDetail(); setIsOpen(false); }}>
+            <Eye className="mr-2 h-4 w-4" />
+            <span>Lihat Detail</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
-        
-        <DropdownMenuItem 
-          onClick={handleDelete} 
-          className="text-red-600 focus:text-red-600 cursor-pointer h-12 px-4 py-3"
+        <DropdownMenuItem
+          onClick={handleDelete}
+          className="text-red-600 focus:text-red-600"
         >
-          <Trash2 className="mr-3 h-4 w-4" />
-          <span className="text-base">Hapus</span>
+          <Trash2 className="mr-2 h-4 w-4" />
+          <span>Hapus</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+};
+
+// ✅ NEW: Mobile Order Row Component with expandable details (like WarehouseTable)
+const MobileOrderRow: React.FC<{
+  order: Order;
+  isSelected: boolean;
+  isSelectionMode: boolean;
+  onSelectionChange?: (orderId: string) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onFollowUp?: () => void;
+  onViewDetail?: () => void;
+  onStatusChange: (orderId: string, newStatus: OrderStatus) => void;
+}> = ({
+  order,
+  isSelected,
+  isSelectionMode,
+  onSelectionChange,
+  onEdit,
+  onDelete,
+  onFollowUp,
+  onViewDetail,
+  onStatusChange
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [showMobileActions, setShowMobileActions] = useState(false);
+
+  const customerName = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
+  const customerPhone = (order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone || (order as any)['customerPhone'];
+  const customerEmail = (order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email || (order as any)['customerEmail'];
+  const orderNumber = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+  const totalAmount = (order as any).total_pesanan || (order as any)['totalPesanan'] || order.total_amount;
+
+  return (
+    <div
+      className={`
+        border rounded-lg overflow-hidden transition-all duration-200
+        ${isSelected ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white'}
+        ${order.status === 'cancelled' ? 'border-red-200 bg-red-50' : ''}
+        ${order.status === 'completed' ? 'border-green-200 bg-green-50' : ''}
+      `}
+    >
+      <div className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {isSelectionMode && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
+                aria-label={`Select order ${orderNumber}`}
+                className="mt-1 flex-shrink-0"
+              />
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-medium text-gray-900 truncate">
+                      #{orderNumber}
+                    </h3>
+                    <StatusBadge
+                      status={order.status}
+                      onChange={(newStatus) => onStatusChange(order.id, newStatus)}
+                      disabled={order.status === 'completed' || order.status === 'cancelled'}
+                    />
+                  </div>
+                  <p className="text-sm text-gray-600 mb-1 truncate">
+                    {customerName}
+                  </p>
+                  <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span>{formatDateForDisplay(order.tanggal)}</span>
+                    <span className="font-medium">{formatCurrency(totalAmount)}</span>
+                  </div>
+                </div>
+
+                {!isSelectionMode && (
+                  <div className="flex items-center gap-1 ml-2 flex-shrink-0">
+                    <button
+                      onClick={() => setIsExpanded(!isExpanded)}
+                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details`}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setShowMobileActions(!showMobileActions)}
+                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      aria-label="Show actions"
+                    >
+                      <MoreVertical className="w-4 h-4 text-gray-500" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {showMobileActions && !isSelectionMode && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  onEdit();
+                  setShowMobileActions(false);
+                }}
+                className="text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              {onFollowUp && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onFollowUp();
+                    setShowMobileActions(false);
+                  }}
+                  className="text-green-600 border-green-200 hover:bg-green-50"
+                >
+                  <MessageSquare className="w-4 h-4 mr-2" />
+                  Follow Up
+                </Button>
+              )}
+              {onViewDetail && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    onViewDetail();
+                    setShowMobileActions(false);
+                  }}
+                  className="text-purple-600 border-purple-200 hover:bg-purple-50"
+                >
+                  <Eye className="w-4 h-4 mr-2" />
+                  Detail
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const confirmed = window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${orderNumber}?`);
+                  if (confirmed) {
+                    onDelete();
+                  }
+                  setShowMobileActions(false);
+                }}
+                className="text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Hapus
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">Nomor Pesanan:</span>
+              <span className="font-medium text-gray-900">{order.id.slice(0, 8)}...</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Tanggal Dibuat:</span>
+              <span className="font-medium text-gray-900">
+                {formatDateForDisplay((order as any).created_at || (order as any)['createdAt'])}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Terakhir Diperbarui:</span>
+              <span className="font-medium text-gray-900">
+                {formatDateForDisplay((order as any).updated_at || (order as any)['updatedAt'])}
+              </span>
+            </div>
+            {customerPhone && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Telepon:</span>
+                <span className="font-medium text-gray-900">{customerPhone}</span>
+              </div>
+            )}
+            {customerEmail && (
+              <div className="flex flex-col gap-1">
+                <span className="text-gray-500">Email:</span>
+                <span className="font-medium text-gray-900 break-all text-sm">{customerEmail}</span>
+              </div>
+            )}
+            {(order as any).alamat_pengiriman && (
+              <div className="flex flex-col gap-1">
+                <span className="text-gray-500">Alamat Pengiriman:</span>
+                <span className="font-medium text-gray-900 text-sm">
+                  {(order as any).alamat_pengiriman}
+                </span>
+              </div>
+            )}
+            {order.catatan && (
+              <div className="flex flex-col gap-1">
+                <span className="text-gray-500">Catatan:</span>
+                <span className="font-medium text-gray-900 text-sm">
+                  {order.catatan}
+                </span>
+              </div>
+            )}
+            <div className="flex justify-between pt-2 border-t border-gray-300">
+              <span className="text-gray-500">Jumlah Item:</span>
+              <span className="font-medium text-gray-900">{order.items.length} item{order.items.length > 1 ? 's' : ''}</span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -428,55 +593,18 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
     <div className="bg-white rounded-xl border border-gray-200/80 overflow-hidden max-w-full">
       <div className="block md:hidden">
         {uiState.currentOrders.map((order: Order) => (
-          <div 
-            key={order.id} 
-            className="border-b border-gray-200 last:border-b-0 p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
-            role="row"
-            aria-label={`Order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']} for ${(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}`}
-          >
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-3 flex-1 min-w-0" role="cell">
-                {isSelectionMode && (
-                  <Checkbox
-                    checked={selectedIds.includes(order.id)}
-                    onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
-                    aria-label={`Select order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}`}
-                    className="mt-1 flex-shrink-0"
-                  />
-                )}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between mb-2">
-                    <h4 className="font-medium text-gray-900 truncate text-base pr-2">
-                      #{(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}
-                    </h4>
-                    <div className="flex-shrink-0">
-                      <StatusBadge
-                        status={order.status}
-                        onChange={(newStatus) => onStatusChange(order.id, newStatus)}
-                        disabled={order.status === 'completed' || order.status === 'cancelled'}
-                      />
-                    </div>
-                  </div>
-                  <p className="text-sm text-gray-600 mb-1">
-                    {(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    {formatDateForDisplay(order.tanggal)} • {formatCurrency((order as any).total_pesanan || (order as any)['totalPesanan'])}
-                  </p>
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center justify-end pt-2 border-t border-gray-100" role="cell">
-              <OrderRowActions
-                order={order}
-                onEdit={() => onEditOrder(order)}
-                onDelete={() => onDeleteOrder(order.id)}
-                onFollowUp={() => handleFollowUp(order)}
-                onViewDetail={() => handleViewDetail(order)}
-                disabled={uiState.isSelectionMode}
-              />
-            </div>
-          </div>
+          <MobileOrderRow
+            key={order.id}
+            order={order}
+            isSelected={selectedIds.includes(order.id)}
+            isSelectionMode={isSelectionMode}
+            onSelectionChange={onSelectionChange}
+            onEdit={() => onEditOrder(order)}
+            onDelete={() => onDeleteOrder(order.id)}
+            onFollowUp={() => handleFollowUp(order)}
+            onViewDetail={() => handleViewDetail(order)}
+            onStatusChange={onStatusChange}
+          />
         ))}
       </div>
 

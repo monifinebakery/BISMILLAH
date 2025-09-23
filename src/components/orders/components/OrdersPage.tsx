@@ -482,14 +482,16 @@ const OrdersPage: React.FC = () => {
           isAllSelected={isAllSelected}
         />
         
-        {/* ✅ Extracted: Pagination - Updated to use filtered counts */}
-        <OrderPagination
-          currentPage={uiState.currentPage}
-          totalPages={uiState.totalPages}
-          totalCount={uiState.totalItems}
-          onPrev={() => uiState.setCurrentPage(Math.max(1, uiState.currentPage - 1))}
-          onNext={() => uiState.setCurrentPage(Math.min(uiState.totalPages, uiState.currentPage + 1))}
-        />
+        {/* ✅ Extracted: Pagination - Only show when needed */}
+        {uiState.hasActiveFilters && (
+          <OrderPagination
+            currentPage={uiState.currentPage}
+            totalPages={uiState.totalPages}
+            totalCount={uiState.totalItems}
+            onPrev={() => uiState.setCurrentPage(Math.max(1, uiState.currentPage - 1))}
+            onNext={() => uiState.setCurrentPage(Math.min(uiState.totalPages, uiState.currentPage + 1))}
+          />
+        )}
         
         <OrderDialogs
           showDetailDialog={pageState.dialogs.detail}

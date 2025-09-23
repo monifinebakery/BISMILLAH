@@ -5,10 +5,10 @@ import type { Order, OrderFilters, UseOrderUIReturn } from '../types';
 const initialFilters: OrderFilters = {
   search: '',
   status: 'all',
-  dateFrom: null,
-  dateTo: null,
-  minAmount: null,
-  maxAmount: null
+  date_from: null,
+  date_to: null,
+  min_amount: null,
+  max_amount: null
 };
 
 export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): UseOrderUIReturn => {
@@ -19,7 +19,7 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
   const [selectedOrderIds, setSelectedOrderIds] = useState<string[]>([]);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
 
-  // Pagination state dengan logika asli
+  // Pagination state - hanya aktif jika ada filter atau data banyak
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(defaultItemsPerPage);
 
@@ -48,19 +48,19 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
       }
 
       // Date range filter - dari kode asli
-      if (filters.dateFrom && order.tanggal < filters.dateFrom) {
+      if (filters.date_from && order.tanggal < filters.date_from) {
         return false;
       }
-      if (filters.dateTo && order.tanggal > filters.dateTo) {
+      if (filters.date_to && order.tanggal > filters.date_to) {
         return false;
       }
 
       // Amount range filter - improved with null/undefined handling
       const total = (order as any).total_pesanan ?? (order as any)['totalPesanan'] ?? 0;
-      if (filters.minAmount !== null && filters.minAmount !== undefined && total < filters.minAmount) {
+      if (filters.min_amount !== null && filters.min_amount !== undefined && total < filters.min_amount) {
         return false;
       }
-      if (filters.maxAmount !== null && filters.maxAmount !== undefined && total > filters.maxAmount) {
+      if (filters.max_amount !== null && filters.max_amount !== undefined && total > filters.max_amount) {
         return false;
       }
 
@@ -105,10 +105,10 @@ export const useOrderUI = (orders: Order[], defaultItemsPerPage: number = 10): U
     return (
       filters.search !== '' ||
       filters.status !== 'all' ||
-      filters.dateFrom !== null ||
-      filters.dateTo !== null ||
-      filters.minAmount !== null ||
-      filters.maxAmount !== null
+      filters.date_from !== null ||
+      filters.date_to !== null ||
+      filters.min_amount !== null ||
+      filters.max_amount !== null
     );
   }, [filters]);
 

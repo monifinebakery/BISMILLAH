@@ -1,13 +1,19 @@
-import { useCallback, useMemo } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { Edit, Trash2, AlertCircle } from 'lucide-react';
+import { Edit, Trash2, AlertCircle, ChevronDown, ChevronRight, MoreVertical } from 'lucide-react';
 
 import { Card, CardContent } from '@/components/ui/card';
 import { Table } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 import { cn } from '@/lib/utils';
 import { formatCurrency } from '@/lib/shared';
@@ -38,6 +44,229 @@ interface TransactionTableProps {
   onSelectAll?: () => void;
   isAllSelected?: boolean;
 }
+
+// ✅ NEW: Transaction Row Actions Component
+const TransactionRowActions: React.FC<{
+  transaction: FinancialTransaction;
+  onEdit: () => void;
+  onDelete: () => void;
+  disabled?: boolean;
+}> = ({ transaction, onEdit, onDelete, disabled = false }) => {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="h-8 w-8 p-0" disabled={disabled}>
+          <span className="sr-only">Open menu</span>
+          <MoreVertical className="h-4 w-4" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuItem onClick={onEdit}>
+          <Edit className="mr-2 h-4 w-4" />
+          <span>Edit</span>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          onClick={() => {
+            if (window.confirm(`Apakah Anda yakin ingin menghapus transaksi ini?`)) {
+              onDelete();
+            }
+          }}
+          className="text-red-600 focus:text-red-600"
+        >
+          <Trash2 className="mr-2 h-4 w-4" />
+          <span>Hapus</span>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+};
+
+// ✅ NEW: Mobile Transaction Row Component with expandable details
+const MobileTransactionRow: React.FC<{
+  transaction: FinancialTransaction;
+  isSelected: boolean;
+  isSelectionMode: boolean;
+  onSelectionChange?: (transactionId: string, isSelected: boolean) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  isDeleting: boolean;
+}> = ({
+  transaction,
+  isSelected,
+  isSelectionMode,
+  onSelectionChange,
+  onEdit,
+  onDelete,
+  isDeleting
+}) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const getDisplayDescription = (description: string | null): string => {
+    return description || 'Tanpa deskripsi';
+  };
+
+  const formatTransactionDate = (date: Date | string | null): string => {
+    if (!date) return 'Tanggal tidak tersedia';
+
+    try {
+      const dateObj = new Date(date);
+      if (!Number.isNaN(dateObj.getTime())) {
+        return format(dateObj, 'dd MMM yyyy', { locale: id });
+      }
+    } catch (error) {
+      // Ignore date parsing errors
+    }
+    return 'Tanggal tidak valid';
+  };
+
+  return (
+    <div
+      className={`
+        border rounded-lg overflow-hidden transition-all duration-200
+        ${isSelected ? 'border-orange-200 bg-orange-50' : 'border-gray-200 bg-white'}
+        ${transaction.type === 'expense' ? 'border-red-200 bg-red-50' : ''}
+        ${transaction.type === 'income' ? 'border-green-200 bg-green-50' : ''}
+      `}
+    >
+      <div className="p-4">
+        <div className="flex items-start justify-between">
+          <div className="flex items-start gap-3 flex-1 min-w-0">
+            {isSelectionMode && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={(checked) => onSelectionChange?.(transaction.id, checked === true)}
+                aria-label={`Select transaction ${getDisplayDescription(transaction.description)}`}
+                className="mt-1 flex-shrink-0"
+              />
+            )}
+
+            <div className="flex-1 min-w-0">
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Badge variant={transaction.type === 'income' ? 'default' : 'destructive'} className="text-xs">
+                      {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+                    </Badge>
+                    <Badge variant="outline" className="text-xs">
+                      {transaction.category}
+                    </Badge>
+                  </div>
+                  <h3 className="font-medium text-gray-900 truncate">
+                    {getDisplayDescription(transaction.description)}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {formatTransactionDate(transaction.date)}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 ml-3 flex-shrink-0">
+                  {!isSelectionMode && (
+                    <button
+                      onClick={() => setIsExpanded(!isExpanded)}
+                      className="p-1 rounded hover:bg-gray-100 transition-colors"
+                      aria-label={`${isExpanded ? 'Collapse' : 'Expand'} details`}
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                      ) : (
+                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+                  )}
+                  <div className="text-right">
+                    <div className={`font-bold text-lg ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {!isSelectionMode && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={onEdit}
+                disabled={isDeleting}
+                className="flex-1 text-blue-600 border-blue-200 hover:bg-blue-50"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  if (window.confirm(`Apakah Anda yakin ingin menghapus transaksi ini?`)) {
+                    onDelete();
+                  }
+                }}
+                disabled={isDeleting}
+                className="flex-1 text-red-600 border-red-200 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Hapus
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {isExpanded && (
+        <div className="border-t border-gray-200 bg-gray-50 p-4 space-y-3">
+          <div className="grid grid-cols-1 gap-3 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-500">ID Transaksi:</span>
+              <span className="font-medium text-gray-900">{transaction.id.slice(0, 8)}...</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">User ID:</span>
+              <span className="font-medium text-gray-900">{transaction.userId.slice(0, 8)}...</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Tipe:</span>
+              <span className={`font-medium ${transaction.type === 'income' ? 'text-green-700' : 'text-red-700'}`}>
+                {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Kategori:</span>
+              <span className="font-medium text-gray-900">{transaction.category}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Jumlah:</span>
+              <span className={`font-medium ${transaction.type === 'income' ? 'text-green-700' : 'text-red-700'}`}>
+                {formatCurrency(Math.abs(transaction.amount))}
+              </span>
+            </div>
+            {transaction.relatedId && (
+              <div className="flex justify-between">
+                <span className="text-gray-500">Related ID:</span>
+                <span className="font-medium text-gray-900">{transaction.relatedId.slice(0, 8)}...</span>
+              </div>
+            )}
+            <div className="flex justify-between pt-2 border-t border-gray-300">
+              <span className="text-gray-500">Dibuat:</span>
+              <span className="font-medium text-gray-900">
+                {transaction.createdAt ? formatTransactionDate(transaction.createdAt) : 'N/A'}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-500">Diperbarui:</span>
+              <span className="font-medium text-gray-900">
+                {transaction.updatedAt ? formatTransactionDate(transaction.updatedAt) : 'N/A'}
+              </span>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TransactionTableComponent = ({
   dateRange,
@@ -189,82 +418,20 @@ const TransactionTableComponent = ({
           </div>
         )}
 
-        {/* Mobile Card View */}
+        {/* ✅ NEW: Enhanced Mobile Card View with Expandable Details */}
         {!showInitialLoading && isMobile && visibleTransactions.length > 0 && (
           <div className="md:hidden space-y-3 p-4">
             {visibleTransactions.map((transaction) => (
-              <div
+              <MobileTransactionRow
                 key={transaction.id}
-                className="border border-gray-200 rounded-lg p-4 bg-white hover:bg-gray-50 active:bg-gray-100 transition-colors"
-                role="row"
-                aria-label={`Transaction: ${getDisplayDescription(transaction.description)} - ${formatCurrency(transaction.amount)}`}
-              >
-                <div className="flex justify-between items-start mb-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-2">
-                      {isSelectionMode && (
-                        <Checkbox
-                          checked={selectedIds.includes(transaction.id)}
-                          onCheckedChange={() => onSelectionChange?.(transaction.id, !selectedIds.includes(transaction.id))}
-                          aria-label={`Select transaction ${getDisplayDescription(transaction.description)}`}
-                          className="flex-shrink-0"
-                        />
-                      )}
-                      <Badge variant={transaction.type === 'income' ? 'default' : 'destructive'} className="text-xs">
-                        {transaction.type === 'income' ? 'Pemasukan' : 'Pengeluaran'}
-                      </Badge>
-                      <Badge variant="outline" className="text-xs">
-                        {transaction.category}
-                      </Badge>
-                    </div>
-                    <h4 className="font-medium text-gray-900 truncate mb-1">
-                      {getDisplayDescription(transaction.description)}
-                    </h4>
-                    <div className="text-sm text-gray-500">
-                      {transaction.date ? (() => {
-                        try {
-                          const date = new Date(transaction.date);
-                          if (!Number.isNaN(date.getTime())) {
-                            return format(date, 'dd MMM yyyy', { locale: id });
-                          }
-                        } catch (error) {
-                          // Ignore date parsing errors
-                        }
-                        return 'Tanggal tidak valid';
-                      })() : 'Tanggal tidak tersedia'}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2 ml-3 flex-shrink-0">
-                    <div className="text-right">
-                      <div className={`font-bold text-lg ${transaction.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
-                        {transaction.type === 'income' ? '+' : '-'}{formatCurrency(Math.abs(transaction.amount))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-center justify-end pt-2 border-t border-gray-100 gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => onEditTransaction?.(transaction)}
-                    disabled={isDeleting}
-                    className="h-9 w-9 p-0 hover:bg-blue-50 active:bg-blue-100"
-                    aria-label={`Edit transaction ${getDisplayDescription(transaction.description)}`}
-                  >
-                    <Edit className="h-4 w-4 text-blue-600" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => handleDeleteTransaction(transaction)}
-                    disabled={isDeleting}
-                    className="h-9 w-9 p-0 hover:bg-red-50 active:bg-red-100"
-                    aria-label={`Delete transaction ${getDisplayDescription(transaction.description)}`}
-                  >
-                    <Trash2 className="h-4 w-4 text-red-600" />
-                  </Button>
-                </div>
-              </div>
+                transaction={transaction}
+                isSelected={selectedIds.includes(transaction.id)}
+                isSelectionMode={isSelectionMode}
+                onSelectionChange={onSelectionChange}
+                onEdit={() => onEditTransaction?.(transaction)}
+                onDelete={() => handleDeleteTransaction(transaction)}
+                isDeleting={isDeleting}
+              />
             ))}
           </div>
         )}

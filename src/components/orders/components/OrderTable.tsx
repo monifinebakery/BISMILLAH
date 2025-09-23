@@ -82,6 +82,12 @@ const StatusBadge: React.FC<{
   );
 };
 
+// ✅ HELPER: Consistent order number display
+const getOrderNumberDisplay = (order: any): string => {
+  // Priority: nomorPesanan (camelCase) > nomor_pesanan (snake_case) > order_number > fallback
+  return order.nomorPesanan || order.nomor_pesanan || order.order_number || 'N/A';
+};
+
 // ✅ FIXED: Row Actions Component
 const OrderRowActions: React.FC<{
   order: Order;
@@ -95,7 +101,7 @@ const OrderRowActions: React.FC<{
 
   const handleDelete = () => {
     setIsOpen(false);
-    const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+    const nomor = getOrderNumberDisplay(order);
     if (window.confirm(`Apakah Anda yakin ingin menghapus pesanan #${nomor}?`)) {
       onDelete();
     }
@@ -138,8 +144,6 @@ const OrderRowActions: React.FC<{
     </DropdownMenu>
   );
 };
-
-// ✅ NEW: Mobile Order Row Component with expandable details (like WarehouseTable)
 const MobileOrderRow: React.FC<{
   order: Order;
   isSelected: boolean;
@@ -167,7 +171,7 @@ const MobileOrderRow: React.FC<{
   const customerName = (order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName'];
   const customerPhone = (order as any).telepon_pelanggan || (order as any)['teleponPelanggan'] || (order as any).customer_phone || (order as any)['customerPhone'];
   const customerEmail = (order as any).email_pelanggan || (order as any)['emailPelanggan'] || (order as any).customer_email || (order as any)['customerEmail'];
-  const orderNumber = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
+  const orderNumber = getOrderNumberDisplay(order); // ✅ Use helper function
   const totalAmount = (order as any).total_pesanan || (order as any)['totalPesanan'] || order.total_amount;
 
   return (
@@ -668,7 +672,7 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
                 `}
                 onClick={(e) => handleRowClick(order, e)}
                 role="row"
-                aria-label={`Order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']} for ${(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}`}
+                aria-label={`Order ${getOrderNumberDisplay(order)} for ${(order as any).nama_pelanggan || (order as any)['namaPelanggan'] || (order as any).customer_name || (order as any)['customerName']}`}
               >
                 {/* Selection Checkbox */}
                 {isSelectionMode && (
@@ -677,7 +681,7 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
                       checked={selectedIds.includes(order.id)}
                       onCheckedChange={() => onSelectionChange && onSelectionChange(order.id)}
                       className="h-4 w-4"
-                      aria-label={`Select order ${(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}`}
+                      aria-label={`Select order ${getOrderNumberDisplay(order)}`}
                     />
                   </td>
                 )}
@@ -686,7 +690,7 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
                 <td className="px-3 py-4 whitespace-nowrap min-w-[120px]" role="cell">
                   <div className="flex flex-col">
                     <div className="text-sm font-medium text-gray-900">#
-                      {(order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan']}
+                      {getOrderNumberDisplay(order)}
                     </div>
                     <div className="text-xs text-gray-500">{order.id.slice(0, 8)}...</div>
                   </div>

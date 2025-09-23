@@ -12,13 +12,13 @@ import {
 import { Package } from 'lucide-react';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import { formatCurrency } from '../../../../services/recipeUtils';
-import type { ConvertedIngredient } from '@/utils/unitConversion';
+import type { IngredientConversionResult } from '../hooks/useIngredientConversion';
 
 interface IngredientSelectorProps {
   selectedWarehouseId?: string;
   warehouseItems: BahanBakuFrontend[];
   onSelect: (warehouseItemId: string) => void;
-  onConversionPreview?: (warehouseItem: BahanBakuFrontend) => ConvertedIngredient;
+  onConversionPreview?: (warehouseItem: BahanBakuFrontend) => IngredientConversionResult;
   isLoading?: boolean;
   isDisabled?: boolean;
   placeholder?: string;

@@ -3,35 +3,78 @@
 import { useCallback, useState } from 'react';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import {
-  convertIngredientUnit,
-  type ConvertedIngredient,
+  convertUnits,
+  getBaseUnit,
+  normalizeStockValue,
+  formatWithUnit,
 } from '@/utils/unitConversion';
 
+// Updated interface to work with new unit conversion system
+export interface IngredientConversionResult {
+  originalUnit: string;
+  convertedUnit: string;
+  originalPrice: number;
+  convertedPrice: number;
+  conversionMultiplier: number;
+  isConverted: boolean;
+  baseUnit: string;
+  normalizedValue: number;
+}
+
 export interface IngredientConversionApi {
-  conversionInfo: ConvertedIngredient | null;
-  applyConversion: (warehouseItem: BahanBakuFrontend) => ConvertedIngredient;
-  getConversionPreview: (warehouseItem: BahanBakuFrontend) => ConvertedIngredient;
+  conversionInfo: IngredientConversionResult | null;
+  applyConversion: (warehouseItem: BahanBakuFrontend) => IngredientConversionResult;
+  getConversionPreview: (warehouseItem: BahanBakuFrontend) => IngredientConversionResult;
   resetConversionInfo: () => void;
 }
 
 export const useIngredientConversion = (): IngredientConversionApi => {
-  const [conversionInfo, setConversionInfo] = useState<ConvertedIngredient | null>(null);
+  const [conversionInfo, setConversionInfo] = useState<IngredientConversionResult | null>(null);
 
-  const applyConversion = useCallback((warehouseItem: BahanBakuFrontend) => {
+  const applyConversion = useCallback((warehouseItem: BahanBakuFrontend): IngredientConversionResult => {
     const warehousePrice = (warehouseItem as any).harga || 0;
     const warehouseUnit = warehouseItem.satuan || 'pcs';
+    const baseUnit = getBaseUnit(warehouseUnit) || warehouseUnit;
 
-    const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
-    setConversionInfo(conversion);
+    // Calculate conversion multiplier (1 warehouseUnit = X baseUnits)
+    const conversionMultiplier = convertUnits(1, warehouseUnit, baseUnit) || 1;
 
-    return conversion;
+    // Calculate converted price (price per base unit)
+    const convertedPrice = warehousePrice / conversionMultiplier;
+
+    const result: IngredientConversionResult = {
+      originalUnit: warehouseUnit,
+      convertedUnit: baseUnit,
+      originalPrice: warehousePrice,
+      convertedPrice: convertedPrice,
+      conversionMultiplier: conversionMultiplier,
+      isConverted: conversionMultiplier !== 1,
+      baseUnit: baseUnit,
+      normalizedValue: warehouseItem.stok * conversionMultiplier,
+    };
+
+    setConversionInfo(result);
+    return result;
   }, []);
 
-  const getConversionPreview = useCallback((warehouseItem: BahanBakuFrontend) => {
+  const getConversionPreview = useCallback((warehouseItem: BahanBakuFrontend): IngredientConversionResult => {
     const warehousePrice = (warehouseItem as any).harga || 0;
     const warehouseUnit = warehouseItem.satuan || 'pcs';
+    const baseUnit = getBaseUnit(warehouseUnit) || warehouseUnit;
 
-    return convertIngredientUnit(warehouseUnit, warehousePrice);
+    const conversionMultiplier = convertUnits(1, warehouseUnit, baseUnit) || 1;
+    const convertedPrice = warehousePrice / conversionMultiplier;
+
+    return {
+      originalUnit: warehouseUnit,
+      convertedUnit: baseUnit,
+      originalPrice: warehousePrice,
+      convertedPrice: convertedPrice,
+      conversionMultiplier: conversionMultiplier,
+      isConverted: conversionMultiplier !== 1,
+      baseUnit: baseUnit,
+      normalizedValue: warehouseItem.stok * conversionMultiplier,
+    };
   }, []);
 
   const resetConversionInfo = useCallback(() => {

@@ -4,10 +4,7 @@ import { useCallback } from 'react';
 import { toast } from 'sonner';
 import type { BahanResep } from '../../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
-import {
-  getConversionDisplayText,
-  formatConvertedPrice,
-} from '@/utils/unitConversion';
+// Remove old unitConversion imports
 import { logger } from '@/utils/logger';
 import type { IngredientConversionApi } from './useIngredientConversion';
 
@@ -50,7 +47,6 @@ export const useIngredientSelection = ({
       priceTo: conversionResult.convertedPrice,
       isConverted: conversionResult.isConverted,
       multiplier: conversionResult.conversionMultiplier,
-      displayText: getConversionDisplayText(conversionResult),
     });
 
     const currentQuantity = currentIngredient?.jumlah || 0;
@@ -60,16 +56,15 @@ export const useIngredientSelection = ({
       ...currentIngredient,
       nama: frontendItem.nama,
       satuan: conversionResult.convertedUnit,
-      hargaSatuan: conversionResult.convertedPrice,
-      warehouseId: frontendItem.id,
-      totalHarga,
+      harga_satuan: conversionResult.convertedPrice,
+      warehouse_id: frontendItem.id,
+      total_harga: totalHarga,
     };
 
     if (conversionResult.isConverted) {
       toast.success(
-        `🆕 Satuan dikonversi: ${conversionResult.originalUnit} → ${conversionResult.convertedUnit}\n` +
-          `Harga disesuaikan: ${formatConvertedPrice(conversionResult)}`,
-        { duration: 4000 }
+        `🆕 Satuan dikonversi: ${conversionResult.originalUnit} → ${conversionResult.convertedUnit}`,
+        { duration: 3000 }
       );
     }
 
@@ -106,9 +101,9 @@ export const useIngredientSelection = ({
       ...currentIngredient,
       nama: frontendItem.nama,
       satuan: conversionResult.convertedUnit,
-      hargaSatuan: conversionResult.convertedPrice,
-      totalHarga: currentQuantity * conversionResult.convertedPrice,
-      warehouseId: frontendItem.id,
+      harga_satuan: conversionResult.convertedPrice,
+      total_harga: currentQuantity * conversionResult.convertedPrice,
+      warehouse_id: frontendItem.id,
     };
 
     if (conversionResult.isConverted) {

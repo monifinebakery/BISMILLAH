@@ -16,7 +16,7 @@ import {
 } from '@/components/ui/select';
 import type { BahanResep } from '../../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
-import type { ConvertedIngredient } from '@/utils/unitConversion';
+import type { IngredientConversionResult } from '../hooks/useIngredientConversion';
 import { RECIPE_UNITS } from '../../../../types';
 import { IngredientSelector } from './IngredientSelector';
 
@@ -26,7 +26,7 @@ interface IngredientFormFieldsProps {
   onWarehouseSelect: (warehouseItemId: string) => void;
   onFieldChange: (field: keyof BahanResep, value: any) => void;
   onSubmit: () => void;
-  getConversionPreview: (warehouseItem: BahanBakuFrontend) => ConvertedIngredient;
+  getConversionPreview: (warehouseItem: BahanBakuFrontend) => IngredientConversionResult;
   hasNewIngredientData: boolean;
   totalPreview: string;
   isWarehouseLoading?: boolean;
@@ -59,7 +59,7 @@ export const IngredientFormFields: React.FC<IngredientFormFieldsProps> = ({
         <div className="space-y-4">
           <div className="grid grid-cols-1 gap-4">
             <IngredientSelector
-              selectedWarehouseId={newIngredient.warehouseId}
+              selectedWarehouseId={newIngredient.warehouse_id}
               warehouseItems={warehouseItems}
               onSelect={onWarehouseSelect}
               onConversionPreview={getConversionPreview}
@@ -114,9 +114,9 @@ export const IngredientFormFields: React.FC<IngredientFormFieldsProps> = ({
                 <Input
                   type="number"
                   min="0"
-                  value={newIngredient.hargaSatuan ?? ''}
+                  value={newIngredient.harga_satuan ?? ''}
                   onChange={(event) =>
-                    onFieldChange('hargaSatuan', parseFloat(event.target.value) || 0)
+                    onFieldChange('harga_satuan', parseFloat(event.target.value) || 0)
                   }
                   placeholder="12000"
                   className="pl-8 w-full"

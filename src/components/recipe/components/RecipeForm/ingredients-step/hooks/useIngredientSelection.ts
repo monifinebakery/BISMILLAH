@@ -49,8 +49,11 @@ export const useIngredientSelection = ({
       multiplier: conversionResult.conversionMultiplier,
     });
 
-    const currentQuantity = currentIngredient?.jumlah || 0;
-    const totalHarga = currentQuantity * conversionResult.convertedPrice;
+    const currentQuantity = Number(currentIngredient?.jumlah) || 0;
+    const convertedPrice = Number(conversionResult.convertedPrice) || 0;
+
+    // Ensure valid calculation to prevent NaN
+    const totalHarga = isNaN(currentQuantity) || isNaN(convertedPrice) ? 0 : currentQuantity * convertedPrice;
 
     const updatedIngredient: Partial<BahanResep> = {
       ...currentIngredient,
@@ -86,7 +89,7 @@ export const useIngredientSelection = ({
     }
 
     const frontendItem = selectedItem as any as BahanBakuFrontend;
-    const currentQuantity = currentIngredient.jumlah;
+    const currentQuantity = Number(currentIngredient.jumlah) || 0;
     const conversionResult = conversion.applyConversion(frontendItem);
 
     logger.debug('useIngredientSelection: Updating existing ingredient with conversion:', {
@@ -102,7 +105,7 @@ export const useIngredientSelection = ({
       nama: frontendItem.nama,
       satuan: conversionResult.convertedUnit,
       harga_satuan: conversionResult.convertedPrice,
-      total_harga: currentQuantity * conversionResult.convertedPrice,
+      total_harga: isNaN(currentQuantity) || isNaN(Number(conversionResult.convertedPrice)) ? 0 : currentQuantity * Number(conversionResult.convertedPrice),
       warehouse_id: frontendItem.id,
     };
 

@@ -325,12 +325,15 @@ export const calculateRecipeStats = (recipes: Recipe[]): RecipeStats => {
  * Format currency value
  */
 export const formatCurrency = (amount: number): string => {
+  // Handle NaN, undefined, null, or invalid numbers
+  const validAmount = typeof amount === 'number' && !isNaN(amount) && isFinite(amount) ? amount : 0;
+
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
     currency: 'IDR',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0
-  }).format(amount);
+  }).format(validAmount);
 };
 
 /**

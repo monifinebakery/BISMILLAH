@@ -176,7 +176,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
 
                     {/* Total Price */}
                     <TableCell className="text-right font-medium min-w-[120px]">
-                      {formatCurrency(ingredient.total_harga)}
+                      {formatCurrency(Number(ingredient.total_harga) || 0)}
                     </TableCell>
 
                     {/* Actions */}

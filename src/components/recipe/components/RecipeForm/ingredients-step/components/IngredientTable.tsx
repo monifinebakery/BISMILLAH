@@ -24,7 +24,8 @@ import { Trash2, ChefHat, ShoppingCart } from 'lucide-react';
 import type { BahanResep } from '../../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import { RECIPE_UNITS } from '../../../../types';
-import { formatCurrency } from '../../../../services/recipeUtils';
+import { formatPercentage } from '../../../../services/recipeUtils';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
 // Remove old convertIngredientUnit import
 
 interface IngredientTableProps {
@@ -50,6 +51,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
   isLoading = false,
   className = ""
 }) => {
+  const { formatCurrency } = useCurrencyFormatter();
   return (
     <Card className={className}>
       <CardHeader>

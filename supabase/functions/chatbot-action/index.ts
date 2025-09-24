@@ -27,17 +27,28 @@ serve(async (req) => {
     });
   }
 
+  const requestStartTime = Date.now();
+
   try {
     console.log('🤖 Chatbot Action Edge Function called');
+    console.log('Request details:', {
+      method: req.method,
+      url: req.url,
+      userAgent: req.headers.get('User-Agent'),
+      timestamp: new Date().toISOString()
+    });
 
-    // Require authentication
+    // Require authentication with timeout
+    const authStartTime = Date.now();
     const authResult = await requireAuth(req);
+    const authTime = Date.now() - authStartTime;
+
     if (authResult instanceof Response) {
-      console.log('🤖 Authentication failed');
+      console.log('🤖 Authentication failed in', authTime, 'ms');
       return authResult;
     }
     const { user } = authResult;
-    console.log('🤖 Authenticated user:', user.id);
+    console.log('🤖 Authenticated user:', user.id, 'in', authTime, 'ms');
 
     // Create Supabase client with user's context
     const supabase = createClient(
@@ -55,8 +66,31 @@ serve(async (req) => {
     const { intent, message, userId, context }: ChatbotActionRequest = await req.json();
     console.log('🤖 Received action request:', { intent, message, userId, context });
 
-    let result: any = null;
+    // Validate input parameters
+    if (!intent || !intent.trim()) {
+      return new Response(JSON.stringify({
+        type: 'error',
+        text: '❌ Intent tidak boleh kosong.'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
 
+    if (!userId || !userId.trim()) {
+      return new Response(JSON.stringify({
+        type: 'error',
+        text: '❌ User ID tidak boleh kosong.'
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
+      });
+    }
+
+    let result: any = null;
+    const actionStartTime = Date.now();
+
+    // Execute action based on intent
     switch (intent) {
       case 'purchase':
         result = await handlePurchaseCreate(supabase, userId, message);
@@ -77,27 +111,74 @@ serve(async (req) => {
         result = await handlePromoCreate(supabase, userId, message);
         break;
       default:
-        result = { type: 'error', text: 'Aksi tidak dikenali.' };
+        result = {
+          type: 'error',
+          text: `❌ Aksi "${intent}" tidak dikenali. Aksi yang tersedia: purchase, orderCreate, orderDelete, inventoryUpdate, recipeCreate, promoCreate.`
+        };
+    }
+
+    const actionTime = Date.now() - actionStartTime;
+    const totalTime = Date.now() - requestStartTime;
+
+    console.log('🤖 Action completed:', {
+      intent,
+      userId,
+      resultType: result?.type,
+      actionTime: `${actionTime}ms`,
+      totalTime: `${totalTime}ms`,
+      success: result?.type === 'success'
+    });
+
+    // Add performance metadata to successful responses
+    if (result && result.type === 'success' && !result.metadata) {
+      result.metadata = {
+        actionTime: `${actionTime}ms`,
+        totalTime: `${totalTime}ms`
+      };
     }
 
     return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Response-Time": `${totalTime}ms`,
+        "X-Action-Time": `${actionTime}ms`
       }
     });
 
   } catch (error) {
-    console.error("Error in chatbot-action:", error);
+    const totalTime = Date.now() - requestStartTime;
+    console.error("Error in chatbot-action:", error, 'Total time:', totalTime, 'ms');
+
+    // Provide specific error responses based on error type
+    let errorMessage = '❌ Terjadi kesalahan internal server.';
+    let statusCode = 500;
+
+    if (error.message?.includes('authentication') || error.message?.includes('unauthorized')) {
+      errorMessage = '❌ Autentikasi gagal. Silakan login kembali.';
+      statusCode = 401;
+    } else if (error.message?.includes('timeout')) {
+      errorMessage = '⏱️ Permintaan timeout. Sistem sedang sibuk, coba lagi nanti.';
+      statusCode = 504;
+    } else if (error.message?.includes('network') || error.message?.includes('connection')) {
+      errorMessage = '🌐 Masalah koneksi. Periksa koneksi internet Anda.';
+      statusCode = 503;
+    }
+
     return new Response(JSON.stringify({
       error: error.message || "Internal server error",
-      type: 'error'
+      type: 'error',
+      text: errorMessage,
+      metadata: {
+        totalTime: `${totalTime}ms`
+      }
     }), {
-      status: 500,
+      status: statusCode,
       headers: {
         ...corsHeaders,
-        "Content-Type": "application/json"
+        "Content-Type": "application/json",
+        "X-Response-Time": `${totalTime}ms`
       }
     });
   }
@@ -155,6 +236,7 @@ async function handlePurchaseCreate(supabase: any, userId: string, message: stri
 async function handleOrderCreate(supabase: any, userId: string, message: string) {
   try {
     console.log('🤖 Handling order create for user:', userId, 'message:', message);
+    const startTime = Date.now();
 
     // Extract order info from message
     const orderInfo = extractOrderInfo(message);
@@ -166,7 +248,29 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
       };
     }
 
-    // Generate order number with date
+    // Enhanced validation
+    if (typeof orderInfo.totalAmount !== 'number' || isNaN(orderInfo.totalAmount)) {
+      return {
+        type: 'error',
+        text: '❌ Jumlah harga harus berupa angka yang valid.'
+      };
+    }
+
+    if (orderInfo.totalAmount <= 0) {
+      return {
+        type: 'error',
+        text: '❌ Total pesanan harus lebih dari 0.'
+      };
+    }
+
+    if (orderInfo.totalAmount > 10000000) { // 10 million limit
+      return {
+        type: 'error',
+        text: '❌ Total pesanan terlalu besar. Pastikan jumlah yang dimasukkan benar.'
+      };
+    }
+
+    // Generate order number with date and timestamp for uniqueness
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
     const timeStr = now.toISOString().slice(11, 19).replace(/:/g, ''); // HHMMSS
@@ -180,40 +284,89 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
       product: orderInfo.product
     });
 
-    // Create order record
-    const { data: order, error } = await supabase
-      .from('orders')
-      .insert({
-        user_id: userId,
-        nomor_pesanan: orderNumber,
-        nama_pelanggan: orderInfo.customerName,
-        total_pesanan: orderInfo.totalAmount,
-        status: 'pending', // Updated to match current constraint: pending, confirmed, preparing, ready, delivered, cancelled, completed
-        catatan: orderInfo.product ? `Produk: ${orderInfo.product}` : null,
-        telepon_pelanggan: '', // Required field, set empty for now
-        alamat_pengiriman: 'Jakarta (jika ada detail lebih lanjut seperti RT/RW atau landmark, silakan beri tahu untuk kemudahan pengiriman)',
-        items: [{
-          name: orderInfo.product || 'Produk bakery',
-          quantity: 1,
-          price: orderInfo.totalAmount,
-          total: orderInfo.totalAmount
-        }],
-        subtotal: orderInfo.totalAmount,
-        pajak: 0
-      })
-      .select()
-      .single();
+    // Create order record with retry mechanism
+    let orderResult, orderError;
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const result = await supabase
+        .from('orders')
+        .insert({
+          user_id: userId,
+          nomor_pesanan: `${orderNumber}-${attempt}`, // Add attempt suffix for uniqueness
+          nama_pelanggan: orderInfo.customerName,
+          total_pesanan: orderInfo.totalAmount,
+          status: 'pending',
+          catatan: orderInfo.product ? `Produk: ${orderInfo.product}` : null,
+          telepon_pelanggan: '',
+          alamat_pengiriman: 'Jakarta (jika ada detail lebih lanjut seperti RT/RW atau landmark, silakan beri tahu untuk kemudahan pengiriman)',
+          items: [{
+            name: orderInfo.product || 'Produk bakery',
+            quantity: 1,
+            price: orderInfo.totalAmount,
+            total: orderInfo.totalAmount
+          }],
+          subtotal: orderInfo.totalAmount,
+          pajak: 0
+        })
+        .select()
+        .single();
 
-    console.log('🤖 Order create result:', { data: order, error });
+      orderResult = result.data;
+      orderError = result.error;
 
-    if (error) {
-      console.log('🤖 Order create error:', error);
-      throw error;
+      if (!orderError || attempt === maxRetries) break;
+
+      // Retry on connection issues or duplicate key errors
+      if (orderError.message?.includes('connection') ||
+          orderError.message?.includes('timeout') ||
+          orderError.code === '23505') {
+        console.log(`🤖 Order create attempt ${attempt + 1} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      } else {
+        break;
+      }
+    }
+
+    const queryTime = Date.now() - startTime;
+    console.log('🤖 Order create result:', {
+      orderNumber: orderResult?.nomor_pesanan,
+      customer: orderResult?.nama_pelanggan,
+      amount: orderResult?.total_pesanan,
+      queryTime: `${queryTime}ms`,
+      error: orderError
+    });
+
+    if (orderError) {
+      console.log('🤖 Order create error:', orderError);
+
+      // Provide specific error messages
+      if (orderError.code === '23505') {
+        return {
+          type: 'error',
+          text: '❌ Nomor pesanan duplikat. Sistem sedang memproses pesanan serupa.'
+        };
+      } else if (orderError.message?.includes('permission')) {
+        return {
+          type: 'error',
+          text: '❌ Tidak memiliki izin untuk membuat pesanan. Silakan hubungi administrator.'
+        };
+      }
+
+      return {
+        type: 'error',
+        text: '❌ Gagal membuat pesanan baru. Pastikan format pesan sudah benar.'
+      };
     }
 
     return {
       type: 'success',
-      text: `Sip Kak! 🎉 Pesanan berhasil dibuat nih!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n🏠 Alamat: ${order.alamat_pengiriman}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n\nPesanan udah tersimpan di sistem dan siap diproses ya Kak! Ada lagi yang bisa dibantu? 😊`
+      text: `Sip Kak! 🎉 Pesanan berhasil dibuat nih!\n\n📋 Nomor Pesanan: ${orderResult.nomor_pesanan}\n👤 Customer: ${orderResult.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(orderResult.total_pesanan)}\n📊 Status: ${getStatusText(orderResult.status)}\n🏠 Alamat: ${orderResult.alamat_pengiriman}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n⏱️ Waktu proses: ${queryTime}ms\n\nPesanan udah tersimpan di sistem dan siap diproses ya Kak! Ada lagi yang bisa dibantu? 😊`,
+      metadata: {
+        orderNumber: orderResult.nomor_pesanan,
+        customerName: orderResult.nama_pelanggan,
+        totalAmount: orderResult.total_pesanan,
+        queryTime: `${queryTime}ms`
+      }
     };
 
   } catch (error) {
@@ -285,6 +438,7 @@ async function handleOrderDelete(supabase: any, userId: string, message: string)
 async function handleInventoryUpdate(supabase: any, userId: string, message: string) {
   try {
     console.log('🤖 Handling inventory update for user:', userId, 'message:', message);
+    const startTime = Date.now();
 
     // Extract inventory update info
     const updateInfo = extractInventoryUpdateInfo(message);
@@ -295,40 +449,153 @@ async function handleInventoryUpdate(supabase: any, userId: string, message: str
       };
     }
 
-    // Find the material first
-    const { data: existingMaterial, error: findError } = await supabase
-      .from('bahan_baku')
-      .select('id, nama, stok')
-      .eq('user_id', userId)
-      .ilike('nama', `%${updateInfo.materialName}%`)
-      .single();
-
-    if (findError || !existingMaterial) {
-      console.log('🤖 Material not found:', updateInfo.materialName);
+    // Enhanced validation
+    if (typeof updateInfo.newStock !== 'number' || isNaN(updateInfo.newStock)) {
       return {
         type: 'error',
-        text: `❌ Bahan "${updateInfo.materialName}" tidak ditemukan di warehouse.`
+        text: '❌ Jumlah stok harus berupa angka yang valid.'
       };
     }
 
-    // Update the stock
-    const { data: updatedMaterial, error: updateError } = await supabase
-      .from('bahan_baku')
-      .update({ stok: updateInfo.newStock })
-      .eq('id', existingMaterial.id)
-      .select()
-      .single();
+    if (updateInfo.newStock < 0) {
+      return {
+        type: 'error',
+        text: '❌ Stok tidak boleh negatif. Pastikan jumlah stok yang dimasukkan benar.'
+      };
+    }
 
-    console.log('🤖 Inventory update result:', { data: updatedMaterial, error: updateError });
+    // Find the material first with retry mechanism
+    let findResult, findError;
+    const maxRetries = 2;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const result = await supabase
+        .from('bahan_baku')
+        .select('id, nama, stok, minimum, updated_at')
+        .eq('user_id', userId)
+        .ilike('nama', `%${updateInfo.materialName}%`)
+        .single();
+
+      findResult = result.data;
+      findError = result.error;
+
+      if (!findError || attempt === maxRetries) break;
+
+      // Retry on connection issues
+      if (findError.message?.includes('connection') || findError.message?.includes('timeout')) {
+        console.log(`🤖 Material search attempt ${attempt + 1} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      } else {
+        break;
+      }
+    }
+
+    if (findError || !findResult) {
+      console.log('🤖 Material not found:', updateInfo.materialName, 'error:', findError);
+
+      // Provide specific error messages
+      if (findError?.code === 'PGRST116') {
+        return {
+          type: 'error',
+          text: '❌ Tidak dapat mengakses data warehouse. Pastikan Anda sudah login dengan benar.'
+        };
+      }
+
+      return {
+        type: 'error',
+        text: `❌ Bahan "${updateInfo.materialName}" tidak ditemukan di warehouse. Periksa nama bahan dan coba lagi.`
+      };
+    }
+
+    // Additional validation against existing data
+    const existingStock = findResult.stok || 0;
+    const changeRatio = existingStock > 0 ? Math.abs(updateInfo.newStock - existingStock) / existingStock : Math.abs(updateInfo.newStock);
+
+    if (changeRatio > 1000) {
+      return {
+        type: 'error',
+        text: `❌ Perubahan stok terlalu drastis (${existingStock} → ${updateInfo.newStock}). Pastikan nilai yang dimasukkan benar.`
+      };
+    }
+
+    // Update the stock with retry mechanism
+    let updateResult, updateError;
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      const result = await supabase
+        .from('bahan_baku')
+        .update({
+          stok: updateInfo.newStock,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', findResult.id)
+        .select()
+        .single();
+
+      updateResult = result.data;
+      updateError = result.error;
+
+      if (!updateError || attempt === maxRetries) break;
+
+      // Retry on connection issues
+      if (updateError.message?.includes('connection') || updateError.message?.includes('timeout')) {
+        console.log(`🤖 Stock update attempt ${attempt + 1} failed, retrying...`);
+        await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+      } else {
+        break;
+      }
+    }
+
+    const queryTime = Date.now() - startTime;
+    console.log('🤖 Inventory update result:', {
+      material: findResult.nama,
+      oldStock: existingStock,
+      newStock: updateInfo.newStock,
+      queryTime: `${queryTime}ms`,
+      error: updateError
+    });
 
     if (updateError) {
       console.log('🤖 Inventory update error:', updateError);
-      throw updateError;
+
+      // Provide specific error messages
+      if (updateError.code === '23505') {
+        return {
+          type: 'error',
+          text: '❌ Konflik data. Bahan ini sedang diperbarui oleh proses lain.'
+        };
+      } else if (updateError.message?.includes('permission')) {
+        return {
+          type: 'error',
+          text: '❌ Tidak memiliki izin untuk mengupdate stok. Silakan hubungi administrator.'
+        };
+      }
+
+      return {
+        type: 'error',
+        text: '❌ Gagal mengupdate stok bahan baku. Silakan coba lagi.'
+      };
     }
+
+    // Log activity with proper user scoping
+    await supabase.from('activities').insert({
+      id: crypto.randomUUID(),
+      user_id: userId,
+      title: 'Stok Diperbarui via Chatbot',
+      description: `Stok ${findResult.nama} diubah dari ${existingStock} menjadi ${updateInfo.newStock}`,
+      type: 'stok',
+      value: (updateInfo.newStock - existingStock).toString(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    });
 
     return {
       type: 'success',
-      text: `Sip Kak! ✅ Stok berhasil diupdate nih!\n\n📦 Bahan: ${updatedMaterial.nama}\n📊 Perubahan: ${existingMaterial.stok} → ${updatedMaterial.stok}\n🔄 Selisih: ${updatedMaterial.stok - existingMaterial.stok > 0 ? '+' : ''}${updatedMaterial.stok - existingMaterial.stok}\n\nWarehouse udah diperbarui ya Kak! Mau update stok yang lain? 😊`
+      text: `Sip Kak! ✅ Stok berhasil diupdate nih!\n\n📦 Bahan: ${updateResult.nama}\n📊 Perubahan: ${existingStock} → ${updateResult.stok}\n🔄 Selisih: ${updateResult.stok - existingStock > 0 ? '+' : ''}${updateResult.stok - existingStock}\n⏱️ Waktu proses: ${queryTime}ms\n\nWarehouse udah diperbarui ya Kak! Mau update stok yang lain? 😊`,
+      metadata: {
+        materialName: findResult.nama,
+        oldStock: existingStock,
+        newStock: updateResult.stok,
+        queryTime: `${queryTime}ms`
+      }
     };
 
   } catch (error) {

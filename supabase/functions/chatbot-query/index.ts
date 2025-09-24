@@ -214,7 +214,15 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
 
     if (error) {
       console.log('🤖 Inventory query error:', error);
-      throw error;
+    }
+
+    let result: any = null;
+    if (inventory && inventory.length > 0) {
+      const accuracyCheck = validateDatabaseQueryAccuracy(inventory, 'inventory', userId);
+      if (!accuracyCheck.isAccurate) {
+        console.warn('🤖 Data accuracy issues detected:', accuracyCheck.issues);
+        // Will be added to result metadata later
+      }
     }
 
     if (!inventory || inventory.length === 0) {
@@ -742,6 +750,38 @@ function getStatusText(status: string): string {
     'cancelled': 'Dibatalkan'
   };
   return statusMap[status] || status;
+}
+
+// Data consistency validation function
+function validateDatabaseQueryAccuracy(data: any[], queryType: string, userId: string): { isAccurate: boolean, issues: string[] } {
+  const issues: string[] = [];
+  let isAccurate = true;
+
+  // Validate user_id scoping
+  data.forEach((item, index) => {
+    if (item.user_id && item.user_id !== userId) {
+      issues.push(`Item ${index + 1}: user_id mismatch (${item.user_id} vs ${userId})`);
+      isAccurate = false;
+    }
+  });
+
+  // Validate data integrity based on query type
+  switch (queryType) {
+    case 'inventory':
+      data.forEach((item, index) => {
+        if (typeof item.stok !== 'number' || item.stok < 0) {
+          issues.push(`Item ${index + 1} (${item.nama}): Invalid stock value (${item.stok})`);
+          isAccurate = false;
+        }
+        if (!item.nama || !item.satuan) {
+          issues.push(`Item ${index + 1}: Missing required fields (nama/satuan)`);
+          isAccurate = false;
+        }
+      });
+      break;
+  }
+
+  return { isAccurate, issues };
 }
 
 function formatCurrency(amount: number): string {

@@ -100,13 +100,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
       setMessages(prev => {
         // Remove loading message and add response in one update
         const filteredMessages = prev.filter(msg => msg.id !== loadingId);
-        const newMessage: ChatMessage = {
-          id: Date.now().toString(),
-          content: response.text,
-          sender: 'bot',
-          timestamp: new Date()
-        };
-        return [...filteredMessages, newMessage];
+        
+        // Only add response if it exists and is valid
+        if (response && response.text) {
+          const newMessage: ChatMessage = {
+            id: Date.now().toString(),
+            content: response.text,
+            sender: 'bot',
+            timestamp: new Date()
+          };
+          return [...filteredMessages, newMessage];
+        }
+        
+        // If no valid response, just return filtered messages (user message stays)
+        return filteredMessages;
       });
 
     } catch (error) {
@@ -124,8 +131,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
       });
     } finally {
       setIsLoading(false);
-      // Ensure loading message is removed even if response is empty
-      setMessages(prev => prev.filter(msg => msg.id !== loadingId));
+      // Remove any remaining loading messages as final cleanup
+      setMessages(prev => prev.filter(msg => !msg.isLoading));
     }
   };
 

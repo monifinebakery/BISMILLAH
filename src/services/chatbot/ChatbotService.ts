@@ -87,17 +87,19 @@ export class ChatbotService {
       const intent = this.detectIntent(normalizedMessage);
 
       // Check if this intent requires database query
-      const dataIntents = ['orderSearch', 'inventory', 'report', 'cost'];
-      if (dataIntents.includes(intent) && userId) {
-        console.log('🤖 Attempting database query for intent:', intent, 'userId:', userId);
+      const readIntents = ['orderSearch', 'inventory', 'report', 'cost'];
+      const actionIntents = ['purchase', 'orderCreate', 'orderDelete', 'inventoryUpdate', 'recipeCreate', 'promoCreate'];
+      
+      if (readIntents.includes(intent) && userId) {
+        // Handle read operations
+        console.log('🤖 Attempting database read for intent:', intent, 'userId:', userId);
         try {
           const dbResponse = await this.queryDatabase(intent, message, userId);
           console.log('🤖 Database response:', dbResponse);
           if (dbResponse && dbResponse.type !== 'error') {
-            // Add to history
             this.history.push({ role: 'user', content: message });
             this.history.push({ role: 'assistant', content: dbResponse.text });
-            this.savePersistedData(); // Save after successful response
+            this.savePersistedData();
             console.log('🤖 Returning database response');
             return dbResponse;
           } else {
@@ -106,8 +108,34 @@ export class ChatbotService {
         } catch (error) {
           console.warn('Database query failed, falling back to AI:', error);
         }
-      } else {
-        console.log('🤖 Skipping database query - intent:', intent, 'userId:', userId);
+      } else if (actionIntents.includes(intent) && userId) {
+        // Handle action operations
+        console.log('🤖 Attempting database action for intent:', intent, 'userId:', userId);
+        try {
+          const actionResponse = await this.performDatabaseAction(intent, message, userId);
+          console.log('🤖 Action response:', actionResponse);
+          if (actionResponse && actionResponse.type !== 'error') {
+            this.history.push({ role: 'user', content: message });
+            this.history.push({ role: 'assistant', content: actionResponse.text });
+            this.savePersistedData();
+            console.log('🤖 Action completed successfully');
+            return actionResponse;
+          } else {
+            console.log('🤖 Action failed or returned error');
+          }
+        } catch (error) {
+          console.warn('Database action failed:', error);
+          // Return specific error message
+          const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan sistem';
+          const errorResponse = { 
+            text: `❌ Gagal melakukan aksi: ${errorMessage}`, 
+            type: 'error' 
+          };
+          this.history.push({ role: 'user', content: message });
+          this.history.push({ role: 'assistant', content: errorResponse.text });
+          this.savePersistedData();
+          return errorResponse;
+        }
       }
 
       // Track analytics
@@ -166,6 +194,12 @@ export class ChatbotService {
       greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
       orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan'],
       inventory: ['stok', 'inventory', 'stock', 'update stok', 'cek stok', 'inventory'],
+      purchase: ['tambah pembelian', 'beli bahan', 'purchase', 'add purchase', 'buat pembelian'],
+      orderCreate: ['tambah pesanan', 'buat pesanan', 'create order', 'add order'],
+      orderDelete: ['hapus pesanan', 'delete order', 'remove order', 'cancel order'],
+      inventoryUpdate: ['update stok', 'ubah stok', 'change stock', 'modify inventory'],
+      recipeCreate: ['tambah resep', 'buat resep', 'add recipe', 'create recipe'],
+      promoCreate: ['tambah promo', 'buat promo', 'add promo', 'create promo'],
       report: ['laporan', 'report', 'sales', 'penjualan', 'keuangan', 'profit'],
       emergency: ['darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown'],
       cost: ['biaya', 'cost', 'operational', 'tambah biaya', 'add cost'],
@@ -296,6 +330,42 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
       console.warn('🚨 High emergency count detected. Review safety protocols.');
     }
   }
+
+  private async performDatabaseAction(intent: string, message: string, userId: string): Promise<any> {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration missing');
+      }
+
+      // Use Supabase client to make authenticated request to Edge Function
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey);
+
+      // Call the Edge Function for actions
+      const { data, error } = await supabase.functions.invoke('chatbot-action', {
+        body: {
+          intent,
+          message,
+          context: {
+            currentPage: this.detectCurrentPage(),
+            businessName: this.businessName
+          }
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+
+    } catch (error) {
+      console.error('Database action error:', error);
+      throw error;
+    }
 }
 
 // Singleton instances per user

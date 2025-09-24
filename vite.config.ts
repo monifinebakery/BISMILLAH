@@ -15,6 +15,18 @@ export default defineConfig(({ mode }) => {
   const isNetlifyNonProd =
     process.env.NETLIFY === "true" && process.env.CONTEXT !== "production";
 
+  // Determine base path for different environments
+  const getBasePath = () => {
+    // For preview deployments on custom domain
+    if (process.env.VITE_PREVIEW_DEPLOY === "true" || env.VITE_PREVIEW_DEPLOY === "true") {
+      return "/"; // Root path for preview.monifine.my.id
+    }
+    // Default to root for all environments
+    return "/";
+  };
+
+  const basePath = getBasePath();
+
   // ✅ Keep logs jika user force ATAU build Netlify non-prod
   const keepLogs = env.VITE_FORCE_LOGS === "true" || isNetlifyNonProd;
 
@@ -40,6 +52,7 @@ export default defineConfig(({ mode }) => {
   });
 
   return {
+    base: basePath,
     plugins: [
       react(),
       // ✅ strip console HANYA saat build production && tidak keepLogs

@@ -179,8 +179,8 @@ Silakan ketik pertanyaan Anda!`;
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 md:bottom-4 md:right-4">
-      <Card className="w-[calc(100vw-3rem)] max-w-[450px] h-[calc(100vh-8rem)] max-h-[700px] shadow-xl border-2 border-orange-200 md:w-[450px] md:h-[700px]">
+    <div className="fixed inset-x-4 bottom-[96px] z-50 sm:bottom-24 sm:right-6 sm:left-auto md:bottom-4 md:right-4">
+      <Card className="flex flex-col w-full max-w-[420px] max-h-[85vh] shadow-xl border-2 border-orange-200 rounded-2xl md:w-[420px] md:max-h-[640px]">
         {/* Header */}
         <CardHeader className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
@@ -215,8 +215,8 @@ Silakan ketik pertanyaan Anda!`;
         </CardHeader>
 
         {/* Messages */}
-        <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-[calc(100vh-16rem)] md:h-96 p-4">
+        <CardContent className="flex-1 overflow-hidden p-0">
+          <ScrollArea className="h-full px-4 py-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div

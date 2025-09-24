@@ -38,6 +38,17 @@ export const useIngredientSelection = ({
       rawItem: frontendItem,
     });
 
+    // ⚠️ DEBUG: Check if warehouse item has price
+    if (!frontendItem.harga || frontendItem.harga === 0) {
+      logger.warn('⚠️ Warehouse item has no price!', {
+        id: frontendItem.id,
+        nama: frontendItem.nama,
+        harga: frontendItem.harga,
+        message: 'Price might not be synced from purchases'
+      });
+      toast.warning(`Bahan "${frontendItem.nama}" belum memiliki harga. Silakan set harga manual atau buat purchase terlebih dahulu.`);
+    }
+
     const conversionResult = conversion.applyConversion(frontendItem);
 
     logger.debug('useIngredientSelection: Unit conversion applied:', {

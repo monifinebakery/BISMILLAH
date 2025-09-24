@@ -165,13 +165,20 @@ export const useIngredientFormManager = ({
 
     // Recalculate total if quantity or unit price changes
     if (field === 'jumlah' || field === 'harga_satuan') {
-      newIngredients[index].total_harga = newIngredients[index].jumlah * newIngredients[index].harga_satuan;
+      const jumlah = newIngredients[index].jumlah;
+      const harga_satuan = newIngredients[index].harga_satuan;
+      const total_harga = jumlah * harga_satuan;
       
-      logger.debug('useIngredientFormManager: Updated ingredient with recalculation:', {
+      newIngredients[index].total_harga = total_harga;
+      
+      logger.debug('🧮 useIngredientFormManager: Recalculating ingredient total:', {
         index,
         field,
         value,
-        newTotal: newIngredients[index].total_harga,
+        jumlah,
+        harga_satuan,
+        total_harga,
+        calculation: `${jumlah} × ${harga_satuan} = ${total_harga}`,
         ingredient: newIngredients[index].nama
       });
     }

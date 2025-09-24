@@ -6,14 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import {
-  Send,
-  Bot,
-  User,
-  RefreshCw,
-  MessageSquare
-} from 'lucide-react';
+import { Bot, User, MessageCircle, X, RefreshCw, Send, MessageSquare } from 'lucide-react';
 import { getChatbotService } from '@/services/chatbot/ChatbotService';
+import { useUserSettings } from '@/contexts/UserSettingsContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ChatMessage {
   id: string;
@@ -32,9 +28,22 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const chatbotService = getChatbotService();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  
+  // Get user data for personalization
+  const { settings } = useUserSettings();
+  const { user } = useAuth();
+  
+  // Get chatbot service for current user
+  const chatbotService = getChatbotService(user?.id);
+
+  // Set business name for personalization
+  useEffect(() => {
+    if (settings.businessName && chatbotService) {
+      chatbotService.setBusinessName(settings.businessName);
+    }
+  }, [settings.businessName, chatbotService, user?.id]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -113,7 +122,16 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   };
 
   const addWelcomeMessage = () => {
-    const welcomeMessage = '👋 Halo! Saya adalah asisten AI untuk BISMILLAH Bakery.\n\nSaya bisa membantu Anda dengan:\n• Mencari dan mengelola pesanan\n• Update stok bahan baku\n• Generate laporan penjualan\n• Tambah biaya operasional\n\nSilakan ketik pertanyaan Anda!';
+    const businessName = settings.businessName || 'Bisnis Anda';
+    const welcomeMessage = `👋 Halo! Saya adalah asisten AI untuk ${businessName}.
+
+Saya bisa membantu Anda dengan:
+• Mencari dan mengelola pesanan
+• Update stok bahan baku
+• Generate laporan penjualan
+• Tambah biaya operasional
+
+Silakan ketik pertanyaan Anda!`;
     addMessage(welcomeMessage, 'bot');
   };
 
@@ -127,14 +145,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      <Card className="w-[450px] h-[700px] shadow-xl border-2 border-orange-200">
+    <div className="fixed bottom-24 right-6 z-50 md:bottom-4 md:right-4">
+      <Card className="w-[calc(100vw-3rem)] max-w-[450px] h-[calc(100vh-8rem)] max-h-[700px] shadow-xl border-2 border-orange-200 md:w-[450px] md:h-[700px]">
         {/* Header */}
         <CardHeader className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              <CardTitle className="text-lg">BISMILLAH Assistant</CardTitle>
+              <CardTitle className="text-lg">{settings.businessName || 'Bisnis Anda'} Assistant</CardTitle>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -164,7 +182,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
         {/* Messages */}
         <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-96 p-4">
+          <ScrollArea className="h-[calc(100vh-16rem)] md:h-96 p-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div

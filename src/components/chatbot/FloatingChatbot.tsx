@@ -16,7 +16,7 @@ export const FloatingChatbot: React.FC = () => {
   return (
     <>
       {/* Floating Action Button */}
-      <div className="fixed bottom-6 right-6 z-40">
+      <div className="fixed bottom-20 right-6 z-40 md:bottom-6">
         <Button
           onClick={toggleChat}
           size="lg"

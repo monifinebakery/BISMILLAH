@@ -18,7 +18,7 @@ export const useIngredientCalculation = ({
   // Calculate total ingredient cost
   const totalIngredientCost = useMemo(() => {
     const total = ingredients.reduce((sum, ingredient) => {
-      const cost = ingredient.totalHarga || 0;
+      const cost = ingredient.total_harga || 0;
       logger.debug('useIngredientCalculation: Adding ingredient cost:', {
         ingredient: ingredient.nama,
         cost,
@@ -98,13 +98,13 @@ export const useIngredientCalculation = ({
     };
 
     // Recalculate total if quantity or unit price changes
-    if (field === 'jumlah' || field === 'hargaSatuan') {
-      updated.totalHarga = calculateIngredientTotal(updated.jumlah, updated.hargaSatuan);
+    if (field === 'jumlah' || field === 'harga_satuan') {
+      updated.total_harga = calculateIngredientTotal(updated.jumlah, updated.harga_satuan);
       
       logger.debug('useIngredientCalculation: Ingredient updated with recalculation:', {
         field,
         value,
-        newTotal: updated.totalHarga,
+        newTotal: updated.total_harga,
         ingredient: updated.nama
       });
     }
@@ -130,7 +130,7 @@ export const useIngredientCalculation = ({
       errors.push('Jumlah harus lebih dari 0');
     }
 
-    if (!ingredient.hargaSatuan || ingredient.hargaSatuan <= 0) {
+    if (!ingredient.harga_satuan || ingredient.harga_satuan <= 0) {
       errors.push('Harga satuan harus lebih dari 0');
     }
 

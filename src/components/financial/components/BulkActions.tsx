@@ -34,6 +34,7 @@ import { toast } from 'sonner';
 
 import { useTransactionBulk, type FinancialTransaction, type BulkEditData } from '../hooks/useTransactionBulk';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface BulkActionsProps {
   selectedTransactions: FinancialTransaction[];
@@ -45,17 +46,18 @@ interface BulkActionsProps {
 }
 
 const BulkActions: React.FC<BulkActionsProps> = ({
-  const { formatCurrency } = useCurrency();  selectedTransactions,
+  selectedTransactions,
   selectedIds,
   onClearSelection,
   onSelectAll,
   isAllSelected,
   totalCount,
 }) => {
+  const { formatCurrency } = useCurrency();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editData, setEditData] = useState<BulkEditData>({
-  const { formatCurrency } = useCurrency();    type: undefined,
+    type: undefined,
     category: undefined,
     description: undefined,
   });
@@ -72,7 +74,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   } = useTransactionBulk();
 
   const handleBulkDelete = async () => {
-  const { formatCurrency } = useCurrency();    try {
+    try {
       await bulkDelete(selectedIds);
       setShowDeleteDialog(false);
       onClearSelection();
@@ -82,7 +84,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   };
 
   const handleBulkEdit = async () => {
-  const { formatCurrency } = useCurrency();    // Validate that at least one field is being edited
+    // Validate that at least one field is being edited
     const hasChanges = editData.type || editData.category || editData.description;
     if (!hasChanges) {
       toast.error('Pilih minimal satu field untuk diedit');
@@ -100,13 +102,13 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   };
 
   const handleCloseDialogs = () => {
-  const { formatCurrency } = useCurrency();    setShowDeleteDialog(false);
+    setShowDeleteDialog(false);
     setShowEditDialog(false);
     resetProgress();
   };
 
   const totalAmount = selectedTransactions.reduce((sum, transaction) => {
-  const { formatCurrency } = useCurrency();    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
+    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
   }, 0);
 
   const incomeCount = selectedTransactions.filter(t => t.type === 'income').length;

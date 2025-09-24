@@ -11,7 +11,7 @@ import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useSimpleNotification } from './SimpleNotificationContext';
-import { useCurrency } from './CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { supabase } from '@/integrations/supabase/client';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
@@ -201,7 +201,7 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addNotification } = useSimpleNotification();
-  const { currentCurrency, formatCurrency, formatCurrencyCompact } = useCurrency();
+  const { currentCurrency, formatCurrency, formatCurrencyCompact } = useSafeCurrency();
   const queryClient = useQueryClient();
 
   logger.debug('🔍 AssetProvider rendered', {

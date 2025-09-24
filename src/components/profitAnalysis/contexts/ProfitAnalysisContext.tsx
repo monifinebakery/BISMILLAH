@@ -82,7 +82,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
 }) => {
   const [state, dispatch] = useReducer(profitAnalysisReducer, initialState);
   const { user } = useAuth();
-  const { currentCurrency, formatCurrency, formatCurrencyCompact } = useCurrency();
+  const { currentCurrency, formatCurrency, formatCurrencyCompact } = useSafeCurrency();
   const queryClient = useQueryClient();
 
   // Query untuk analisis bulan ini

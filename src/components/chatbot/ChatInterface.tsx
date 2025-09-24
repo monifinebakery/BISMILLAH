@@ -36,12 +36,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   // Get chatbot service for current user
   const chatbotService = getChatbotService(user?.id);
 
-  // Set business name for personalization
+  // Set business name and owner name for personalization
   useEffect(() => {
     if (settings.businessName && chatbotService) {
       chatbotService.setBusinessName(settings.businessName);
     }
-  }, [settings.businessName, chatbotService, user?.id]);
+    if (settings.ownerName && chatbotService) {
+      chatbotService.setOwnerName(settings.ownerName);
+    }
+  }, [settings.businessName, settings.ownerName, chatbotService, user?.id]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -140,16 +143,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
   const addWelcomeMessage = () => {
     const businessName = settings.businessName || 'Bisnis Anda';
+    const ownerName = settings.ownerName || 'Kakak';
     const isAuthenticated = !!user;
 
-    const welcomeMessage = `👋 Halo! Saya adalah asisten AI untuk ${businessName}.
+    const welcomeMessage = `👋 Halo ${ownerName}! Saya adalah asisten AI untuk ${businessName}. 
 
 ${isAuthenticated ? 
-  'Saya bisa membantu Anda dengan:\n• Mencari dan mengelola pesanan\n• Mengecek stok di warehouse\n• Membuat pembelian bahan baku\n• Menambah/menghapus pesanan\n• Update stok bahan baku\n• Membuat resep dan promo baru\n• Generate laporan penjualan\n• Tambah biaya operasional' :
-  'Untuk fitur lengkap seperti mengakses data pesanan, warehouse, dan melakukan aksi, silakan login terlebih dahulu.\n\nSaya masih bisa membantu dengan:\n• Pertanyaan umum tentang bakery\n• Tips manajemen bisnis\n• Panduan penggunaan aplikasi'
+  `Saya bisa membantu ${ownerName} dengan:\n• Mencari dan mengelola pesanan\n• Mengecek stok di warehouse\n• Membuat pembelian bahan baku\n• Menambah/menghapus pesanan\n• Update stok bahan baku\n• Membuat resep dan promo baru\n• Generate laporan penjualan\n• Tambah biaya operasional` :
+  `Untuk fitur lengkap seperti mengakses data pesanan, warehouse, dan melakukan aksi, silakan login terlebih dahulu.\n\nSaya masih bisa membantu dengan:\n• Pertanyaan umum tentang bakery\n• Tips manajemen bisnis\n• Panduan penggunaan aplikasi`
 }
 
-Silakan ketik pertanyaan Anda!`;
+Silakan ketik pertanyaan ${ownerName}!`;
+
     addMessage(welcomeMessage, 'bot');
   };
 

@@ -5,9 +5,11 @@ export class ChatbotService {
   private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string, timestamp: number, importance: number}> = [];
   private businessName: string = 'Bisnis Anda';
+  private ownerName: string = 'Kak'; // Default owner name
   private readonly userId?: string;
   private readonly historyStorageKey: string;
   private readonly businessNameStorageKey: string;
+  private readonly ownerNameStorageKey: string;
 
   // Enhanced memory management
   private memoryConfig = {
@@ -41,6 +43,7 @@ export class ChatbotService {
     const storageSuffix = userId ? `_${userId}` : '_anonymous';
     this.historyStorageKey = `chatbot_history${storageSuffix}`;
     this.businessNameStorageKey = `chatbot_business_name${storageSuffix}`;
+    this.ownerNameStorageKey = `chatbot_owner_name${storageSuffix}`;
     this.openRouter = new OpenRouterService();
     this.loadPersistedData();
   }
@@ -100,15 +103,23 @@ export class ChatbotService {
         this.businessName = savedBusinessName;
       }
 
+      // Load owner name
+      const savedOwnerName = localStorage.getItem(this.ownerNameStorageKey);
+      if (savedOwnerName) {
+        this.ownerName = savedOwnerName;
+      }
+
       console.log('🤖 Loaded persisted chat data:', { 
         messages: this.history.length, 
-        businessName: this.businessName 
+        businessName: this.businessName,
+        ownerName: this.ownerName
       });
     } catch (error) {
       console.warn('🤖 Failed to load persisted chat data:', error);
       // Reset to defaults if loading fails
       this.history = [];
       this.businessName = 'Bisnis Anda';
+      this.ownerName = 'Kak';
     }
   }
 
@@ -121,6 +132,9 @@ export class ChatbotService {
       
       // Save business name
       localStorage.setItem(this.businessNameStorageKey, this.businessName);
+
+      // Save owner name
+      localStorage.setItem(this.ownerNameStorageKey, this.ownerName);
       
       console.log('🤖 Saved chat data:', { messages: recentHistory.length });
     } catch (error) {
@@ -132,6 +146,13 @@ export class ChatbotService {
   setBusinessName(name: string) {
     this.businessName = name || 'Bisnis Anda';
     console.log('🤖 Chatbot business name set to:', this.businessName);
+    this.savePersistedData(); // Save after update
+  }
+
+  // Set owner name for personalization
+  setOwnerName(name: string) {
+    this.ownerName = name || 'Kak';
+    console.log('🤖 Chatbot owner name set to:', this.ownerName);
     this.savePersistedData(); // Save after update
   }
 
@@ -486,13 +507,14 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
   // Enhanced system prompt for natural conversation with action awareness
   private getEnhancedSystemPrompt(currentUserId?: string): string {
     const isLoggedIn = !!currentUserId;
-    const ownerName = this.businessName || 'Kak'; // Default to 'Kak' if no business name
+    const greeting = this.ownerName ? `Halo ${this.ownerName}! 👋` : 'Halo Kak! 👋';
+    const businessRef = this.businessName ? `bakery ${this.businessName}` : 'bakery Kakak';
 
-    return `Halo Kak! 👋 Saya adalah asisten AI untuk ${this.businessName || 'bakery Kakak'}. Saya di sini untuk bantu Kakak kelola bisnis bakery dengan cara yang simpel dan asik!
+    return `${greeting} Saya adalah asisten AI untuk ${businessRef}. Saya di sini untuk bantu ${this.ownerName || 'Kakak'} kelola bisnis bakery dengan cara yang simpel dan asik!
 
 CARA KERJA SAYA:
 ${isLoggedIn ? `
-✅ KALAU KAKAK SUDAH LOGIN, SAYA BISA:
+✅ KALAU ${this.ownerName || 'KAKAK'} SUDAH LOGIN, SAYA BISA:
 - Bikin pesanan baru: "Buat pesanan donat untuk Bu Ani 5000 rupiah"
 - Update stok bahan: "Tambah stok tepung jadi 50 kg"
 - Bikin resep baru: "Tambah resep kue coklat harganya 15rb"
@@ -500,44 +522,44 @@ ${isLoggedIn ? `
 - Cari data pesanan: "Tampilkan pesanan hari ini"
 - Laporan penjualan: "Laporan bulan ini dong"
 
-✅ SAYA AKAN LANGSUNG EKSEKUSI PERINTAH KAKAK:
+✅ SAYA AKAN LANGSUNG EKSEKUSI PERINTAH ${this.ownerName || 'KAKAK'}:
 - Bikin pesanan → langsung masuk database orders
 - Update stok → langsung update warehouse
 - Buat resep → langsung tambah ke katalog
 - Ga pernah cuma ngomong doang, tapi BENAR-BENAR ngeksekusi!
 
 ✅ KALAU ADA YANG SALAH, SAYA BAKAL BILANG JUJUR:
-- "Maaf Kak, informasi kurang lengkap nih. Coba sebut nama customer dan harganya ya"
-- "Waduh Kak, bahan 'tepung' ga ketemu di warehouse. Cek lagi nama bahannya ya"
+- "Maaf ${this.ownerName || 'Kak'}, informasi kurang lengkap nih. Coba sebut nama customer dan harganya ya"
+- "Waduh ${this.ownerName || 'Kak'}, bahan 'tepung' ga ketemu di warehouse. Cek lagi nama bahannya ya"
 ` : `
-❌ KALAU KAKAK BELUM LOGIN, SAYA CUMA BISA:
+❌ KALAU ${this.ownerName || 'KAKAK'} BELUM LOGIN, SAYA CUMA BISA:
 - Ngobrol santai tentang bakery
 - Kasih tips bisnis
 - Jelasin cara pake aplikasi
 
-Tapi untuk fitur keren kayak bikin pesanan, update stok, dll → Kakak harus login dulu ya! 😊
+Tapi untuk fitur keren kayak bikin pesanan, update stok, dll → ${this.ownerName || 'Kakak'} harus login dulu ya! 😊
 `}
 
 GAYA NGOBROL SAYA:
-- Selalu pakai "Kak" untuk panggil Kakak
+- Selalu pakai nama ${this.ownerName || 'Kakak'} untuk panggil ${this.ownerName || 'Kakak'}
 - Bahasa santai tapi tetap sopan, kayak temen deket
 - Pakai emoji yang relevan biar lebih asik
-- Kalau berhasil: "Sip Kak! Udah berhasil nih 🎉"
-- Kalau ada masalah: "Maaf Kak, ada yang salah nih 😅"
-- Selalu kasih penawaran bantuan: "Ada lagi yang bisa dibantu, Kak?"
+- Kalau berhasil: "Sip ${this.ownerName || 'Kak'}! Udah berhasil nih 🎉"
+- Kalau ada masalah: "Maaf ${this.ownerName || 'Kak'}, ada yang salah nih 😅"
+- Selalu kasih penawaran bantuan: "Ada lagi yang bisa dibantu, ${this.ownerName || 'Kak'}?"
 
 BISNIS KITA:
 - Produk: donat, roti, kue, cake, pastry - semua enak!
 - Fokus: kelola pesanan, stok bahan, resep, dan promosi
-- Target: bantu Kakak sukses kelola bakery dengan mudah
+- Target: bantu ${this.ownerName || 'Kakak'} sukses kelola bakery dengan mudah
 
 PRINSIP SAYA:
 1. Jujur dan transparan - ga pernah bohong
 2. Cepat dan akurat - langsung eksekusi perintah
-3. Ramah dan membantu - selalu siap bantu Kakak
-4. Aman dan reliable - data Kakak aman di tangan saya
+3. Ramah dan membantu - selalu siap bantu ${this.ownerName || 'Kakak'}
+4. Aman dan reliable - data ${this.ownerName || 'Kakak'} aman di tangan saya
 
-Kakak butuh bantuan apa hari ini? 😊`;
+${this.ownerName || 'Kakak'} butuh bantuan apa hari ini? 😊`;
   }
 
   private async performDatabaseAction(intent: string, message: string, userId: string): Promise<any> {

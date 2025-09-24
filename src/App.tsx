@@ -11,7 +11,7 @@ import { logger } from "@/utils/logger";
 import { CodeSplittingProvider } from "@/providers/CodeSplittingProvider";
 import { initializeRoutePreloaders, preloadCriticalRoutes } from "@/utils/route-preloader";
 // Unified: Update banner is handled in AppLayout via useUpdateNotification
-// import { OfflineIndicator } from '@/components/common/OfflineIndicator';
+import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";

@@ -1,83 +1,152 @@
-// src/components/common/OfflineIndicator.tsx
-import React, { useEffect, useState } from 'react';
-import { Wifi, WifiOff, AlertCircle } from 'lucide-react';
-import { usePWA } from '@/utils/pwaUtils';
-import { offlineQueue } from '@/utils/offlineQueue';
+import React, { useState, useEffect } from 'react';
+import { Wifi, WifiOff, AlertCircle, CheckCircle } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
-export const OfflineIndicator: React.FC = () => {
-  const { isOnline } = usePWA();
+interface OfflineIndicatorProps {
+  className?: string;
+}
+
+export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ className }) => {
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showIndicator, setShowIndicator] = useState(false);
-  const [pendingOperations, setPendingOperations] = useState(0);
+  const [connectionQuality, setConnectionQuality] = useState<'good' | 'slow' | 'offline'>('good');
 
-  // Update pending operations count
   useEffect(() => {
-    const updatePendingCount = () => {
-      const status = offlineQueue.getQueueStatus();
-      setPendingOperations(status.totalOperations);
+    const handleOnline = () => {
+      setIsOnline(true);
+      setConnectionQuality('good');
+      // Show "back online" message briefly
+      setShowIndicator(true);
+      setTimeout(() => setShowIndicator(false), 3000);
     };
 
-    updatePendingCount();
+    const handleOffline = () => {
+      setIsOnline(false);
+      setConnectionQuality('offline');
+      setShowIndicator(true);
+    };
 
-    // Update every 2 seconds when offline
-    const interval = setInterval(() => {
-      if (!isOnline) {
-        updatePendingCount();
+    // Listen for online/offline events
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check connection quality periodically
+    const checkConnection = async () => {
+      if (!navigator.onLine) {
+        setConnectionQuality('offline');
+        return;
       }
-    }, 2000);
 
-    return () => clearInterval(interval);
-  }, [isOnline]);
+      try {
+        const startTime = Date.now();
+        // Quick fetch to check connection speed
+        const response = await fetch('/favicon.ico', { 
+          method: 'HEAD',
+          cache: 'no-cache'
+        });
+        const endTime = Date.now();
+        const responseTime = endTime - startTime;
 
-  // Show indicator briefly when coming back online
-  useEffect(() => {
-    if (isOnline && !showIndicator) {
-      setShowIndicator(true);
-      const timer = setTimeout(() => setShowIndicator(false), 3000);
-      return () => clearTimeout(timer);
-    } else if (!isOnline) {
-      setShowIndicator(true);
-      // No cleanup needed for offline state
-      return () => {};
+        if (responseTime < 500) {
+          setConnectionQuality('good');
+        } else {
+          setConnectionQuality('slow');
+        }
+      } catch (error) {
+        setConnectionQuality('offline');
+      }
+    };
+
+    // Check connection every 30 seconds
+    const interval = setInterval(checkConnection, 30000);
+    checkConnection(); // Initial check
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+      clearInterval(interval);
+    };
+  }, []);
+
+  // Always show when offline, show briefly when coming back online
+  const shouldShow = !isOnline || (isOnline && showIndicator);
+
+  if (!shouldShow) return null;
+
+  const getStatusConfig = () => {
+    if (!isOnline) {
+      return {
+        icon: WifiOff,
+        text: 'Offline Mode',
+        subtext: 'Beberapa fitur mungkin terbatas',
+        bgColor: 'bg-red-500',
+        textColor: 'text-white',
+        borderColor: 'border-red-600'
+      };
     }
-    // Default return for other cases
-    return () => {};
-  }, [isOnline, showIndicator]);
 
-  if (!showIndicator) return null;
+    if (connectionQuality === 'slow') {
+      return {
+        icon: AlertCircle,
+        text: 'Koneksi Lambat',
+        subtext: 'Performa mungkin lebih lambat',
+        bgColor: 'bg-yellow-500',
+        textColor: 'text-black',
+        borderColor: 'border-yellow-600'
+      };
+    }
+
+    return {
+      icon: CheckCircle,
+      text: 'Kembali Online',
+      subtext: 'Semua fitur tersedia',
+      bgColor: 'bg-green-500',
+      textColor: 'text-white',
+      borderColor: 'border-green-600'
+    };
+  };
+
+  const config = getStatusConfig();
+  const Icon = config.icon;
 
   return (
-    <div className={`fixed bottom-4 right-4 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 z-50 ${
-      isOnline
-        ? 'bg-green-500 text-white border border-green-400'
-        : 'bg-red-500 text-white border border-red-400 animate-pulse'
-    }`}>
-      <div className="flex items-center gap-2">
-        {isOnline ? (
-          <>
-            <Wifi className="w-4 h-4" />
-            <span className="text-sm font-medium">Online</span>
-            {pendingOperations > 0 && (
-              <span className="text-xs bg-green-600 px-2 py-1 rounded animate-pulse">
-                {pendingOperations} sync pending
-              </span>
-            )}
-          </>
-        ) : (
-          <>
-            <WifiOff className="w-4 h-4" />
-            <div className="flex flex-col">
-              <span className="text-sm font-medium">Offline Mode</span>
-              <span className="text-xs opacity-90">
-                Perubahan tersimpan lokal
-              </span>
-            </div>
-            {pendingOperations > 0 && (
-              <div className="flex items-center gap-1 text-xs bg-red-600 px-2 py-1 rounded">
-                <AlertCircle className="w-3 h-3" />
-                {pendingOperations} queued
-              </div>
-            )}
-          </>
+    <div className={cn(
+      'fixed bottom-4 left-4 z-50 animate-in slide-in-from-bottom-2 duration-300',
+      className
+    )}>
+      <div className={cn(
+        'flex items-center gap-3 px-4 py-3 rounded-lg shadow-lg border',
+        'backdrop-blur-sm bg-opacity-95',
+        config.bgColor,
+        config.textColor,
+        config.borderColor
+      )}>
+        <Icon className="h-5 w-5 flex-shrink-0" />
+        <div className="flex flex-col">
+          <span className="text-sm font-semibold leading-tight">
+            {config.text}
+          </span>
+          <span className="text-xs opacity-90 leading-tight">
+            {config.subtext}
+          </span>
+        </div>
+        
+        {/* Connection quality indicator for online state */}
+        {isOnline && connectionQuality !== 'offline' && (
+          <div className="flex items-center gap-1 ml-2">
+            <div className={cn(
+              'w-2 h-2 rounded-full',
+              connectionQuality === 'good' ? 'bg-green-300' : 'bg-yellow-300'
+            )} />
+            <div className={cn(
+              'w-2 h-2 rounded-full',
+              connectionQuality === 'good' ? 'bg-green-300' : 'bg-gray-400'
+            )} />
+            <div className={cn(
+              'w-2 h-2 rounded-full',
+              connectionQuality === 'good' ? 'bg-green-300' : 'bg-gray-400'
+            )} />
+          </div>
         )}
       </div>
     </div>

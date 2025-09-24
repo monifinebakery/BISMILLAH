@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertTriangle, Bell, Settings, TrendingUp, DollarSign, Calendar, CheckCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ==============================================
 // TYPES
@@ -41,6 +42,7 @@ interface ExpenseAlertsProps {
 // ==============================================
 
 const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }) => {
+  const { formatCurrency } = useCurrency();
   // State untuk budget limits (dalam praktik nyata, ini harus dari database)
   const [budgets, setBudgets] = useState<ExpenseBudget[]>(() => {
     const saved = localStorage.getItem('umkm-expense-budgets');

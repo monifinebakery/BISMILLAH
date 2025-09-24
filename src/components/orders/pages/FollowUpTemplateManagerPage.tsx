@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Edit, Send, Eye, X, Copy, Info, ArrowLeft, Save, RotateCcw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +25,7 @@ import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../constants';
 import { useOrder } from '../context/OrderContext';
 import { useCurrency } from '@/contexts/CurrencyContext';
+import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../types';
 
 interface Template {
@@ -103,7 +104,7 @@ const FollowUpTemplateManagerPage: React.FC = () => {
 
   // Generate preview message
   const generatePreview = (template: Template) => {
-  const { formatCurrency } = useCurrency();    if (!template) return '';
+    if (!template) return '';
     return processTemplate(template.message, sampleOrder);
   };
 
@@ -115,13 +116,13 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   }, [selectedTemplate]);
 
   const handleEditTemplate = (template: Template) => {
-  const { formatCurrency } = useCurrency();    setEditingTemplate(template);
+    setEditingTemplate(template);
     setIsEditing(true);
     setTemplateForm({ message: template.message });
   };
 
   const handleSaveTemplate = async () => {
-  const { formatCurrency } = useCurrency();    if (!editingTemplate) return;
+    if (!editingTemplate) return;
     if (!templateForm.message.trim()) {
       toast.error('Pesan template harus diisi');
       return;
@@ -151,23 +152,23 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
-  const { formatCurrency } = useCurrency();    setIsEditing(false);
+    setIsEditing(false);
     setEditingTemplate(null);
     setTemplateForm({ message: '' });
   };
 
   const handleCopyMessage = () => {
-  const { formatCurrency } = useCurrency();    navigator.clipboard.writeText(previewMessage);
+    navigator.clipboard.writeText(previewMessage);
     toast.success('Pesan berhasil disalin ke clipboard');
   };
 
   const handleCopyVariable = (variable: string) => {
-  const { formatCurrency } = useCurrency();    navigator.clipboard.writeText(variable);
+    navigator.clipboard.writeText(variable);
     toast.success(`Variabel ${variable} berhasil disalin ke clipboard`);
   };
 
   const handleResetTemplate = async () => {
-  const { formatCurrency } = useCurrency();    if (!selectedTemplate) return;
+    if (!selectedTemplate) return;
     
     const defaultTemplates: Record<string, string> = {
       pending: 'Halo {{customerName}}, terima kasih sudah memesan di toko kami!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami konfirmasi. Kami akan menghubungi Anda kembali segera.',

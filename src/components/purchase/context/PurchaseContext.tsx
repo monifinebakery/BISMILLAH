@@ -142,6 +142,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const addBahanBaku = warehouseContext?.addBahanBaku || (async (_: any) => {
     return false;
   });
+  const updateBahanBaku = warehouseContext?.updateBahanBaku || (async (_: any, __: any) => {
+    return false;
+  });
   const getSupplierName = useCallback((supplierValue: string): string => {
     try {
       if (!supplierValue || typeof supplierValue !== 'string') {
@@ -251,7 +254,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const createMutation = useMutation({
     mutationFn: async (payload: any) => {
       console.log('🔄 Creating purchase:', payload);
-      const result = await addPurchase(payload);
+      const result = await apiCreatePurchase(payload, user!.id);
       console.log('✅ Purchase created:', result);
       return result;
     },
@@ -273,16 +276,19 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       setCacheList((old) => [temp, ...old]);
       return { prev, tempId: temp.id };
     },
-    onSuccess: async (newRow, _payload, ctx) => {
+    onSuccess: async (newRow: Purchase, _payload, ctx) => {
       console.log('✅ Create mutation success:', newRow.id);
       // swap temp with real
       setCacheList((old) => [newRow, ...old.filter((p) => p.id !== ctx?.tempId)]);
 
       // Tambahkan otomatis bahan baku baru jika belum ada di gudang
+      // Dan update harga untuk bahan baku yang sudah ada
       try {
         for (const item of newRow.items || []) {
-          const exists = (bahanBaku as any[])?.some((bb: any) => bb.id === item.bahanBakuId);
-          if (!exists) {
+          const existingBahan = (bahanBaku as any[])?.find((bb: any) => bb.id === item.bahanBakuId);
+          
+          if (!existingBahan) {
+            // Tambah bahan baku baru
             await addBahanBaku({
               id: item.bahanBakuId,
               nama: item.nama,
@@ -294,10 +300,16 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
               harga: item.unitPrice || 0,
               supplier: newRow.supplier,
             });
+          } else if (item.unitPrice && item.unitPrice > 0) {
+            // Update harga bahan baku yang sudah ada
+            await updateBahanBaku(item.bahanBakuId, {
+              harga: item.unitPrice,
+              supplier: newRow.supplier,
+            });
           }
         }
       } catch (e) {
-        logger.error('Gagal menambahkan bahan baku baru dari pembelian', e);
+        logger.error('Gagal menambahkan/update bahan baku dari pembelian', e);
       }
 
       // ✅ INVALIDATE WAREHOUSE
@@ -513,15 +525,21 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       const items = await ensureBahanBakuIds(purchase.items || [], purchase.supplier);
       logger.debug('addPurchase: Bahan baku IDs ensured', { itemCount: items.length });
 
-      logger.debug('addPurchase: Calling createMutation');
-      await createMutation.mutateAsync({ ...purchase, items });
-      logger.debug('addPurchase: Purchase created successfully');
+      logger.debug('addPurchase: Creating purchase directly via API');
+      const result = await apiCreatePurchase({ ...purchase, items }, user.id);
+      logger.debug('addPurchase: Purchase created successfully', { id: result.id });
+      
+      // Invalidate queries to refresh data
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.list(user.id) });
+      queryClient.invalidateQueries({ queryKey: purchaseQueryKeys.stats(user.id) });
+      
       return true;
     } catch (e) {
       logger.error('addPurchase: Purchase creation failed', e);
+      toast.error('Gagal membuat pembelian');
       return false;
     }
-  }, [user, createMutation, ensureBahanBakuIds]);
+  }, [user, queryClient, ensureBahanBakuIds]);
 
   // Edit diperbolehkan walau completed — manual sync akan rekalkulasi stok jika perlu
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {

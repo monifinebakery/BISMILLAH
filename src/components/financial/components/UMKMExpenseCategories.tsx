@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingCart, Zap, Users, Truck, Megaphone, Home, Calculator, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ==============================================
 // TYPES
@@ -145,15 +146,6 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
     // Sort by amount (descending)
     return categories.sort((a, b) => b.amount - a.amount);
   }, [transactions]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const totalExpense = categoryAnalysis.reduce((sum, cat) => sum + cat.amount, 0);
 

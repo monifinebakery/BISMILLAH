@@ -1,5 +1,6 @@
 /**
  * Memformat angka menjadi mata uang Rupiah (misal: 15000 -> "Rp 15.000").
+ * @deprecated Gunakan useCurrency hook dari CurrencyContext untuk formatting yang responsive terhadap pilihan mata uang user.
  * @param value Angka yang akan diformat.
  * @returns String dalam format mata uang Rupiah.
  */

@@ -5,7 +5,7 @@ import type { Purchase } from '../types/purchase.types';
 import { purchaseQueryKeys } from '../query/purchase.queryKeys';
 
 interface AddTxnFn {
-  (payload: { type: 'expense' | 'income'; amount: number; description: string; category: string; date: Date; relatedId: string }): void;
+  (payload: { type: 'expense' | 'income'; amount: number; description: string; category: string; date: Date; relatedId?: string }): Promise<any>;
 }
 interface DeleteTxnFn {
   (id: string): Promise<boolean> | boolean;
@@ -19,13 +19,22 @@ export async function onCompletedFinancialSync(
   userId?: string
 ) {
   try {
-    addFinancialTransaction({
+    const purchaseDate = purchase.tanggal ? new Date(purchase.tanggal) : new Date();
+    
+    await addFinancialTransaction({
       type: 'expense',
       amount: (((purchase as any).totalNilai ?? (purchase as any).total_nilai) as number),
       description: `Pembelian dari ${getSupplierName(purchase.supplier)}`,
       category: 'Pembelian Bahan Baku',
-      date: new Date(),
+      date: purchaseDate, // Use purchase date instead of current date
       relatedId: purchase.id,
+    });
+    
+    logger.info('✅ Financial transaction created for purchase:', {
+      purchaseId: purchase.id,
+      amount: (((purchase as any).totalNilai ?? (purchase as any).total_nilai) as number),
+      date: purchaseDate,
+      supplier: getSupplierName(purchase.supplier)
     });
 
     queryClient.invalidateQueries({ queryKey: ['financial'] });

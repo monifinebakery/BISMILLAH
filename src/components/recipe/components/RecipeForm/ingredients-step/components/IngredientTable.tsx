@@ -168,10 +168,22 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
                         <Input
                           type="number"
                           min="0"
-                          value={ingredient.harga_satuan}
-                          onChange={(e) => onUpdateIngredient(index, 'harga_satuan', parseFloat(e.target.value) || 0)}
+                          step="0.01"
+                          value={ingredient.harga_satuan || 0}
+                          onChange={(e) => {
+                            const newValue = parseFloat(e.target.value) || 0;
+                            console.log('💰 Updating ingredient price:', {
+                              index,
+                              ingredient: ingredient.nama,
+                              oldPrice: ingredient.harga_satuan,
+                              newPrice: newValue,
+                              inputValue: e.target.value
+                            });
+                            onUpdateIngredient(index, 'harga_satuan', newValue);
+                          }}
                           className="border-none focus:border-orange-300 bg-transparent text-right pl-6"
                           disabled={isLoading}
+                          placeholder="0"
                         />
                       </div>
                     </TableCell>

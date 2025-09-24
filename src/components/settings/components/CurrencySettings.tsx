@@ -5,7 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { useCurrency, type Currency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
+import { type Currency } from '@/contexts/CurrencyContext';
 import { Check, DollarSign } from 'lucide-react';
 
 interface CurrencySettingsProps {
@@ -13,11 +14,11 @@ interface CurrencySettingsProps {
 }
 
 export const CurrencySettings: React.FC<CurrencySettingsProps> = ({ className = '' }) => {
-  const { currentCurrency, currencies, setCurrency, formatCurrency } = useCurrency();
+  const { currentCurrency, currencies, setCurrency, formatCurrency } = useSafeCurrency();
   const [isLoading, setIsLoading] = React.useState(false);
 
   const handleCurrencyChange = async (currencyCode: string) => {
-    const selectedCurrency = currencies.find(c => c.code === currencyCode);
+    const selectedCurrency = currencies.find((c: Currency) => c.code === currencyCode);
     if (selectedCurrency) {
       setIsLoading(true);
       try {
@@ -70,7 +71,7 @@ export const CurrencySettings: React.FC<CurrencySettingsProps> = ({ className = 
               <SelectValue placeholder="Pilih mata uang" />
             </SelectTrigger>
             <SelectContent className="max-h-80">
-              {currencies.map((currency) => (
+              {currencies.map((currency: Currency) => (
                 <SelectItem key={currency.code} value={currency.code}>
                   <div className="flex items-center gap-3 w-full">
                     <span className="text-lg">{currency.flag}</span>
@@ -95,7 +96,7 @@ export const CurrencySettings: React.FC<CurrencySettingsProps> = ({ className = 
           <Label className="text-sm font-medium">Mata Uang Populer</Label>
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
             {['IDR', 'USD', 'EUR', 'JPY', 'CNY', 'TWD'].map((code) => {
-              const currency = currencies.find(c => c.code === code);
+              const currency = currencies.find((c: Currency) => c.code === code);
               if (!currency) return null;
 
               const isSelected = currentCurrency.code === code;

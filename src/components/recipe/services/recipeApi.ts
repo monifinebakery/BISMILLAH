@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { getCurrentUserId as getAuthUserId } from '@/utils/authHelpers';
 import { Recipe, RecipeDB, NewRecipe } from '../types';
+import { normalizeBahanResep } from './recipeUtils';
 import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 
 // import transformers from './recipeTransformers';
@@ -30,31 +31,33 @@ class RecipeApiService {
   }
   // Transform database format to frontend format
   private transformFromDB(dbItem: RecipeDB): Recipe {
+    const normalizedIngredients = normalizeBahanResep(dbItem.bahan_resep);
+
     return {
-    id: dbItem.id,
-    user_id: dbItem.user_id,
-    created_at: new Date(dbItem.created_at),
-    updated_at: new Date(dbItem.updated_at),
-    nama_resep: dbItem.nama_resep,
-    jumlah_porsi: Number(dbItem.jumlah_porsi),
-    kategori_resep: dbItem.kategori_resep,
-    deskripsi: dbItem.deskripsi,
-    foto_url: dbItem.foto_url,
-    foto_base64: dbItem.foto_base64,
-    bahan_resep: dbItem.bahan_resep || [],
-    biaya_tenaga_kerja: Number(dbItem.biaya_tenaga_kerja) || 0,
-    biaya_overhead: Number(dbItem.biaya_overhead) || 0,
-    margin_keuntungan_persen: Number(dbItem.margin_keuntungan_persen) || 0,
-    total_hpp: Number(dbItem.total_hpp) || 0,
-    hpp_per_porsi: Number(dbItem.hpp_per_porsi) || 0,
-    harga_jual_porsi: Number(dbItem.harga_jual_porsi) || 0,
-    jumlah_pcs_per_porsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
-    hpp_per_pcs: Number(dbItem.hpp_per_pcs) || 0,
-    harga_jual_per_pcs: Number(dbItem.harga_jual_per_pcs) || 0,
-    // Manual pricing fields
-    is_manual_pricing_enabled: Boolean(dbItem.is_manual_pricing_enabled),
-    manual_selling_price_per_portion: dbItem.manual_selling_price_per_portion ? Number(dbItem.manual_selling_price_per_portion) : null,
-    manual_selling_price_per_piece: dbItem.manual_selling_price_per_piece ? Number(dbItem.manual_selling_price_per_piece) : null,
+      id: dbItem.id,
+      user_id: dbItem.user_id,
+      created_at: new Date(dbItem.created_at),
+      updated_at: new Date(dbItem.updated_at),
+      nama_resep: dbItem.nama_resep,
+      jumlah_porsi: Number(dbItem.jumlah_porsi),
+      kategori_resep: dbItem.kategori_resep,
+      deskripsi: dbItem.deskripsi,
+      foto_url: dbItem.foto_url,
+      foto_base64: dbItem.foto_base64,
+      bahan_resep: normalizedIngredients,
+      biaya_tenaga_kerja: Number(dbItem.biaya_tenaga_kerja) || 0,
+      biaya_overhead: Number(dbItem.biaya_overhead) || 0,
+      margin_keuntungan_persen: Number(dbItem.margin_keuntungan_persen) || 0,
+      total_hpp: Number(dbItem.total_hpp) || 0,
+      hpp_per_porsi: Number(dbItem.hpp_per_porsi) || 0,
+      harga_jual_porsi: Number(dbItem.harga_jual_porsi) || 0,
+      jumlah_pcs_per_porsi: Number(dbItem.jumlah_pcs_per_porsi) || 1,
+      hpp_per_pcs: Number(dbItem.hpp_per_pcs) || 0,
+      harga_jual_per_pcs: Number(dbItem.harga_jual_per_pcs) || 0,
+      // Manual pricing fields
+      is_manual_pricing_enabled: Boolean(dbItem.is_manual_pricing_enabled),
+      manual_selling_price_per_portion: dbItem.manual_selling_price_per_portion ? Number(dbItem.manual_selling_price_per_portion) : null,
+      manual_selling_price_per_piece: dbItem.manual_selling_price_per_piece ? Number(dbItem.manual_selling_price_per_piece) : null,
     };
   }
 
@@ -67,7 +70,9 @@ class RecipeApiService {
     const deskripsi = recipe.deskripsi;
     const foto_url = recipe.foto_url ?? recipe.fotoUrl;
     const foto_base64 = recipe.foto_base64 ?? recipe.fotoBase64;
-    const bahan_resep = recipe.bahan_resep ?? recipe.bahanResep;
+    const bahan_resep = normalizeBahanResep(
+      recipe.bahan_resep ?? recipe.bahanResep
+    );
     const biaya_tenaga_kerja = recipe.biaya_tenaga_kerja ?? recipe.biayaTenagaKerja ?? 0;
     const biaya_overhead = recipe.biaya_overhead ?? recipe.biayaOverhead ?? 0;
     const margin_keuntungan_persen = recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0;

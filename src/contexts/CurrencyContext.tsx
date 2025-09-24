@@ -63,18 +63,25 @@ interface CurrencyProviderProps {
 }
 
 export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) => {
-  const [currentCurrency, setCurrentCurrency] = useState<Currency>(CURRENCIES[0]); // Default IDR
-
-  // Load currency from safeStorage on mount
-  useEffect(() => {
-    const saved = safeStorageGetJSON<{ code: string }>(STORAGE_KEY);
-    if (saved?.code) {
-      const found = CURRENCIES.find(c => c.code === saved.code);
-      if (found) {
-        setCurrentCurrency(found);
+  // Synchronous initialization to prevent hydration mismatch
+  const getInitialCurrency = (): Currency => {
+    try {
+      const saved = safeStorageGetJSON<{ code: string }>(STORAGE_KEY);
+      if (saved?.code) {
+        const found = CURRENCIES.find(c => c.code === saved.code);
+        if (found) {
+          return found;
+        }
       }
+    } catch (error) {
+      logger.warn('CurrencyContext: Failed to load initial currency from storage', error);
     }
-  }, []);
+    return CURRENCIES[0]; // Default to IDR
+  };
+
+  const [currentCurrency, setCurrentCurrency] = useState<Currency>(getInitialCurrency);
+
+  // No need for useEffect anymore since initialization is synchronous
 
   // Save currency to safeStorage when changed
   const handleSetCurrency = async (currency: Currency) => {

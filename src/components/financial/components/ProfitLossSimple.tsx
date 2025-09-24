@@ -4,6 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ==============================================
 // TYPES
@@ -41,6 +42,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
   transactions, 
   className 
 }) => {
+  const { formatCurrency } = useCurrency();
   // Analisis data bulan ini
   const monthlyAnalysis = useMemo((): MonthlyAnalysis => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
@@ -86,15 +88,6 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
       rataHarian
     };
   }, [transactions]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const getStatusInfo = () => {
     if (monthlyAnalysis.untungRugi > 0) {

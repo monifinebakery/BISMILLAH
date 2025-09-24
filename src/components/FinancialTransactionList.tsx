@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay, toSafeISOString, safeParseDate } from '@/utils/unifiedDateUtils';
-import { formatCurrency } from '@/lib/shared';
+
 import { toast } from 'sonner';
 
 interface FinancialTransactionListProps {
@@ -25,7 +25,7 @@ interface FinancialTransactionListProps {
 }
 
 const FinancialTransactionList = ({
-  transactions,
+  const { formatCurrency } = useCurrency();  transactions,
   loading,
   onUpdateTransaction,
   onDeleteTransaction,
@@ -34,7 +34,7 @@ const FinancialTransactionList = ({
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
   
   const [formData, setFormData] = useState({
-    type: 'expense' as FinancialTransactionType,
+  const { formatCurrency } = useCurrency();    type: 'expense' as FinancialTransactionType,
     category: '',
     amount: 0,
     description: '',
@@ -42,9 +42,9 @@ const FinancialTransactionList = ({
   });
 
   const handleChange = (field: keyof typeof formData, value: string | number | FinancialTransactionType) => {
-    setFormData(prev => {
+  const { formatCurrency } = useCurrency();    setFormData(prev => {
       const newData = { ...prev, [field]: value };
-      if (field === 'type') {
+  const { formatCurrency } = useCurrency();      if (field === 'type') {
         newData.category = '';
       }
       return newData;
@@ -52,7 +52,7 @@ const FinancialTransactionList = ({
   };
 
   const handleEdit = (transaction: FinancialTransaction) => {
-    setEditingTransaction(transaction);
+  const { formatCurrency } = useCurrency();    setEditingTransaction(transaction);
     setFormData({
       type: transaction.type,
       category: transaction.category || '',
@@ -63,7 +63,7 @@ const FinancialTransactionList = ({
   };
 
   const handleSave = async () => {
-    if (!editingTransaction) return;
+  const { formatCurrency } = useCurrency();    if (!editingTransaction) return;
     if (!formData.category) {
       toast.error('Kategori transaksi wajib dipilih.');
       return;
@@ -74,7 +74,7 @@ const FinancialTransactionList = ({
     }
     
     const success = await onUpdateTransaction(editingTransaction.id, {
-      type: formData.type,
+  const { formatCurrency } = useCurrency();      type: formData.type,
       category: formData.category,
       amount: Number(formData.amount),
       description: formData.description,
@@ -88,7 +88,7 @@ const FinancialTransactionList = ({
   };
 
   const handleDelete = async (id: string, description: string | null) => {
-    if (window.confirm(`Apakah Anda yakin ingin menghapus transaksi "${description || 'Tanpa Deskripsi'}"?`)) {
+  const { formatCurrency } = useCurrency();    if (window.confirm(`Apakah Anda yakin ingin menghapus transaksi "${description || 'Tanpa Deskripsi'}"?`)) {
       await onDeleteTransaction(id);
     }
   };

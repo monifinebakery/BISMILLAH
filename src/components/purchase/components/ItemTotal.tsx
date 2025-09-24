@@ -1,7 +1,8 @@
 // src/components/purchase/components/ItemTotal.tsx
 
 import React from 'react';
-import { formatCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
+
 
 interface ItemTotalProps {
   total_nilai: number;
@@ -14,6 +15,7 @@ export const ItemTotal: React.FC<ItemTotalProps> = ({
   variant,
   isViewOnly,
 }) => {
+  const { formatCurrency } = useCurrency();
   if (variant === 'mobile') {
     return (
       <div className="p-4 bg-gray-50 border-t">

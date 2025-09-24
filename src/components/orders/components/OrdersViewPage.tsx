@@ -20,16 +20,17 @@ import {
 } from '@/components/ui/breadcrumb';
 
 // Import utilities and context
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../constants';
 import { useOrder } from '../context/OrderContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import type { Order } from '../types';
 
 const OrdersViewPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: orderId } = useParams<{ id: string }>();
-
+  const { formatCurrency } = useCurrency();
   // Order Context
   const { orders, loading: ordersLoading } = useOrder();
 
@@ -59,16 +60,16 @@ const OrdersViewPage: React.FC = () => {
     try {
       // Create a basic message for follow-up
       const message = `Halo ${order.namaPelanggan}, terima kasih atas pesanan Anda #${order.nomorPesanan}. Status pesanan: ${getStatusText(order.status)}.`;
-      
+
       // Format phone number
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
-      
+
       // Create WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(message)}`;
-      
+
       // Open WhatsApp
       window.open(whatsappUrl, '_blank');
-      
+
       toast.success('WhatsApp berhasil dibuka');
     } catch (error) {
       console.error('Error opening WhatsApp:', error);

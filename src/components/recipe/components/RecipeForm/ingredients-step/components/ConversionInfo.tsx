@@ -2,12 +2,11 @@
 
 import React from 'react';
 import { Calculator } from 'lucide-react';
-import type { ConvertedIngredient } from '@/utils/unitConversion';
-import { getConversionDisplayText } from '@/utils/unitConversion';
+import type { IngredientConversionResult } from '../hooks/useIngredientConversion';
 import { formatCurrency } from '../../../../services/recipeUtils';
 
 interface ConversionInfoProps {
-  conversionInfo: ConvertedIngredient | null;
+  conversionInfo: IngredientConversionResult | null;
   className?: string;
 }
 
@@ -18,6 +17,15 @@ export const ConversionInfo: React.FC<ConversionInfoProps> = ({
   if (!conversionInfo || !conversionInfo.isConverted) {
     return null;
   }
+
+  // Create conversion display text for new interface
+  const getConversionDisplayText = (conversion: IngredientConversionResult): string => {
+    if (!conversion.isConverted) {
+      return `Menggunakan satuan asli: ${conversion.originalUnit}`;
+    }
+
+    return `Dikonversi dari ${conversion.originalUnit} ke ${conversion.convertedUnit} (1 ${conversion.originalUnit} = ${conversion.conversionMultiplier} ${conversion.convertedUnit})`;
+  };
 
   return (
     <div className={`mt-4 p-4 bg-blue-50 rounded-lg border border-blue-200 ${className}`}>

@@ -4,7 +4,8 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Calendar, Target, Lightbulb, BarChart3, DollarSign, AlertCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatPercentage } from '@/lib/shared';
+import { formatPercentage } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ==============================================
 // TYPES
@@ -29,7 +30,7 @@ interface SimpleBusinessReportProps {
 // ==============================================
 
 const SimpleBusinessReport: React.FC<SimpleBusinessReportProps> = ({ transactions, className }) => {
-  // Using shared formatters
+  const { formatCurrency } = useCurrency();
 
   // Analisis bisnis komprehensif
   const businessAnalysis = useMemo(() => {

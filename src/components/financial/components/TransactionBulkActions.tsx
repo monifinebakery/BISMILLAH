@@ -12,7 +12,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/lib/shared';
+
 
 import type { FinancialTransaction } from '../types/financial';
 
@@ -29,7 +29,7 @@ interface TransactionBulkActionsProps {
 }
 
 const TransactionBulkActions: React.FC<TransactionBulkActionsProps> = ({
-  selectedIds,
+  const { formatCurrency } = useCurrency();  selectedIds,
   selectedTransactions,
   isAllSelected,
   totalCount,
@@ -52,7 +52,7 @@ const TransactionBulkActions: React.FC<TransactionBulkActionsProps> = ({
   const expenseCount = selectedTransactions.filter(t => t.type === 'expense').length;
 
   const handleBulkDelete = async () => {
-    if (selectedCount === 0) return;
+  const { formatCurrency } = useCurrency();    if (selectedCount === 0) return;
 
     setIsDeleting(true);
     try {

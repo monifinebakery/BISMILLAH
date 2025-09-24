@@ -1,36 +1,24 @@
 // src/components/purchase/PurchaseAddEditPage.tsx
 
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
+import { ArrowLeft, Calculator, Home, Package, RotateCcw, Save, ShoppingCart, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FormField } from '@/components/ui/form-field';
-import { StatusBadge } from '@/components/ui/status-badge';
-import { EmptyState } from '@/components/ui/empty-state';
-import { LoadingStates } from '@/components/ui/loading-spinner';
-import { 
-  Package,
-  Calculator,
-  ShoppingCart,
-  Edit3,
-  Save,
-  RotateCcw,
-  CheckCircle2,
-  ArrowLeft,
-  Home
-} from 'lucide-react';
+import { Label } from '@/components/ui/label';
+import { FormField, LoadingStates, StatusBadge, EmptyState } from '@/components/ui';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseItem } from './types/purchase.types';
 import { usePurchaseForm } from './hooks/usePurchaseForm';
-import { formatCurrency } from '@/lib/shared';
-import { toast } from 'sonner';
+
 import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';
 // Import extracted components
 const NewItemForm = React.lazy(() => import('./components/dialogs/NewItemForm').then(module => ({ default: module.NewItemForm })));
-import SupplierComboBox from './components/SupplierComboBox';
+  import SupplierComboBox from './components/SupplierComboBox';
 import { ItemRow } from './components/ItemRow';
 import { ItemTotal } from './components/ItemTotal';
 
@@ -47,6 +35,7 @@ import {
 const PurchaseAddEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: purchaseId } = useParams<{ id: string }>();
+  const { formatCurrency } = useCurrency();
   const { suppliers } = useSupplier();
   
   // Safely access the purchase context

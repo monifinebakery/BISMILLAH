@@ -1,136 +1,131 @@
 // src/utils/unitConversion.ts
+// Sistem konversi satuan untuk normalisasi stok warehouse
 
-export interface UnitConversion {
-  from: string;
-  to: string;
-  multiplier: number;
-  category: 'weight' | 'volume' | 'piece';
+export type UnitType = 'weight' | 'volume' | 'count';
+
+export interface UnitDefinition {
+  name: string;
+  symbol: string;
+  type: UnitType;
+  toBase: number; // Konversi ke satuan dasar (terkecil)
+  baseUnit: string; // Satuan dasar untuk tipe ini
 }
 
-export interface ConvertedIngredient {
-  originalUnit: string;
-  convertedUnit: string;
-  originalPrice: number;
-  convertedPrice: number;
-  conversionMultiplier: number;
-  isConverted: boolean;
-}
+export const UNIT_DEFINITIONS: Record<string, UnitDefinition> = {
+  // Weight units (base: gram)
+  'gram': { name: 'gram', symbol: 'g', type: 'weight', toBase: 1, baseUnit: 'g' },
+  'kg': { name: 'kilogram', symbol: 'kg', type: 'weight', toBase: 1000, baseUnit: 'g' },
+  'kilogram': { name: 'kilogram', symbol: 'kg', type: 'weight', toBase: 1000, baseUnit: 'g' },
+  'ons': { name: 'ons', symbol: 'ons', type: 'weight', toBase: 100, baseUnit: 'g' },
+  'kwintal': { name: 'kwintal', symbol: 'kw', type: 'weight', toBase: 100000, baseUnit: 'g' },
+  'ton': { name: 'ton', symbol: 'ton', type: 'weight', toBase: 1000000, baseUnit: 'g' },
 
-// Unit conversion mappings - from larger to smaller units
-export const UNIT_CONVERSIONS: UnitConversion[] = [
-  // Weight conversions
-  { from: 'kg', to: 'gram', multiplier: 1000, category: 'weight' },
-  { from: 'kilogram', to: 'gram', multiplier: 1000, category: 'weight' },
-  { from: 'gr', to: 'gram', multiplier: 1, category: 'weight' },
-  
-  // Volume conversions  
-  { from: 'liter', to: 'ml', multiplier: 1000, category: 'volume' },
-  { from: 'litre', to: 'ml', multiplier: 1000, category: 'volume' },
-  { from: 'l', to: 'ml', multiplier: 1000, category: 'volume' },
-  
-  // No conversion needed for piece units
-  { from: 'pcs', to: 'pcs', multiplier: 1, category: 'piece' },
-  { from: 'buah', to: 'buah', multiplier: 1, category: 'piece' },
-  { from: 'bungkus', to: 'bungkus', multiplier: 1, category: 'piece' },
-  { from: 'sachet', to: 'sachet', multiplier: 1, category: 'piece' },
-  { from: 'sendok', to: 'sendok', multiplier: 1, category: 'piece' },
-  { from: 'gelas', to: 'gelas', multiplier: 1, category: 'piece' },
-  { from: 'cup', to: 'cup', multiplier: 1, category: 'piece' },
-];
+  // Volume units (base: ml)
+  'ml': { name: 'mililiter', symbol: 'ml', type: 'volume', toBase: 1, baseUnit: 'ml' },
+  'mililiter': { name: 'mililiter', symbol: 'ml', type: 'volume', toBase: 1, baseUnit: 'ml' },
+  'liter': { name: 'liter', symbol: 'l', type: 'volume', toBase: 1000, baseUnit: 'ml' },
+  'l': { name: 'liter', symbol: 'l', type: 'volume', toBase: 1000, baseUnit: 'ml' },
+  'cc': { name: 'sentimeter kubik', symbol: 'cc', type: 'volume', toBase: 1, baseUnit: 'ml' },
 
-/**
- * Find the best smaller unit for a given warehouse unit
- * @param warehouseUnit - The unit from warehouse
- * @returns Conversion info or null if no conversion needed
- */
-export const findBestConversion = (warehouseUnit: string): UnitConversion | null => {
-  const conversion = UNIT_CONVERSIONS.find(conv => 
-    conv.from.toLowerCase() === warehouseUnit.toLowerCase()
-  );
-  
-  // Only suggest conversion if it results in a smaller unit (multiplier > 1)
-  return conversion && conversion.multiplier > 1 ? conversion : null;
+  // Count units (base: pcs)
+  'pcs': { name: 'pieces', symbol: 'pcs', type: 'count', toBase: 1, baseUnit: 'pcs' },
+  'pieces': { name: 'pieces', symbol: 'pcs', type: 'count', toBase: 1, baseUnit: 'pcs' },
+  'buah': { name: 'buah', symbol: 'buah', type: 'count', toBase: 1, baseUnit: 'pcs' },
+  'biji': { name: 'biji', symbol: 'biji', type: 'count', toBase: 1, baseUnit: 'pcs' },
+  'butir': { name: 'butir', symbol: 'butir', type: 'count', toBase: 1, baseUnit: 'pcs' },
+  'lembar': { name: 'lembar', symbol: 'lembar', type: 'count', toBase: 1, baseUnit: 'pcs' },
+  'keping': { name: 'keping', symbol: 'keping', type: 'count', toBase: 1, baseUnit: 'pcs' },
 };
 
 /**
- * Convert warehouse ingredient to recipe-friendly smaller unit with adjusted price
- * @param warehouseUnit - Original unit from warehouse
- * @param warehousePrice - Original price per warehouse unit
- * @returns Converted ingredient info
+ * Mendapatkan definisi unit dari nama/symbol
  */
-export const convertIngredientUnit = (
-  warehouseUnit: string, 
-  warehousePrice: number
-): ConvertedIngredient => {
-  const conversion = findBestConversion(warehouseUnit);
-  
-  if (!conversion) {
-    // No conversion needed - keep original unit and price
-    return {
-      originalUnit: warehouseUnit,
-      convertedUnit: warehouseUnit,
-      originalPrice: warehousePrice,
-      convertedPrice: warehousePrice,
-      conversionMultiplier: 1,
-      isConverted: false,
-    };
+export const getUnitDefinition = (unit: string): UnitDefinition | null => {
+  const normalized = unit.toLowerCase().trim();
+  return UNIT_DEFINITIONS[normalized] || null;
+};
+
+/**
+ * Mengecek apakah dua unit kompatibel (sama type)
+ */
+export const areUnitsCompatible = (unit1: string, unit2: string): boolean => {
+  const def1 = getUnitDefinition(unit1);
+  const def2 = getUnitDefinition(unit2);
+
+  if (!def1 || !def2) return false;
+  return def1.type === def2.type;
+};
+
+/**
+ * Mengkonversi nilai dari satu unit ke unit lain dalam type yang sama
+ */
+export const convertUnits = (
+  value: number,
+  fromUnit: string,
+  toUnit: string
+): number | null => {
+  const fromDef = getUnitDefinition(fromUnit);
+  const toDef = getUnitDefinition(toUnit);
+
+  if (!fromDef || !toDef) return null;
+  if (fromDef.type !== toDef.type) return null;
+
+  // Konversi ke base unit dulu, lalu ke target unit
+  const baseValue = value * fromDef.toBase;
+  return baseValue / toDef.toBase;
+};
+
+/**
+ * Mengkonversi nilai ke satuan dasar (terkecil)
+ */
+export const convertToBaseUnit = (value: number, unit: string): number | null => {
+  const def = getUnitDefinition(unit);
+  if (!def) return null;
+  return value * def.toBase;
+};
+
+/**
+ * Mendapatkan satuan dasar untuk tipe unit tertentu
+ */
+export const getBaseUnit = (unit: string): string | null => {
+  const def = getUnitDefinition(unit);
+  return def ? def.baseUnit : null;
+};
+
+/**
+ * Format nilai dengan unit yang sesuai
+ */
+export const formatWithUnit = (value: number, unit: string): string => {
+  const def = getUnitDefinition(unit);
+  if (def) {
+    return `${value.toLocaleString('id-ID')} ${def.symbol}`;
   }
-  
-  // Convert to smaller unit with proportional price adjustment
-  const convertedPrice = warehousePrice / conversion.multiplier;
-  
+  return `${value.toLocaleString('id-ID')} ${unit}`;
+};
+
+/**
+ * Normalisasi satuan untuk warehouse item
+ * Mengembalikan satuan yang paling kecil untuk konsistensi
+ */
+export const normalizeWarehouseUnit = (currentUnit: string): string => {
+  const def = getUnitDefinition(currentUnit);
+  return def ? def.baseUnit : currentUnit;
+};
+
+/**
+ * Mengkonversi semua stok ke satuan dasar untuk perbandingan
+ */
+export const normalizeStockValue = (
+  stock: number,
+  unit: string
+): { value: number; unit: string } | null => {
+  const baseValue = convertToBaseUnit(stock, unit);
+  const baseUnit = getBaseUnit(unit);
+
+  if (baseValue === null || !baseUnit) return null;
+
   return {
-    originalUnit: warehouseUnit,
-    convertedUnit: conversion.to,
-    originalPrice: warehousePrice,
-    convertedPrice: convertedPrice,
-    conversionMultiplier: conversion.multiplier,
-    isConverted: true,
+    value: baseValue,
+    unit: baseUnit
   };
-};
-
-/**
- * Get display text for conversion info
- * @param conversion - Conversion result
- * @returns Human-readable conversion description
- */
-export const getConversionDisplayText = (conversion: ConvertedIngredient): string => {
-  if (!conversion.isConverted) {
-    return `Menggunakan satuan asli: ${conversion.originalUnit}`;
-  }
-  
-  return `Dikonversi dari ${conversion.originalUnit} ke ${conversion.convertedUnit} (1 ${conversion.originalUnit} = ${conversion.conversionMultiplier} ${conversion.convertedUnit})`;
-};
-
-/**
- * Format price with conversion info
- * @param conversion - Conversion result
- * @returns Formatted price string with conversion info
- */
-export const formatConvertedPrice = (conversion: ConvertedIngredient): string => {
-  if (!conversion.isConverted) {
-    return `Rp ${conversion.originalPrice.toLocaleString('id-ID')}`;
-  }
-  
-  return `Rp ${conversion.convertedPrice.toLocaleString('id-ID')}/${conversion.convertedUnit} (dari Rp ${conversion.originalPrice.toLocaleString('id-ID')}/${conversion.originalUnit})`;
-};
-
-/**
- * Check if a unit should be converted for easier recipe input
- * @param unit - Unit to check
- * @returns True if conversion is recommended
- */
-export const shouldConvertUnit = (unit: string): boolean => {
-  const conversion = findBestConversion(unit);
-  return conversion !== null && conversion.multiplier > 1;
-};
-
-/**
- * Get recommended unit for recipe input
- * @param warehouseUnit - Original warehouse unit
- * @returns Recommended unit for recipe (converted if beneficial)
- */
-export const getRecommendedRecipeUnit = (warehouseUnit: string): string => {
-  const conversion = findBestConversion(warehouseUnit);
-  return conversion ? conversion.to : warehouseUnit;
 };

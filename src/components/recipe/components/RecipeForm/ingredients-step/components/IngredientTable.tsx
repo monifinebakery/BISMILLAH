@@ -24,8 +24,9 @@ import { Trash2, ChefHat, ShoppingCart } from 'lucide-react';
 import type { BahanResep } from '../../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import { RECIPE_UNITS } from '../../../../types';
-import { formatCurrency } from '../../../../services/recipeUtils';
-import { convertIngredientUnit } from '@/utils/unitConversion';
+import { formatPercentage } from '../../../../services/recipeUtils';
+import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+// Remove old convertIngredientUnit import
 
 interface IngredientTableProps {
   ingredients: BahanResep[];
@@ -50,6 +51,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
   isLoading = false,
   className = ""
 }) => {
+  const { formatCurrency } = useCurrencyFormatter();
   return (
     <Card className={className}>
       <CardHeader>
@@ -95,7 +97,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
                     <TableCell className="min-w-[200px]">
                       <div className="space-y-1">
                         <Select 
-                          value={ingredient.warehouseId || ''} 
+                          value={ingredient.warehouse_id || ''} 
                           onValueChange={(value) => onUpdateIngredientFromWarehouse(index, value)}
                         >
                           <SelectTrigger className="border-none focus:border-orange-300 bg-transparent">
@@ -107,28 +109,14 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
                           </SelectTrigger>
                           <SelectContent className="max-w-[300px]">
                             {warehouseItems.map((item) => {
-                              // Check if this item will be converted for table display
                               const warehousePrice = (item as any).harga || 0;
-                              const warehouseUnit = item.satuan || 'pcs';
-                              const conversion = convertIngredientUnit(warehouseUnit, warehousePrice);
                               
                               return (
                                 <SelectItem key={item.id} value={item.id}>
                                   <div className="flex flex-col items-start gap-1">
                                     <span>{item.nama}</span>
                                     <div className="text-xs text-gray-500">
-                                      {conversion.isConverted ? (
-                                        <div className="space-y-1">
-                                          <div>
-                                            🆕 {formatCurrency(conversion.convertedPrice)}/{conversion.convertedUnit}
-                                          </div>
-                                          <div className="text-xs text-gray-400">
-                                            (dari {formatCurrency(conversion.originalPrice)}/{conversion.originalUnit})
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        formatCurrency(warehousePrice)
-                                      )}
+                                      {formatCurrency(warehousePrice)}
                                     </div>
                                   </div>
                                 </SelectItem>
@@ -180,8 +168,8 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
                         <Input
                           type="number"
                           min="0"
-                          value={ingredient.hargaSatuan}
-                          onChange={(e) => onUpdateIngredient(index, 'hargaSatuan', parseFloat(e.target.value) || 0)}
+                          value={ingredient.harga_satuan}
+                          onChange={(e) => onUpdateIngredient(index, 'harga_satuan', parseFloat(e.target.value) || 0)}
                           className="border-none focus:border-orange-300 bg-transparent text-right pl-6"
                           disabled={isLoading}
                         />
@@ -190,7 +178,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
 
                     {/* Total Price */}
                     <TableCell className="text-right font-medium min-w-[120px]">
-                      {formatCurrency(ingredient.totalHarga)}
+                      {formatCurrency(Number(ingredient.total_harga) || 0)}
                     </TableCell>
 
                     {/* Actions */}

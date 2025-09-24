@@ -22,7 +22,7 @@ import {
 import { OperationalCost, CostFormData } from '../types';
 import { useCostClassification } from '../hooks/useCostClassification';
 import { getCostGroupLabel, getCostGroupDescription } from '../constants/costClassification';
-import { formatCurrency } from '@/lib/shared';
+
 import { toast } from 'sonner';
 import { 
   generateSmartSuggestion, 
@@ -30,6 +30,7 @@ import {
   getConfidenceColor,
   type SmartSuggestion 
 } from '../utils/smartDefaults';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface CostFormDialogProps {
   isOpen: boolean;
@@ -46,8 +47,9 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   cost = null,
   isLoading = false
 }) => {
+  const { formatCurrency } = useCurrency();
   const [formData, setFormData] = useState<CostFormData>({
-    nama_biaya: '',
+     nama_biaya: '',
     jumlah_per_bulan: 0,
     jenis: 'tetap' as 'tetap' | 'variabel',
     group: 'operasional' as 'hpp' | 'operasional', // Default to operasional
@@ -56,7 +58,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showClassificationSuggestion, setShowClassificationSuggestion] = useState(false);
   
   // ✅ NEW: Smart suggestions state
@@ -108,7 +110,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   
   // ✅ NEW: Smart suggestion logic when cost name changes
   const handleCostNameChange = (value: string) => {
-    setFormData(prev => ({ ...prev, nama_biaya: value }));
+     setFormData(prev => ({ ...prev, nama_biaya: value }));
     
     // Generate smart suggestion when user types
     if (value.length >= 3 && !cost) { // Only for new costs
@@ -132,7 +134,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   
   // Handle applying smart suggestion
   const applySmartSuggestion = () => {
-    if (smartSuggestion) {
+     if (smartSuggestion) {
       setFormData(prev => ({
         ...prev,
         jenis: smartSuggestion.jenis,
@@ -152,8 +154,8 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   };
 
   const validateForm = () => {
-    const newErrors: Record<string, string> = {};
-
+     const newErrors: Record<string, string> = {};
+  const { formatCurrency } = useCurrency();
     if (!formData.nama_biaya.trim()) {
       newErrors.nama_biaya = 'Nama biaya harus diisi';
     } else if (formData.nama_biaya.trim().length < 3) {
@@ -179,7 +181,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+     e.preventDefault();
     
     // Debug: CostFormDialog handleSubmit called
     
@@ -225,14 +227,14 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   };
 
   const handleClose = () => {
-    if (!isSubmitting) {
+     if (!isSubmitting) {
       onClose();
     }
   };
 
   // Apply automatic classification suggestion
   const handleApplySuggestion = () => {
-    const suggestedGroup = applySuggestion();
+     const suggestedGroup = applySuggestion();
     if (suggestedGroup) {
       setFormData(prev => ({ ...prev, group: suggestedGroup }));
       setShowClassificationSuggestion(false);
@@ -241,7 +243,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   // Dismiss classification suggestion
   const handleDismissSuggestion = () => {
-    setShowClassificationSuggestion(false);
+     setShowClassificationSuggestion(false);
     clearSuggestion();
   };
 

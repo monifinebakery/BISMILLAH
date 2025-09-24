@@ -36,9 +36,9 @@ interface TodayData {
 // COMPONENT
 // ==============================================
 
-const DailySummaryWidget: React.FC<DailySummaryProps> = ({ 
-  transactions, 
-  className 
+const DailySummaryWidget: React.FC<DailySummaryProps> = ({
+  transactions,
+  className,
 }) => {
   // Data hari ini
   const todayData = useMemo((): TodayData => {

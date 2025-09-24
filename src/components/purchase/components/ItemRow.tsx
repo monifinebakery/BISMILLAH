@@ -3,7 +3,8 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Edit3, Trash2 } from 'lucide-react';
-import { formatCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
+
 import { PurchaseItem } from '../types/purchase.types';
 
 interface ItemRowProps {
@@ -26,7 +27,7 @@ export const ItemRow: React.FC<ItemRowProps> = React.memo(({
   variant,
 }) => {
   const key = item.bahanBakuId || `item-${index}`;
-
+  const { formatCurrency } = useCurrency();
   // ✅ PERFORMANCE: Memoized action buttons to prevent unnecessary re-renders
   const actionButtons = React.useMemo(() => {
     if (isViewOnly) return null;

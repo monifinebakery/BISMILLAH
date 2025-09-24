@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, Dialog
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Users, Plus, Calendar, AlertTriangle, CheckCircle, Clock, Trash2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ==============================================
 // TYPES
@@ -35,6 +36,7 @@ interface DebtTrackerProps {
 // ==============================================
 
 const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
+  const { formatCurrency } = useCurrency();
   // State untuk data hutang piutang (dalam praktik nyata, ini harus dari database)
   const [debts, setDebts] = useState<DebtItem[]>(() => {
     const saved = localStorage.getItem('umkm-debt-tracker');
@@ -92,15 +94,6 @@ const DebtTracker: React.FC<DebtTrackerProps> = ({ className }) => {
       activeDebts
     };
   }, [debts]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('id-ID', {

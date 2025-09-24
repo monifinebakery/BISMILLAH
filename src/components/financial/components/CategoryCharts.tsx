@@ -2,15 +2,17 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { RefreshCw } from 'lucide-react';
-import { 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Tooltip, 
-  ResponsiveContainer 
+import {
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip,
+  ResponsiveContainer,
+  type PieLabelRenderProps,
 } from 'recharts';
-import { formatCurrency } from '@/lib/shared';
+
 
 // ✅ ENHANCED: Props untuk useQuery support dengan auto-refresh
 interface CategoryChartsProps {
@@ -22,12 +24,46 @@ interface CategoryChartsProps {
 }
 
 // Custom label component for pie chart
-const renderCustomizedLabel = ({ 
-  cx, cy, midAngle, innerRadius, outerRadius, percent 
-}: any) => {
-  const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
-  const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
-  const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
+const renderCustomizedLabel = ({
+  cx,
+  cy,
+  midAngle,
+  innerRadius,
+  outerRadius,
+  percent,
+}: PieLabelRenderProps) => {
+  if (
+    cx === undefined ||
+    cy === undefined ||
+    innerRadius === undefined ||
+    outerRadius === undefined ||
+    midAngle === undefined ||
+    percent === undefined
+  ) {
+    return null;
+  }
+
+  const numericCx = typeof cx === 'number' ? cx : Number(cx);
+  const numericCy = typeof cy === 'number' ? cy : Number(cy);
+  const numericInnerRadius = typeof innerRadius === 'number' ? innerRadius : Number(innerRadius);
+  const numericOuterRadius = typeof outerRadius === 'number' ? outerRadius : Number(outerRadius);
+  const numericMidAngle = typeof midAngle === 'number' ? midAngle : Number(midAngle);
+  const numericPercent = typeof percent === 'number' ? percent : Number(percent);
+
+  if (
+    !Number.isFinite(numericCx) ||
+    !Number.isFinite(numericCy) ||
+    !Number.isFinite(numericInnerRadius) ||
+    !Number.isFinite(numericOuterRadius) ||
+    !Number.isFinite(numericMidAngle) ||
+    !Number.isFinite(numericPercent)
+  ) {
+    return null;
+  }
+
+  const radius = numericInnerRadius + (numericOuterRadius - numericInnerRadius) * 0.5;
+  const x = numericCx + radius * Math.cos(-numericMidAngle * (Math.PI / 180));
+  const y = numericCy + radius * Math.sin(-numericMidAngle * (Math.PI / 180));
   
   return (
     <text 
@@ -39,7 +75,7 @@ const renderCustomizedLabel = ({
       fontSize={12} 
       fontWeight="bold"
     >
-      {`${(percent * 100).toFixed(0)}%`}
+      {`${(numericPercent * 100).toFixed(0)}%`}
     </text>
   );
 };
@@ -61,25 +97,30 @@ const CategoryLoading = () => (
  * - Real-time data updates
  * - Refresh functionality
  */
-const CategoryCharts: React.FC<CategoryChartsProps> = ({ 
-  filteredTransactions, 
+const CategoryCharts: React.FC<CategoryChartsProps> = ({
+  filteredTransactions,
   isLoading = false,
   isRefreshing = false,
   onRefresh,
-  lastUpdated 
+  lastUpdated,
 }) => {
+  const { formatCurrency } = useCurrency();
+
   const categoryData = useMemo(() => {
-    const result = {
+    const result: {
+      incomeData: { name: string; value: number }[];
+      expenseData: { name: string; value: number }[];
+    } = {
       incomeData: [],
-      expenseData: []
+      expenseData: [],
     };
 
     if (!filteredTransactions || filteredTransactions.length === 0) {
       return result;
     }
 
-    const incomeByCategory = {};
-    const expenseByCategory = {};
+    const incomeByCategory: Record<string, number> = {};
+    const expenseByCategory: Record<string, number> = {};
 
     // Process transactions by category
     filteredTransactions.forEach(t => {
@@ -94,12 +135,12 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
     // Transform to chart data format
     result.incomeData = Object.entries(incomeByCategory).map(([name, value]) => ({
       name,
-      value
+      value,
     }));
 
     result.expenseData = Object.entries(expenseByCategory).map(([name, value]) => ({
       name,
-      value
+      value,
     }));
 
     return result;
@@ -203,7 +244,11 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
                     />
                   ))}
                 </Pie>
-                <Tooltip formatter={(value) => formatCurrency(value)} />
+                <Tooltip
+                  formatter={(value: number | string) =>
+                    formatCurrency(typeof value === 'number' ? value : Number(value))
+                  }
+                />
               </PieChart>
             </ResponsiveContainer>
           </div>

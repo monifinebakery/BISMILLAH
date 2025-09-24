@@ -22,7 +22,7 @@ import {
   AlertDescription,
 } from '@/components/ui/alert';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../../types';
@@ -42,7 +42,7 @@ interface FollowUpTemplateManagerProps {
 }
 
 const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
-  isOpen,
+  const { formatCurrency } = useCurrency();  isOpen,
   onClose,
   order,
   onSendWhatsApp
@@ -57,7 +57,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   // Update templates when context changes
   useEffect(() => {
     const templateArray = Object.entries(contextTemplates).map(([status, message], index) => ({
-      id: status,
+  const { formatCurrency } = useCurrency();      id: status,
       name: getStatusDisplayName(status),
       message: message,
       createdAt: new Date()
@@ -79,8 +79,8 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   // Helper function to get display name for status
   const getStatusDisplayName = (status: string): string => {
-    const statusNames: Record<string, string> = {
-      pending: 'Konfirmasi Pesanan',
+  const { formatCurrency } = useCurrency();    const statusNames: Record<string, string> = {
+  const { formatCurrency } = useCurrency();      pending: 'Konfirmasi Pesanan',
       confirmed: 'Pesanan Dikonfirmasi',
       preparing: 'Sedang Diproses',
       ready: 'Siap Diambil/Dikirim',
@@ -96,7 +96,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [templateForm, setTemplateForm] = useState({
-    message: ''
+  const { formatCurrency } = useCurrency();    message: ''
   });
 
   // Preview state
@@ -105,7 +105,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   // ✅ ENHANCED: Generate items list dalam berbagai format
   const generateItemsList = (orderData: Order | null, format: 'simple' | 'detailed' = 'simple') => {
-    if (!orderData?.items || orderData.items.length === 0) {
+  const { formatCurrency } = useCurrency();    if (!orderData?.items || orderData.items.length === 0) {
       return 'Tidak ada item';
     }
 
@@ -130,7 +130,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
 
   // ✅ UPDATED: Generate preview message - sesuai dengan FollowUpTemplateContext
   const generatePreview = (template: Template, orderData: Order | null) => {
-    if (!orderData || !template) return template?.message || '';
+  const { formatCurrency } = useCurrency();    if (!orderData || !template) return template?.message || '';
 
     // Gunakan processTemplate dari context untuk konsistensi
     const { processTemplate } = useProcessTemplate();
@@ -145,7 +145,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   }, [selectedTemplate, order]);
 
   const handleEditTemplate = (template: Template) => {
-    setEditingTemplate(template);
+  const { formatCurrency } = useCurrency();    setEditingTemplate(template);
     setIsEditing(true);
     setTemplateForm({
       message: template.message
@@ -153,7 +153,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   };
 
   const handleSaveTemplate = async () => {
-    if (!editingTemplate) return;
+  const { formatCurrency } = useCurrency();    if (!editingTemplate) return;
     if (!templateForm.message.trim()) {
       toast.error('Pesan template harus diisi');
       return;
@@ -177,7 +177,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   };
 
   const handleSendMessage = () => {
-    if (!order || !selectedTemplate || !onSendWhatsApp) {
+  const { formatCurrency } = useCurrency();    if (!order || !selectedTemplate || !onSendWhatsApp) {
       toast.error('Data tidak lengkap untuk mengirim pesan');
       return;
     }
@@ -188,7 +188,7 @@ const FollowUpTemplateManager: React.FC<FollowUpTemplateManagerProps> = ({
   };
 
   const handleCopyMessage = () => {
-    navigator.clipboard.writeText(previewMessage);
+  const { formatCurrency } = useCurrency();    navigator.clipboard.writeText(previewMessage);
     toast.success('Pesan berhasil disalin ke clipboard');
   };
 

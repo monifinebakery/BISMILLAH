@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, CheckCircle } from 'lucide-react';
 import type { BahanBakuImport } from '../types';
-import { formatCurrency } from '@/lib/shared';
+
 
 interface ImportPreviewProps {
   preview: { valid: BahanBakuImport[]; errors: string[] };

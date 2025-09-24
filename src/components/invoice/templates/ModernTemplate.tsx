@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForInvoice } from '../utils';
 import type { OrderData } from '../types';
 
@@ -12,7 +12,7 @@ interface ModernTemplateProps {
 }
 
 export const ModernTemplate: React.FC<ModernTemplateProps> = ({ order, className = '' }) => {
-  const { settings } = useUserSettings();
+  const { formatCurrency } = useCurrency();  const { settings } = useUserSettings();
   
   return (
     <div className={`bg-white rounded-xl overflow-hidden max-w-5xl mx-auto border border-gray-200 ${className}`} id="invoice-to-print">

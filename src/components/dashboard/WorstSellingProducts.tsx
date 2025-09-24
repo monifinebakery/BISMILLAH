@@ -16,9 +16,10 @@ import {
   Lightbulb,
   AlertCircle
 } from "lucide-react";
-import { formatCurrency } from '@/lib/shared';
+
 import { generateListKey } from '@/utils/keyUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // 🔧 Local pagination calculation utility
 const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
@@ -63,13 +64,13 @@ interface SortConfig {
 
 const sortConfigs: Record<SortOption, SortConfig> = {
   quantity: {
-    key: 'quantity', 
+    key: 'quantity',
     label: 'Penjualan Terendah',
     icon: <Hash className="h-4 w-4" />,
     description: 'Produk dengan unit terjual paling sedikit',
     getValue: (product) => safeNumber(product.quantity),
     formatValue: (value) => `${safeNumber(value).toLocaleString('id-ID')} unit`,
-    getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue)),
+    getSecondaryInfo: (product) => `Rp ${safeNumber(product.revenue).toLocaleString('id-ID')}`,
     getWarningLevel: (value) => value < 5 ? 'high' : value < 20 ? 'medium' : 'low'
   },
   revenue: {
@@ -78,7 +79,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <DollarSign className="h-4 w-4" />,
     description: 'Produk dengan total pendapatan paling rendah',
     getValue: (product) => safeNumber(product.revenue),
-    formatValue: (value) => formatCurrency(value),
+    formatValue: (value) => `Rp ${value.toLocaleString('id-ID')}`,
     getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`,
     getWarningLevel: (value) => value < 100000 ? 'high' : value < 500000 ? 'medium' : 'low'
   },
@@ -88,7 +89,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <TrendingDown className="h-4 w-4" />,
     description: 'Produk dengan profit bersih paling rendah',
     getValue: (product) => safeNumber(product.profit),
-    formatValue: (value) => formatCurrency(value),
+    formatValue: (value) => `Rp ${value.toLocaleString('id-ID')}`,
     getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`,
     getWarningLevel: (value) => value < 50000 ? 'high' : value < 200000 ? 'medium' : 'low'
   },
@@ -108,7 +109,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
       return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
     formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
-    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`,
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • Rp ${safeNumber(product.revenue).toLocaleString('id-ID')}`,
     getWarningLevel: (value) => value < 10 ? 'high' : value < 30 ? 'medium' : 'low'
   }
 };
@@ -299,11 +300,11 @@ const PaginationControls: React.FC<{
   );
 };
 
-const WorstSellingProducts: React.FC<Props> = ({ 
-  products, 
-  pagination, 
-  onPageChange, 
-  isLoading 
+const WorstSellingProducts: React.FC<Props> = ({
+  products,
+  pagination,
+  onPageChange,
+  isLoading
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('quantity');
   const itemsPerPage = 5;

@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { RefreshCw, TrendingUp } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const QuickSpinner = ({ className = "" }: { className?: string }) => (
   <div className={cn("bg-gray-200 rounded animate-pulse", className)} />
@@ -28,8 +29,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   lastRefresh, 
   onRefresh 
 }) => {
-  const formatCurrency = (amount: number) => 
-    new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
+  const { formatCurrency } = useCurrency();
 
   const cards = [
     {

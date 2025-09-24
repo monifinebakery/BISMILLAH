@@ -11,7 +11,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { ActionButtons } from '@/components/ui/action-buttons';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { logger } from '@/utils/logger';
 import type { Order } from '../../types';
@@ -34,7 +34,7 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
-    setLoading(true);
+  const { formatCurrency } = useCurrency();    setLoading(true);
     try {
       await onConfirm();
       onClose();

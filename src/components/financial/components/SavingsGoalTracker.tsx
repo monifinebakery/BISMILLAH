@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Target, PiggyBank, TrendingUp, Calendar, Edit3, Check, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // ==============================================
 // TYPES
@@ -45,6 +46,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
   transactions, 
   className 
 }) => {
+  const { formatCurrency } = useCurrency();
   // State untuk target tabungan (dalam praktik nyata, ini harus disimpan di database)
   const [monthlyTarget, setMonthlyTarget] = useState<number>(() => {
     const saved = localStorage.getItem('umkm-savings-target');
@@ -97,15 +99,6 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
       monthlyExpense
     };
   }, [transactions, monthlyTarget]);
-
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
 
   const handleSaveTarget = () => {
     const newTarget = parseFloat(tempTarget);

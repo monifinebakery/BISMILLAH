@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageSquare, Edit, Send, Eye, X, Copy, Info, ArrowLeft, Save, RotateCcw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -20,8 +20,11 @@ import {
 } from '@/components/ui/alert';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
+import { getStatusText } from '../constants';
+import { useOrder } from '../context/OrderContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../types';
 
@@ -34,6 +37,11 @@ interface Template {
 
 const FollowUpTemplateManagerPage: React.FC = () => {
   const navigate = useNavigate();
+  const { id: orderId } = useParams<{ id: string }>();
+  const { formatCurrency } = useCurrency();
+
+  // Order Context
+  const { orders, loading: ordersLoading } = useOrder();
 
   // Use FollowUpTemplateContext
   const { templates: contextTemplates, saveTemplate } = useFollowUpTemplate();

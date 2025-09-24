@@ -199,11 +199,11 @@ const PaginationControls: React.FC<{
   );
 };
 
-const BestSellingProducts: React.FC<Props> = ({ 
-  products, 
-  pagination, 
-  onPageChange, 
-  isLoading 
+const BestSellingProducts: React.FC<Props> = ({
+  products,
+  pagination,
+  onPageChange,
+  isLoading, 
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('revenue');
   const itemsPerPage = 5;
@@ -211,7 +211,7 @@ const BestSellingProducts: React.FC<Props> = ({
   // 📊 Sort products based on selected option
   const sortedProducts = useMemo(() => {
     if (isLoading || !products.length) return products;
-    
+
     const config = sortConfigs[sortBy];
     return [...products].sort((a, b) => config.getValue(b) - config.getValue(a));
   }, [products, sortBy, isLoading]);

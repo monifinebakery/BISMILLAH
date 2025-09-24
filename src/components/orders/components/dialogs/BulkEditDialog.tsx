@@ -19,16 +19,18 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../../constants';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { logger } from '@/utils/logger';
 import type { Order, OrderStatus } from '../../types';
 
 interface BulkEditDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (newStatus: OrderStatus) => Promise<void>;
+  operation: any;
+  firm: any;
   selectedOrders: Order[];
   selectedCount: number;
 }
@@ -36,7 +38,8 @@ interface BulkEditDialogProps {
 const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   isOpen,
   onClose,
-  onConfirm,
+  operation,
+  firm,
   selectedOrders,
   selectedCount
 }) => {

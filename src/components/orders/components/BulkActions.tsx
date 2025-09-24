@@ -3,7 +3,8 @@ import React from 'react';
 import { Trash2, Edit3, X, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
+
 import { useOrderBulk } from '../hooks/useOrderBulk';
 import { getStatusText, getStatusColor } from '../constants';
 import BulkOperationsDialog from './dialogs/BulkOperationsDialog';
@@ -28,14 +29,15 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   totalCount,
   onRefresh,
 }) => {
-  const { 
-    isDialogOpen, 
-    operationType, 
-    openDialog, 
-    closeDialog, 
-    executeBulkDelete, 
+  const { formatCurrency } = useCurrency();
+  const {
+    isDialogOpen,
+    operationType,
+    openDialog,
+    closeDialog,
+    executeBulkDelete,
     executeBulkEdit,
-    isProcessing 
+    isProcessing
   } = useOrderBulk();
 
   const selectedCount = selectedIds.length;

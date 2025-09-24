@@ -7,10 +7,11 @@ import { FormField, ActionButtons } from '@/components/ui';
 import { Label } from '@/components/ui/label';
 import { Plus, Calculator, RefreshCcw } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
 import { parseRobustNumber } from '@/utils/robustNumberParser';
+import { useCurrency } from '@/contexts/CurrencyContext';
 // Avoid importing warehouseUtils to reduce bundle graph and prevent potential cycles
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
@@ -36,8 +37,9 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
 export const NewItemForm: React.FC<NewItemFormProps> = ({
   onAddItem
 }) => {
+  const { formatCurrency } = useCurrency();
   const [formData, setFormData] = useState<FormData>({
-    nama: '',
+     nama: '',
     satuan: '',
     kuantitas: '',
     totalBayar: '',
@@ -49,13 +51,13 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   // Handle numeric input changes
   const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
-    const cleanValue = value.replace(/[^\d.,]/g, '');
+     const cleanValue = value.replace(/[^\d.,]/g, '');
     setFormData(prev => ({ ...prev, [field]: cleanValue }));
   }, []);
   
   // Computed values - calculate unit price from total payment
   const computedUnitPrice = useMemo(() => {
-    const qty = toNumber(formData.kuantitas);
+     const qty = toNumber(formData.kuantitas);
     const pay = toNumber(formData.totalBayar);
     if (qty > 0 && pay > 0) {
       return Math.round((pay / qty) * 100) / 100;
@@ -65,7 +67,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   // Check if using automatic calculation
   const isUsingAutomaticCalculation = useMemo(() => {
-    return toNumber(formData.kuantitas) > 0 && 
+     return toNumber(formData.kuantitas) > 0 && 
            toNumber(formData.totalBayar) > 0;
   }, [formData.kuantitas, formData.totalBayar]);
 
@@ -89,13 +91,13 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   // Handle form submission
   const handleSubmit = useCallback(() => {
-    if (!formData.nama.trim()) {
+     if (!formData.nama.trim()) {
       toast.error('Nama bahan baku harus diisi');
       return;
     }
 
     const purchaseItem: PurchaseItem = {
-      bahanBakuId: generateUUID(),
+       bahanBakuId: generateUUID(),
       nama: formData.nama,
       satuan: formData.satuan,
       quantity: effectiveQty,

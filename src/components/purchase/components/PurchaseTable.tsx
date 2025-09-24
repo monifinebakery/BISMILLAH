@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { getStatusDisplayText, getFormattedTotalQuantities } from '../utils/purchaseHelpers';
 
 // Type imports
@@ -102,6 +102,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
   onDelete,
   validateStatusChange
 }) => {
+  const { formatCurrency } = useCurrency();
   // 📊 Performance monitoring in development
   const renderCount = useRenderCount('PurchaseTable');
   if (import.meta.env.DEV) {

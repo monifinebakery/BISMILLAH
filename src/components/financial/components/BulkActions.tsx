@@ -31,9 +31,10 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { useTransactionBulk, type FinancialTransaction, type BulkEditData } from '../hooks/useTransactionBulk';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface BulkActionsProps {
   selectedTransactions: FinancialTransaction[];
@@ -52,6 +53,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   isAllSelected,
   totalCount,
 }) => {
+  const { formatCurrency } = useCurrency();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editData, setEditData] = useState<BulkEditData>({

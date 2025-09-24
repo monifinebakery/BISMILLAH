@@ -2,12 +2,13 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { formatCurrency } from '@/lib/shared';
+
 import { getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
 import { Purchase } from '../../types/purchase.types';
 import { StatusDropdown } from './StatusDropdown';
 import { ActionButtons } from './ActionButtons';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 interface PurchaseTableRowProps {
   purchase: Purchase;
@@ -32,8 +33,9 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
   onDelete,
   getSupplierName
 }) => {
+  const { formatCurrency } = useCurrency();
   const resolvedSupplierName = React.useMemo(() => {
-    if (!getSupplierName) {
+     if (!getSupplierName) {
       return purchase.supplier || 'Supplier Tidak Diketahui';
     }
     return getSupplierName(purchase.supplier) || 'Supplier Tidak Diketahui';

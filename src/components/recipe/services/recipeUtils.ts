@@ -1,6 +1,7 @@
 // src/components/recipe/services/recipeUtils.ts
 
 import { logger } from '@/utils/logger';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import type {
   Recipe,
   NewRecipe,
@@ -322,15 +323,11 @@ export const calculateRecipeStats = (recipes: Recipe[]): RecipeStats => {
 };
 
 /**
- * Format currency value
+ * Format currency value - DEPRECATED
+ * Use useCurrency hook instead for dynamic currency formatting
  */
 export const formatCurrency = (amount: number): string => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0
-  }).format(amount);
+  return formatCurrencyShared(amount);
 };
 
 /**

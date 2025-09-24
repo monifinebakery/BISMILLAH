@@ -17,6 +17,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { formatCurrency, formatNumber, formatPercentage, formatCompactCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 // ✅ IMPROVED: Import UnifiedDateHandler for consistency
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { normalizeDateForDatabase } from '@/utils/dateNormalization'; // Keep for transition
@@ -34,7 +35,7 @@ interface FinancialChartsProps {
 
 // Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
+  const { formatCurrency } = useCurrency();  if (active && payload && payload.length) {
     return (
       <div className="p-3 bg-white border border-gray-300 rounded text-sm">
         <p className="font-semibold mb-1">{label}</p>
@@ -52,7 +53,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ✅ IMPROVED: Simple loading spinner untuk chart
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const ChartLoading = () => {
-  return (
+  const { formatCurrency } = useCurrency();  return (
     <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
       <div className="text-center space-y-4">
         <LoadingSpinner size="lg" />
@@ -79,6 +80,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
   onRefresh,
   lastUpdated
 }) => {
+  const { formatCurrency } = useCurrency();
   const { transactionData, dailyData } = useMemo(() => {
     const result = {
       transactionData: [] as Array<{
@@ -102,7 +104,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
 
     const monthlyData: Record<string, { income: number; expense: number; date: Date }> = {};
     const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
-
+    
     // ✅ IMPROVED: Process transactions with consistent date handling
     filteredTransactions.forEach(t => {
       if (!t.date) return;

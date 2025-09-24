@@ -7,8 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Edit, Info, Trash2 } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
-import { formatCurrency } from '@/lib/shared';
+
 
 import type { FinancialTransaction } from '../../types/financial';
 import TransactionEmptyState from './TransactionEmptyState';
@@ -36,6 +37,7 @@ const TransactionRowComponent = ({
   onDelete,
   isDeleting,
   getDisplayDescription,
+  formatCurrency,
 }: {
   transaction: FinancialTransaction;
   isSelected: boolean;
@@ -44,6 +46,7 @@ const TransactionRowComponent = ({
   onDelete: (transaction: FinancialTransaction) => void;
   isDeleting: boolean;
   getDisplayDescription: (description: string | null) => string;
+  formatCurrency: (value: number) => string;
 }) => {
   const handleToggleSelect = useCallback(() => {
     onToggleSelect?.(transaction.id, !isSelected);
@@ -87,7 +90,6 @@ const TransactionRowComponent = ({
                 date.getSeconds() !== 0;
               const dateStr = format(date, 'dd MMM yyyy', { locale: id });
               const timeStr = format(date, 'HH:mm', { locale: id });
-
               if (hasTimeInfo) {
                 return (
                   <div className="text-sm">
@@ -206,6 +208,7 @@ const TransactionRows = ({
   dateRange,
   onAddTransaction,
 }: TransactionRowsProps) => {
+  const { formatCurrency } = useCurrency();
   return (
     <>
       <TableHeader>
@@ -261,6 +264,7 @@ const TransactionRows = ({
               onDelete={onDeleteTransaction}
               isDeleting={isDeleting}
               getDisplayDescription={getDisplayDescription}
+              formatCurrency={formatCurrency}
             />
           ))
         ) : (

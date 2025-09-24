@@ -227,42 +227,42 @@ export class ChatbotService {
 
       const startTime = Date.now();
 
-    try {
-      const response = await this.openRouter.generateResponse(message, {
-        history: this.getContextHistory(), // Smart context window
-        intent: intent,
-        currentPage: this.detectCurrentPage(),
-        businessName: this.businessName,
-        // Enhanced context for natural action detection
-        availableActions: {
-          canCreateOrders: !!userId,
-          canUpdateInventory: !!userId,
-          canCreateRecipes: !!userId,
-          canCreatePromos: !!userId,
-          canSearchOrders: !!userId,
-          canGenerateReports: !!userId
-        },
-        systemPrompt: this.getEnhancedSystemPrompt(userId) // Pass userId to system prompt
-      });
+      try {
+        const response = await this.openRouter.generateResponse(message, {
+          history: this.getContextHistory(), // Smart context window
+          intent: intent,
+          currentPage: this.detectCurrentPage(),
+          businessName: this.businessName,
+          // Enhanced context for natural action detection
+          availableActions: {
+            canCreateOrders: !!userId,
+            canUpdateInventory: !!userId,
+            canCreateRecipes: !!userId,
+            canCreatePromos: !!userId,
+            canSearchOrders: !!userId,
+            canGenerateReports: !!userId
+          },
+          systemPrompt: this.getEnhancedSystemPrompt(userId) // Pass userId to system prompt
+        });
 
-      const responseTime = Date.now() - startTime;
-      this.analytics.responseTimes.push(responseTime);
+        const responseTime = Date.now() - startTime;
+        this.analytics.responseTimes.push(responseTime);
 
-      // Add response to history only if response is valid
-      if (response && response.text) {
-        this.history.push(this.createMessage('assistant', response.text));
-        this.savePersistedData();
-        this.performMemoryCleanup();
+        // Add response to history only if response is valid
+        if (response && response.text) {
+          this.history.push(this.createMessage('assistant', response.text));
+          this.savePersistedData();
+          this.performMemoryCleanup();
+        }
+
+        return response;
+      } catch (error) {
+        console.error('Chatbot error:', error);
+        return {
+          text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+          type: 'error'
+        };
       }
-
-      return response;
-    } catch (error) {
-      console.error('Chatbot error:', error);
-      return {
-        text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
-        type: 'error'
-      };
-    }
   }
 
   private normalizeMessage(message: string): string {

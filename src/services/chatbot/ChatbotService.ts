@@ -91,57 +91,48 @@ export class ChatbotService {
       const normalizedMessage = this.normalizeMessage(message);
       const intent = this.detectIntent(normalizedMessage);
 
-      // Check if this intent requires database query
+      console.log('🤖 Processing message:', { intent, userId, normalizedMessage });
+
+      // Check if this intent requires database query (read operations)
       const readIntents = ['orderSearch', 'inventory', 'report', 'cost'];
       const actionIntents = ['purchase', 'orderCreate', 'orderDelete', 'inventoryUpdate', 'recipeCreate', 'promoCreate'];
-      
-      if (readIntents.includes(intent) && userId) {
-        // Handle read operations
-        console.log('🤖 Attempting database read for intent:', intent, 'userId:', userId);
-        try {
-          const dbResponse = await this.queryDatabase(intent, message, userId);
-          console.log('🤖 Database response:', dbResponse);
-          if (dbResponse && dbResponse.type !== 'error') {
-            this.history.push({ role: 'user', content: message });
-            this.history.push({ role: 'assistant', content: dbResponse.text });
-            this.savePersistedData();
-            console.log('🤖 Returning database response');
-            return dbResponse;
-          } else {
-            console.log('🤖 Database returned error or no data, falling back to AI');
-          }
-        } catch (error) {
-          console.warn('Database query failed, falling back to AI:', error);
-        }
-      } else if (actionIntents.includes(intent) && userId) {
-        // Handle action operations
-        console.log('🤖 Attempting database action for intent:', intent, 'userId:', userId);
+
+      // Always try to get AI response first for natural conversation
+      // But prioritize database actions if intent is clearly actionable
+      if (actionIntents.includes(intent) && userId) {
+        console.log('🤖 Detected actionable intent, trying database action first:', intent);
         try {
           const actionResponse = await this.performDatabaseAction(intent, message, userId);
-          console.log('🤖 Action response:', actionResponse);
           if (actionResponse && actionResponse.type !== 'error') {
             this.history.push({ role: 'user', content: message });
             this.history.push({ role: 'assistant', content: actionResponse.text });
             this.savePersistedData();
             console.log('🤖 Action completed successfully');
             return actionResponse;
-          } else {
-            console.log('🤖 Action failed or returned error');
           }
         } catch (error) {
-          console.warn('Database action failed:', error);
-          // Return specific error message
-          const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan sistem';
-          const errorResponse = { 
-            text: `❌ Gagal melakukan aksi: ${errorMessage}`, 
-            type: 'error' 
-          };
-          this.history.push({ role: 'user', content: message });
-          this.history.push({ role: 'assistant', content: errorResponse.text });
-          this.savePersistedData();
-          return errorResponse;
+          console.warn('Database action failed, falling back to AI:', error);
+          // Continue to AI response
+        }
+      } else if (readIntents.includes(intent) && userId) {
+        console.log('🤖 Detected read intent, trying database query:', intent);
+        try {
+          const dbResponse = await this.queryDatabase(intent, message, userId);
+          if (dbResponse && dbResponse.type !== 'error') {
+            this.history.push({ role: 'user', content: message });
+            this.history.push({ role: 'assistant', content: dbResponse.text });
+            this.savePersistedData();
+            console.log('🤖 Database query successful');
+            return dbResponse;
+          }
+        } catch (error) {
+          console.warn('Database query failed, falling back to AI:', error);
+          // Continue to AI response
         }
       }
+
+      // For all other cases (including unclear intents), use AI with enhanced context
+      console.log('🤖 Using AI response for natural conversation');
 
       // Track analytics
       this.analytics.totalConversations++;
@@ -150,23 +141,27 @@ export class ChatbotService {
         (this.analytics.popularCommands.get(intent) || 0) + 1
       );
 
-      // Emergency detection
-      if (this.containsEmergencyKeywords(normalizedMessage)) {
-        this.analytics.emergencyCount++;
-        return this.handleEmergency(message);
-      }
-
       // Add to history
       this.history.push({ role: 'user', content: message });
 
       const startTime = Date.now();
 
-      // Get response from Grok
+      // Get enhanced AI response with action awareness
       const response = await this.openRouter.generateResponse(message, {
         history: this.history.slice(-10), // Keep last 10 messages
         intent: intent,
         currentPage: this.detectCurrentPage(),
-        businessName: this.businessName // Pass business name for personalization
+        businessName: this.businessName,
+        // Enhanced context for natural action detection
+        availableActions: {
+          canCreateOrders: !!userId,
+          canUpdateInventory: !!userId,
+          canCreateRecipes: !!userId,
+          canCreatePromos: !!userId,
+          canSearchOrders: !!userId,
+          canGenerateReports: !!userId
+        },
+        systemPrompt: this.getEnhancedSystemPrompt()
       });
 
       const responseTime = Date.now() - startTime;
@@ -174,7 +169,7 @@ export class ChatbotService {
 
       // Add response to history
       this.history.push({ role: 'assistant', content: response.text });
-      this.savePersistedData(); // Save after AI response
+      this.savePersistedData();
 
       return response;
     } catch (error) {
@@ -343,6 +338,57 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
     if (this.analytics.emergencyCount > 10) { // High emergency count
       console.warn('🚨 High emergency count detected. Review safety protocols.');
     }
+  }
+
+  // Enhanced system prompt for natural conversation with action awareness
+  private getEnhancedSystemPrompt(): string {
+    const isLoggedIn = !!this.userId;
+
+    return `You are a helpful AI assistant for ${this.businessName}, a bakery management system.
+
+CAPABILITIES:
+${isLoggedIn ? `
+✅ CAN perform database actions:
+- Create new orders (tambah pesanan/buat pesanan)
+- Update inventory stock (update stok)
+- Create new recipes (tambah resep)
+- Create promotions (tambah promo)
+- Search existing orders (cari pesanan)
+- Generate reports (laporan)
+- Add operational costs (tambah biaya)
+
+✅ ALWAYS execute database actions when users request them naturally:
+- "Buatkan pesanan donat untuk Bu Rika 5000 rupiah" → Create order in database
+- "Tambah stok tepung 10 kg" → Update inventory in database
+- "Buat resep baru kue coklat" → Create recipe in database
+
+✅ For orders, extract: customer name, amount, product type
+✅ For inventory, extract: material name, quantity change
+✅ For recipes, extract: recipe name, selling price
+
+❌ NEVER simulate actions - ALWAYS perform real database operations
+❌ NEVER give fake order numbers - use real ones from database
+❌ NEVER say "I would create" - actually CREATE it
+` : `
+❌ CANNOT perform database actions (user not logged in)
+- Only provide information and guidance
+- Suggest logging in for full features
+`}
+
+RESPONSE STYLE:
+- Be natural and conversational in Indonesian
+- Use emoji appropriately
+- For successful actions, show real database results
+- For errors, explain clearly what went wrong
+- Always confirm when actions are completed
+
+BUSINESS CONTEXT:
+- This is a bakery management system
+- Products: donat, roti, kue, cake, pastry
+- Focus on order management, inventory, recipes, promotions
+- Support Indonesian language primarily
+
+If user asks to perform an action, DO IT through the database system. Don't just talk about it.`;
   }
 
   private async performDatabaseAction(intent: string, message: string, userId: string): Promise<any> {

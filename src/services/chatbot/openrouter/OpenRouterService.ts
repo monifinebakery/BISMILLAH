@@ -5,7 +5,7 @@ export class OpenRouterService {
   private baseUrl = 'https://openrouter.ai/api/v1';
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || import.meta.env.VITE_OPENROUTER_API_KEY;
+    this.apiKey = apiKey || import.meta.env.VITE_OPENROUTER_API_KEY || '';
     
     // Environment detection
     const isDev = import.meta.env.DEV;
@@ -32,7 +32,7 @@ export class OpenRouterService {
       const messages = [
         {
           role: 'system',
-          content: this.buildSystemPrompt(context)
+          content: context.systemPrompt || this.buildSystemPrompt(context)
         },
         {
           role: 'user', 

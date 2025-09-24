@@ -4,7 +4,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap } from 'lucide-react';
 import { useResponsiveTooltip } from '../hooks/useResponsiveTooltip';
-import { formatCurrency } from '../utils/formatters';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { getCostDistribution, getDominantCostComponent } from '../utils/calculations';
 import type { CostBreakdown } from '../utils/types';
 
@@ -49,9 +49,10 @@ const LegendItem: React.FC<LegendItemProps> = ({
 
 export const BreakdownChart: React.FC<BreakdownChartProps> = ({
   costBreakdown,
-  isUsingAutoOverhead = false,
+  isUsingAutoOverhead,
 }) => {
-  const { isMobile } = useResponsiveTooltip();
+  const { formatCurrency } = useSafeCurrency();
+  const tooltip = useResponsiveTooltip();
   const costDistribution = getCostDistribution(costBreakdown);
   const dominantComponent = getDominantCostComponent(costBreakdown);
 

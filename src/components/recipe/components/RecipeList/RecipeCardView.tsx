@@ -26,7 +26,8 @@ import {
   Clock,
   Users,
 } from 'lucide-react';
-import { formatCurrency, formatPercentage, getProfitabilityLevel } from '../../services/recipeUtils';
+import { formatPercentage, getProfitabilityLevel } from '../../services/recipeUtils';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { Recipe, RecipeSortField } from '../../types';
 
 interface RecipeCardViewProps {
@@ -63,6 +64,8 @@ const RecipeCardView: React.FC<RecipeCardViewProps> = ({
   onSelectAll,
   isAllSelected = false,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
+  
   // Safe highlight function
   const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   const highlightText = (text: string, term: string) => {

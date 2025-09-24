@@ -2,7 +2,6 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
-import PreloadingDemo from '@/components/PreloadingDemo';
 
 const preloadingRoutes = (
   <Route 
@@ -14,7 +13,6 @@ const preloadingRoutes = (
         priority="low"
         preloadOnHover={false}
       >
-        <PreloadingDemo />
       </OptimizedRouteWrapper>
     } 
   />

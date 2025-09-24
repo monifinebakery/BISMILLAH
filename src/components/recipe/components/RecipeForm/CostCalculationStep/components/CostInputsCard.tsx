@@ -20,7 +20,7 @@ import {
 } from 'lucide-react';
 import { ResponsiveTooltip } from './shared/ResponsiveTooltip';
 import { useOverheadManagement } from '../hooks/useOverheadManagement';
-import { formatCurrency } from '../utils/formatters';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { CostCalculationData, ValidationErrors } from '../utils/types';
 
 interface CostInputsCardProps {
@@ -38,6 +38,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
   onUpdate,
   isLoading = false,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   const overheadManagement = useOverheadManagement({
     ingredientCost,
     jumlah_porsi: data.jumlah_porsi,

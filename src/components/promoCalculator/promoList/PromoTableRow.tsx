@@ -6,20 +6,22 @@ import {
 } from 'lucide-react';
 
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 const PromoTableRow = ({ 
-  const { formatCurrency } = useSafeCurrency();  promo, 
+  promo, 
   isSelected, 
   onSelectChange, 
   onEdit, 
   onDelete, 
   onToggleStatus 
 }: any) => {
+  const { formatCurrency } = useSafeCurrency();
   
 
 
-  const getPromoIcon = (type) => {
-  const { formatCurrency } = useSafeCurrency();    switch (type) {
+  const getPromoIcon = (type: string) => {
+    switch (type) {
       case 'bogo': return <Gift className="h-4 w-4 text-green-600" />;
       case 'discount': return <Percent className="h-4 w-4 text-blue-600" />;
       case 'bundle': return <Package className="h-4 w-4 text-purple-600" />;
@@ -27,8 +29,8 @@ const PromoTableRow = ({
     }
   };
 
-  const getPromoTypeLabel = (type) => {
-  const { formatCurrency } = useSafeCurrency();    switch (type) {
+  const getPromoTypeLabel = (type: string) => {
+    switch (type) {
       case 'bogo': return 'BOGO';
       case 'discount': return 'Diskon';
       case 'bundle': return 'Bundle';
@@ -36,14 +38,14 @@ const PromoTableRow = ({
     }
   };
 
-  const getStatusBadge = (status) => {
-  const { formatCurrency } = useSafeCurrency();    const statusConfig = {
-  const { formatCurrency } = useSafeCurrency();      aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
       nonaktif: { bg: 'bg-red-100', text: 'text-red-800', label: 'Non-aktif' },
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' }
     };
     
-    const config = statusConfig[status] || statusConfig.draft;
+    const config = statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
     
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.bg} ${config.text}`}>
@@ -53,16 +55,16 @@ const PromoTableRow = ({
   };
 
   const handleToggleClick = () => {
-  const { formatCurrency } = useSafeCurrency();    const newStatus = promo.status === 'aktif' ? 'nonaktif' : 'aktif';
+    const newStatus = promo.status === 'aktif' ? 'nonaktif' : 'aktif';
     onToggleStatus(promo.id, newStatus);
   };
 
   const handleEditClick = () => {
-  const { formatCurrency } = useSafeCurrency();    onEdit(promo);
+    onEdit(promo);
   };
 
   const handleDeleteClick = () => {
-  const { formatCurrency } = useSafeCurrency();    if (window.confirm(`Yakin ingin menghapus promo "${promo.nama_promo}"?`)) {
+    if (window.confirm(`Yakin ingin menghapus promo "${promo.nama_promo}"?`)) {
       onDelete(promo.id);
     }
   };

@@ -1,0 +1,10 @@
+src/components/financial/components/DailySummaryWidget.tsx
+src/components/recipe/components/RecipeList/RecipeCardView.tsx
+src/components/recipe/components/RecipeList/RecipeTable.tsx
+src/components/recipe/components/RecipeList/RecipeStats.tsx
+src/components/recipe/components/CostCalculationSection.tsx
+src/components/recipe/components/IngredientsSection.tsx
+src/components/recipe/components/RecipeForm/ingredients-step/components/IngredientSelector.tsx
+src/components/recipe/components/RecipeForm/ingredients-step/components/ConversionInfo.tsx
+src/components/recipe/components/RecipeForm/ingredients-step/IngredientsStep.tsx
+src/components/recipe/components/RecipeForm/CostCalculationStep/components/IngredientCostSummary.tsx

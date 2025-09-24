@@ -4,7 +4,8 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Calendar, ArrowUp, ArrowDown, Wallet, Clock } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatCurrency, formatTime } from '@/lib/shared';
+import { formatTime } from '@/lib/shared';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // ==============================================
 // TYPES
@@ -40,6 +41,8 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
   transactions,
   className,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
+  
   // Data hari ini
   const todayData = useMemo((): TodayData => {
     const today = new Date().toISOString().split('T')[0];

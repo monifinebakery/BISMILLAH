@@ -5,7 +5,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { TrendingUp, Calculator, DollarSign, Package, Users, PieChart } from "lucide-react";
-import { formatCurrency, formatPercentage } from "@/utils/formatUtils";
+import { formatPercentage } from "@/utils/formatUtils";
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // 🧮 Updated interface to match new HPP system
 interface HPPCalculationResult {
@@ -33,6 +34,7 @@ interface EnhancedResultDisplayProps {
 }
 
 const EnhancedResultDisplay = ({ hppData, namaResep }: EnhancedResultDisplayProps) => {
+  const { formatCurrency } = useSafeCurrency();
   const profitPerPorsi = hppData.hargaJualPorsi - hppData.hppPerPorsi;
   const profitPerPcs = hppData.hargaJualPerPcs - hppData.hppPerPcs;
   const totalPcsProduced = hppData.jumlahPorsi * hppData.jumlahPcsPerPorsi;

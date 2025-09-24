@@ -3,6 +3,15 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { Loader2 } from 'lucide-react';
 
+// Interface for action items
+interface ActionItem {
+  type: 'primary' | 'secondary' | 'destructive';
+  label: string;
+  onClick: () => void;
+  disabled?: boolean;
+  icon?: React.ComponentType<any>;
+}
+
 interface ActionButtonsProps {
   onCancel?: () => void;
   onSubmit?: () => void;
@@ -20,6 +29,10 @@ interface ActionButtonsProps {
   children?: React.ReactNode;
   /** Layout direction */
   direction?: 'row' | 'col';
+  /** Array of custom actions (used by dialogs) */
+  actions?: ActionItem[];
+  /** Loading text for custom actions */
+  loadingText?: string;
 }
 
 const ActionButtons: React.FC<ActionButtonsProps> = ({
@@ -36,8 +49,49 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   submitClassName,
   cancelClassName,
   children,
-  direction = 'row'
+  direction = 'row',
+  actions,
+  loadingText,
 }) => {
+  // If actions array is provided, use custom actions layout
+  if (actions && actions.length > 0) {
+    return (
+      <div className={cn(
+        'flex gap-2',
+        direction === 'col' ? 'flex-col' : 'flex-col-reverse sm:flex-row sm:justify-end',
+        className
+      )}>
+        {actions.map((action, index) => {
+          const Icon = action.icon;
+          const isDisabled = action.disabled || isLoading;
+          
+          return (
+            <Button
+              key={index}
+              type="button"
+              variant={action.type === 'primary' ? 'default' : action.type === 'destructive' ? 'destructive' : 'outline'}
+              onClick={action.onClick}
+              disabled={isDisabled}
+              className={cn(
+                'input-mobile-safe',
+                action.type === 'primary' && 'bg-orange-500 hover:bg-orange-600',
+                submitClassName
+              )}
+            >
+              {isLoading && loadingText && (
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              )}
+              {Icon && <Icon className="h-4 w-4 mr-2" />}
+              <span className="text-overflow-safe">
+                {isLoading && loadingText ? loadingText : action.label}
+              </span>
+            </Button>
+          );
+        })}
+      </div>
+    );
+  }
+
   // If children provided, use custom layout
   if (children) {
     return (
@@ -155,4 +209,4 @@ const FormActions = {
 };
 
 export { ActionButtons, FormActions };
-export type { ActionButtonsProps };
+export type { ActionButtonsProps, ActionItem };

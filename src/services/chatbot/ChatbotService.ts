@@ -1,56 +1,52 @@
-import { supabase } from '@/integrations/supabase/client';
 import { OpenRouterService } from './openrouter/OpenRouterService';
+
+// System prompt for accurate chatbot responses
+const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for HPP by Monifine. You ONLY answer questions about bakery data and operations. You MUST be accurate and never make up information.
+
+## What you CAN do:
+- Answer questions about warehouse inventory (bahan baku)
+- Show order information and search orders
+- Display sales reports and financial summaries
+- Explain business rules and guidelines
+- Provide help about using the bakery management system
+
+## What you CANNOT do:
+- Create, update, or delete any data
+- Perform any actions (like creating orders, updating stock)
+- Give advice outside of bakery management
+- Answer questions about topics other than the bakery system
+- Make up or invent data that doesn't exist
+
+## How to respond:
+- Always check if the requested data exists before responding
+- If data doesn't exist, say so clearly (e.g., "Belum ada data bahan baku")
+- Use the exact data from the database queries
+- Format numbers as Indonesian Rupiah (Rp XXX,XXX)
+- Be polite and helpful in Indonesian language
+- Keep responses concise and accurate
+- If user asks for something you can't do, politely explain what you can help with
+
+## Business Context:
+- This is HPP by Monifine - Progressive Web App for bakery HPP calculations
+- Focus on accurate cost calculations for Indonesian bakery businesses
+- Support UMKM (small businesses) with professional bakery management
+
+Remember: Accuracy is more important than being comprehensive. If you're not sure about something, it's better to admit it than guess.`;
 
 export class ChatbotService {
   private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string, timestamp: number, importance: number}> = [];
   private businessName: string = 'Bisnis Anda';
-  private ownerName: string = 'Kak'; // Default owner name
+  private ownerName: string = 'Kak';
   private readonly userId?: string;
   private readonly historyStorageKey: string;
   private readonly businessNameStorageKey: string;
   private readonly ownerNameStorageKey: string;
 
-  // Conversation context for NLP understanding
-  private conversationContext: {
-    currentTopic: string;
-    lastIntent: string;
-    activeEntities: Record<string, any>;
-    conversationState: 'general' | 'inventory_focus' | 'order_focus' | 'report_focus' | 'emergency';
-    confidence: number;
-  } = {
-    currentTopic: 'general',
-    lastIntent: 'general',
-    activeEntities: {},
-    conversationState: 'general',
-    confidence: 0.5
-  };
-
-  // Enhanced memory management
-  private memoryConfig = {
-    maxHistorySize: 100, // Maximum messages in memory
-    persistentHistorySize: 30, // Messages saved to localStorage
-    contextWindowSize: 8, // Messages sent to AI
-    compressionThreshold: 50, // Compress messages older than this
-    cleanupInterval: 5 * 60 * 1000, // 5 minutes cleanup interval
-    maxStorageSize: 2 * 1024 * 1024, // 2MB max localStorage usage
-  };
-
-  private lastCleanup: number = Date.now();
-
-  // Chat persistence key
-  // Analytics tracking
   private analytics = {
     totalConversations: 0,
     popularCommands: new Map<string, number>(),
     responseTimes: [],
-    emergencyCount: 0,
-    memoryUsage: {
-      totalMessages: 0,
-      compressedMessages: 0,
-      storageSize: 0,
-      lastCleanup: Date.now()
-    }
   };
 
   constructor(userId?: string) {
@@ -64,7 +60,7 @@ export class ChatbotService {
   }
 
   // Helper method to create message objects with metadata
-  private createMessage(role: 'user' | 'assistant', content: string, importance: number = 1): {role: 'user' | 'assistant', content: string, timestamp: number, importance: number} {
+  private createMessage(role: 'user' | 'assistant', content: string, importance: number = 1) {
     return {
       role,
       content,
@@ -73,37 +69,9 @@ export class ChatbotService {
     };
   }
 
-  // Calculate message importance based on content
-  private calculateImportance(content: string): number {
-    let importance = 1; // Base importance
-
-    // Higher importance for action-related messages
-    if (content.includes('✅') || content.includes('berhasil') || content.includes('created') || content.includes('updated')) {
-      importance += 2; // Successful actions
-    }
-
-    // High importance for errors or warnings
-    if (content.includes('❌') || content.includes('error') || content.includes('gagal') || content.includes('warning')) {
-      importance += 3;
-    }
-
-    // Medium importance for questions or requests
-    if (content.includes('?') || content.includes('tolong') || content.includes('bisa') || content.includes('gimana')) {
-      importance += 1;
-    }
-
-    // Low importance for greetings and acknowledgments
-    if (content.includes('👋') || content.includes('halo') || content.includes('iya') || content.includes('oke')) {
-      importance = Math.max(0.5, importance - 1);
-    }
-
-    return importance;
-  }
-
   // Load persisted chat data
   private loadPersistedData() {
     try {
-      // Load chat history
       const savedHistory = localStorage.getItem(this.historyStorageKey);
       if (savedHistory) {
         const parsedHistory = JSON.parse(savedHistory);
@@ -112,26 +80,17 @@ export class ChatbotService {
         }
       }
 
-      // Load business name
       const savedBusinessName = localStorage.getItem(this.businessNameStorageKey);
       if (savedBusinessName) {
         this.businessName = savedBusinessName;
       }
 
-      // Load owner name
       const savedOwnerName = localStorage.getItem(this.ownerNameStorageKey);
       if (savedOwnerName) {
         this.ownerName = savedOwnerName;
       }
-
-      console.log('🤖 Loaded persisted chat data:', { 
-        messages: this.history.length, 
-        businessName: this.businessName,
-        ownerName: this.ownerName
-      });
     } catch (error) {
-      console.warn('🤖 Failed to load persisted chat data:', error);
-      // Reset to defaults if loading fails
+      console.warn('Failed to load persisted chat data:', error);
       this.history = [];
       this.businessName = 'Bisnis Anda';
       this.ownerName = 'Kak';
@@ -141,110 +100,44 @@ export class ChatbotService {
   // Save chat data to localStorage
   private savePersistedData() {
     try {
-      // Save chat history (keep only last 50 messages to avoid storage bloat)
       const recentHistory = this.history.slice(-50);
       localStorage.setItem(this.historyStorageKey, JSON.stringify(recentHistory));
-      
-      // Save business name
       localStorage.setItem(this.businessNameStorageKey, this.businessName);
-
-      // Save owner name
       localStorage.setItem(this.ownerNameStorageKey, this.ownerName);
-      
-      console.log('🤖 Saved chat data:', { messages: recentHistory.length });
     } catch (error) {
-      console.warn('🤖 Failed to save chat data:', error);
+      console.warn('Failed to save chat data:', error);
     }
   }
 
   // Set business name for personalization
   setBusinessName(name: string) {
     this.businessName = name || 'Bisnis Anda';
-    console.log('🤖 Chatbot business name set to:', this.businessName);
-    this.savePersistedData(); // Save after update
+    this.savePersistedData();
   }
 
   // Set owner name for personalization
   setOwnerName(name: string) {
     this.ownerName = name || 'Kak';
-    console.log('🤖 Chatbot owner name set to:', this.ownerName);
-    this.savePersistedData(); // Save after update
+    this.savePersistedData();
   }
 
   async processMessage(message: string, userId?: string): Promise<any> {
     try {
-      // Debug: Log incoming parameters
-      console.log('🤖 ChatbotService.processMessage called:', {
-        message,
-        userId,
-        userIdType: typeof userId,
-        userIdLength: userId?.length,
-        hasUserId: !!userId
-      });
-
-      // Validate input
       if (!message.trim()) {
         return { text: 'Pesan tidak boleh kosong.', type: 'error' };
       }
 
-      // Pre-processing
-      const normalizedMessage = this.normalizeMessage(message);
-      const intent = await this.detectIntent(normalizedMessage);
+      // Detect intent using keywords
+      const intent = this.detectIntentSimple(message);
 
-      console.log('🤖 Processing message:', { intent, userId, normalizedMessage, serviceUserId: this.userId });
-
-      // Check if this intent requires database query (read operations)
-      const readIntents = ['orderSearch', 'inventory', 'report', 'cost'];
-      const actionIntents = ['purchase', 'orderCreate', 'orderDelete', 'inventoryUpdate', 'recipeCreate', 'promoCreate'];
-
-      // Always try to get AI response first for natural conversation
-      // But prioritize database actions if intent is clearly actionable
-      if (actionIntents.includes(intent) && userId) {
-        console.log('🤖 Detected actionable intent, trying database action first:', intent);
-        try {
-          const actionResponse = await this.performDatabaseAction(intent, message, userId);
-          if (actionResponse && actionResponse.type !== 'error') {
-            const userImportance = this.calculateImportance(message);
-            const assistantImportance = this.calculateImportance(actionResponse.text);
-            
-            this.history.push(this.createMessage('user', message, userImportance));
-            this.history.push(this.createMessage('assistant', actionResponse.text, assistantImportance));
-            this.savePersistedData();
-            this.performMemoryCleanup();
-            console.log('🤖 Action completed successfully');
-            return actionResponse;
-          }
-        } catch (error) {
-          console.warn('Database action failed, falling back to AI:', error);
-          // Continue to AI response
-        }
-      } else if (readIntents.includes(intent) && userId) {
-        console.log('🤖 Detected read intent, trying database query:', intent);
-        try {
-          const dbResponse = await this.queryDatabase(intent, message, userId);
-          if (dbResponse && dbResponse.type !== 'error') {
-            this.history.push(this.createMessage('user', message));
-            this.history.push(this.createMessage('assistant', dbResponse.text));
-            this.savePersistedData();
-            this.performMemoryCleanup();
-            console.log('🤖 Database query successful');
-            return dbResponse;
-          }
-        } catch (error) {
-          console.warn('Database query failed, falling back to AI:', error);
-          // Continue to AI response
-        }
+      // Check authentication for database queries
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session && ['inventory', 'orderSearch', 'report'].includes(intent)) {
+        return {
+          text: 'Untuk mengakses data asli, silakan login terlebih dahulu.',
+          type: 'error'
+        };
       }
-
-      // For all other cases (including unclear intents), use AI with enhanced context
-      console.log('🤖 Using AI response for natural conversation');
-
-      // Track analytics
-      this.analytics.totalConversations++;
-      this.analytics.popularCommands.set(
-        intent,
-        (this.analytics.popularCommands.get(intent) || 0) + 1
-      );
 
       // Add to history
       this.history.push(this.createMessage('user', message));
@@ -252,34 +145,46 @@ export class ChatbotService {
       const startTime = Date.now();
 
       try {
-        const response = await this.openRouter.generateResponse(message, {
-          systemPrompt: CHATBOT_SYSTEM_PROMPT,          history: this.getContextHistory(), // Smart context window
-          intent: intent,
-          currentPage: this.detectCurrentPage(),
-          businessName: this.businessName,
-          // Enhanced context for natural action detection
-          availableActions: {
-            canCreateOrders: !!userId,
-            canUpdateInventory: !!userId,
-            canCreateRecipes: !!userId,
-            canCreatePromos: !!userId,
-            canSearchOrders: !!userId,
-            canGenerateReports: !!userId
-          },
-          systemPrompt: this.getEnhancedSystemPrompt(userId) // Pass userId to system prompt
-        });
+        // Query database based on intent
+        let result: any = null;
+
+        switch (intent) {
+          case 'inventory':
+            result = await this.queryInventory(userId!);
+            break;
+          case 'orderSearch':
+            result = await this.queryOrders(userId!);
+            break;
+          case 'report':
+            result = await this.queryReport(userId!);
+            break;
+          case 'rules':
+            result = this.getRules();
+            break;
+          default:
+            result = {
+              type: 'general',
+              text: `Halo! Saya bisa membantu Anda dengan:
+• Cek stok bahan baku: "cek stok bahan baku"
+• Cari pesanan: "cari pesanan"
+• Laporan penjualan: "laporan bulan ini"
+• Aturan bisnis: "aturan"
+
+Coba ketik salah satu perintah di atas! 😊`
+            };
+        }
 
         const responseTime = Date.now() - startTime;
         this.analytics.responseTimes.push(responseTime);
 
-        // Add response to history only if response is valid
-        if (response && response.text) {
-          this.history.push(this.createMessage('assistant', response.text));
+        // Add response to history
+        if (result && result.text) {
+          this.history.push(this.createMessage('assistant', result.text));
           this.savePersistedData();
-          this.performMemoryCleanup();
         }
 
-        return response;
+        return result;
+
       } catch (error) {
         console.error('Chatbot error:', error);
         return {
@@ -296,176 +201,9 @@ export class ChatbotService {
     }
   }
 
-  private normalizeMessage(message: string): string {
-    return message
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s]/g, ' ') // Remove special chars
-      .replace(/\s+/g, ' '); // Normalize spaces
-  }
-
-  private detectIntent(message: string): string {
-    // Use keyword-based intent detection for reliable matching
-    // Direct keyword matching approach
-    return this.detectIntentSimple(message);
-  }
-
-  private async detectIntentWithAI(message: string): Promise<string> {
-    try {
-      console.log('🧠 Analyzing intent with AI for message:', message);
-
-      const intentAnalysis = await this.openRouter.generateIntentAnalysis(message, {
-        history: this.getContextHistory(),
-        currentPage: this.detectCurrentPage(),
-        businessName: this.businessName,
-        availableActions: {
-          canCreateOrders: true,
-          canUpdateInventory: true,
-          canCreateRecipes: true,
-          canCreatePromos: true,
-          canSearchOrders: true,
-          canGenerateReports: true
-        },
-        // Enhanced context for better NLP understanding
-        conversationContext: {
-          currentTopic: this.conversationContext.currentTopic,
-          lastIntent: this.conversationContext.lastIntent,
-          conversationState: this.conversationContext.conversationState,
-          activeEntities: this.conversationContext.activeEntities
-        },
-        systemPrompt: `You are an AI intent classifier for a bakery management chatbot. Analyze the user's message and determine the most appropriate intent considering the conversation context.
-
-Available intents:
-- greeting: General greetings and hello messages
-- orderSearch: Finding, searching, or viewing existing orders
-- inventory: Checking stock levels, warehouse status, or material availability
-- purchase: Adding new purchases or buying materials
-- orderCreate: Creating new customer orders
-- orderDelete: Canceling or deleting orders
-- inventoryUpdate: Updating stock levels or material quantities
-- recipeCreate: Adding new recipes or products
-- promoCreate: Creating promotional offers
-- report: Generating sales reports, financial summaries, or analytics
-- cost: Managing operational costs or expenses
-- help: Asking for help, instructions, or guidance
-- emergency: Urgent situations, emergencies, or critical issues
-- general: General conversation, questions, or unclear requests
-
-Current conversation context:
-- Topic: ${this.conversationContext.currentTopic}
-- Last intent: ${this.conversationContext.lastIntent}
-- State: ${this.conversationContext.conversationState}
-
-Consider context, synonyms, and natural language variations. Return only the intent name that best matches the user's message in the current conversation context.`
-      });
-
-      console.log('🤖 AI Intent Analysis Result:', intentAnalysis);
-
-      // Extract intent from AI response
-      if (intentAnalysis && intentAnalysis.intent) {
-        const detectedIntent = intentAnalysis.intent.toLowerCase().trim();
-
-        // Validate that the intent is one of our supported intents
-        const validIntents = [
-          'greeting', 'orderSearch', 'inventory', 'purchase', 'orderCreate',
-          'orderDelete', 'inventoryUpdate', 'recipeCreate', 'promoCreate',
-          'report', 'cost', 'help', 'emergency', 'general'
-        ];
-
-        if (validIntents.includes(detectedIntent)) {
-          console.log('✅ AI-detected intent:', detectedIntent);
-
-          // Update conversation context
-          this.updateConversationContext(detectedIntent, message, intentAnalysis.confidence || 0.8);
-
-          return detectedIntent;
-        }
-      }
-
-      // Fallback to keyword matching if AI fails or returns invalid intent
-      console.log('⚠️ AI intent detection failed, falling back to keyword matching');
-      const keywordIntent = this.detectIntentWithKeywords(message);
-      this.updateConversationContext(keywordIntent, message, 0.5);
-      return keywordIntent;
-
-    } catch (error) {
-      console.warn('🧠 AI intent detection error, using keyword fallback:', error);
-      const keywordIntent = this.detectIntentWithKeywords(message);
-      this.updateConversationContext(keywordIntent, message, 0.5);
-      return keywordIntent;
-    }
-  }
-
-  private updateConversationContext(intent: string, message: string, confidence: number): void {
-    // Update conversation state based on intent
-    switch (intent) {
-      case 'inventory':
-      case 'inventoryUpdate':
-        this.conversationContext.conversationState = 'inventory_focus';
-        this.conversationContext.currentTopic = 'inventory_management';
-        break;
-      case 'orderCreate':
-      case 'orderSearch':
-      case 'orderDelete':
-        this.conversationContext.conversationState = 'order_focus';
-        this.conversationContext.currentTopic = 'order_management';
-        break;
-      case 'report':
-        this.conversationContext.conversationState = 'report_focus';
-        this.conversationContext.currentTopic = 'business_analytics';
-        break;
-      case 'emergency':
-        this.conversationContext.conversationState = 'emergency';
-        this.conversationContext.currentTopic = 'emergency_response';
-        break;
-      default:
-        this.conversationContext.conversationState = 'general';
-        this.conversationContext.currentTopic = 'general_conversation';
-    }
-
-    this.conversationContext.lastIntent = intent;
-    this.conversationContext.confidence = confidence;
-
-    // Extract and store entities from message (simple implementation)
-    this.extractEntitiesFromMessage(message);
-
-    console.log('📝 Updated conversation context:', {
-      topic: this.conversationContext.currentTopic,
-      state: this.conversationContext.conversationState,
-      intent: this.conversationContext.lastIntent,
-      confidence: this.conversationContext.confidence,
-      entities: Object.keys(this.conversationContext.activeEntities)
-    });
-  }
-
-  private extractEntitiesFromMessage(message: string): void {
-    const lowerMessage = message.toLowerCase();
-
-    // Extract numbers (quantities, amounts)
-    const numberMatches = message.match(/\d+(\.\d+)?/g);
-    if (numberMatches) {
-      this.conversationContext.activeEntities.quantities = numberMatches.map(n => parseFloat(n));
-    }
-
-    // Extract material names (simple pattern)
-    const materialPattern = /(tepung|gula|telur|margarin|susu|ragi|garam)/gi;
-    const materials = message.match(materialPattern);
-    if (materials) {
-      this.conversationContext.activeEntities.materials = materials;
-    }
-
-    // Extract customer names (capitalized words)
-    const customerPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
-    const customers = message.match(customerPattern);
-    if (customers) {
-      this.conversationContext.activeEntities.customers = customers;
-    }
-  }
-
   private detectIntentSimple(message: string): string {
     const msg = message.toLowerCase();
 
-    // Simple keyword matching
     if (msg.includes('cek stok') || msg.includes('inventory') || msg.includes('bahan baku') || msg.includes('warehouse')) {
       return 'inventory';
     }
@@ -480,16 +218,176 @@ Consider context, synonyms, and natural language variations. Return only the int
 
     if (msg.includes('aturan') || msg.includes('rules') || msg.includes('panduan')) {
       return 'rules';
-  }
-}    }
+    }
 
+    return 'general';
+  }
+
+  private async queryInventory(userId: string) {
+    try {
+      const { data: materials, error } = await supabase
+        .from('bahan_baku')
+        .select('nama, stok, satuan, harga_satuan')
+        .eq('user_id', userId)
+        .limit(10);
+
+      if (error) throw error;
+
+      if (!materials || materials.length === 0) {
+        return {
+          type: 'inventory',
+          text: '📦 Belum ada data bahan baku di warehouse Anda.'
+        };
+      }
+
+      const list = materials.map((item: any) =>
+        `• ${item.nama}: ${item.stok} ${item.satuan}`
+      ).join('\n');
+
+      return {
+        type: 'inventory',
+        text: `📦 Status Bahan Baku:\n\n${list}`,
+        data: materials
+      };
+
+    } catch (error: any) {
+      console.error('Inventory query error:', error);
+      return {
+        type: 'error',
+        text: `❌ Gagal mengakses data warehouse: ${error.message}`
+      };
+    }
+  }
+
+  private async queryOrders(userId: string) {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('nomor_pesanan, nama_pelanggan, total_harga, status')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (error) throw error;
+
+      if (!orders || orders.length === 0) {
+        return {
+          type: 'orderSearch',
+          text: '🔍 Tidak ada data pesanan.'
+        };
+      }
+
+      const list = orders.map((order: any) =>
+        `• ${order.nomor_pesanan}: ${order.nama_pelanggan} - Rp ${order.total_harga.toLocaleString('id-ID')}`
+      ).join('\n');
+
+      return {
+        type: 'orderSearch',
+        text: `📋 Pesanan Terbaru:\n\n${list}`,
+        data: orders
+      };
+
+    } catch (error: any) {
+      console.error('Order search error:', error);
+      return {
+        type: 'error',
+        text: `❌ Gagal mencari data pesanan: ${error.message}`
+      };
+    }
+  }
+
+  private async queryReport(userId: string) {
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+
+      const { data: sales, error: salesError } = await supabase
+        .from('orders')
+        .select('total_harga')
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .gte('created_at', `${currentMonth}-01T00:00:00`)
+        .lt('created_at', `${currentMonth}-32T00:00:00`);
+
+      if (salesError) throw salesError;
+
+      const totalSales = sales?.reduce((sum, order) => sum + (order.total_harga || 0), 0) || 0;
+
+      return {
+        type: 'report',
+        text: `📊 Laporan Bulan Ini:\n\n💰 Total Penjualan: Rp ${totalSales.toLocaleString('id-ID')}`,
+        data: { totalSales }
+      };
+
+    } catch (error: any) {
+      console.error('Report query error:', error);
+      return {
+        type: 'error',
+        text: `❌ Gagal membuat laporan: ${error.message}`
+      };
+    }
+  }
+
+  private getRules() {
+    return {
+      type: 'rules',
+      text: `📋 Aturan Bisnis HPP by Monifine:
+
+1. HPP harus dihitung akurat berdasarkan resep
+2. Waste factor minimal 0%, maksimal 50%
+3. Biaya operasional dialokasikan proporsional
+4. Margin keuntungan minimal 10% untuk sustainability
+5. Harga jual = HPP × (1 + margin target %)
+
+6. Semua bahan baku wajib ada nama, satuan, harga
+7. Stok bahan tidak boleh negatif
+8. Update harga supplier minimal bulanan
+9. Catat biaya operasional tepat waktu
+10. Monitor profit margin per resep
+
+💡 Tips: Fokus pada akurasi data dan efisiensi operasional!`
+    };
+  }
+
+  // Public methods
+  getHistory() {
+    return this.history;
+  }
+
+  clearHistory() {
+    this.history = [];
+    this.savePersistedData();
+    console.log('🤖 Chat history cleared');
+  }
+
+  clearPersistedData() {
+    try {
+      localStorage.removeItem(this.historyStorageKey);
+      localStorage.removeItem(this.businessNameStorageKey);
+      localStorage.removeItem(this.ownerNameStorageKey);
+      console.log('🤖 All persisted chat data cleared');
+    } catch (error) {
+      console.warn('🤖 Failed to clear persisted data:', error);
+    }
+  }
+
+  getAnalytics() {
+    return {
+      totalConversations: this.analytics.totalConversations,
+      averageResponseTime: this.analytics.responseTimes.length > 0
+        ? this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length
+        : 0,
+      topCommands: Array.from(this.analytics.popularCommands.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+    };
+  }
+}
 
 // Singleton instances per user
 const chatbotInstances: Map<string, ChatbotService> = new Map();
 
 export const getChatbotService = (userId?: string): ChatbotService => {
   if (!userId) {
-    // Fallback for anonymous users
     if (!chatbotInstances.has('anonymous')) {
       chatbotInstances.set('anonymous', new ChatbotService());
     }
@@ -497,16 +395,7 @@ export const getChatbotService = (userId?: string): ChatbotService => {
   }
 
   if (!chatbotInstances.has(userId)) {
-    chatbotInstances.set(userId, new ChatbotService());
+    chatbotInstances.set(userId, new ChatbotService(userId));
   }
   return chatbotInstances.get(userId)!;
-};
-
-// Legacy method for backward compatibility (but should use getChatbotService(userId))
-let chatbotInstance: ChatbotService | null = null;
-export const getChatbotServiceLegacy = (): ChatbotService => {
-  if (!chatbotInstance) {
-    chatbotInstance = new ChatbotService();
-  }
-  return chatbotInstance;
 };

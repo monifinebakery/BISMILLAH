@@ -698,9 +698,22 @@ function extractMaterialName(message: string): string | null {
     /inventory\s+(\w+)/i
   ];
 
+  // Exclude common words that are not specific material names
+  const excludeWords = [
+    'baku', 'mentah', 'basah', 'kering', 'semua', 'all', 'list',
+    'apa', 'yang', 'dong', 'deh', 'ya', 'nah', 'kok', 'nih',
+    'hampir', 'abis', 'habis', 'kurang', 'sedikit'
+  ];
+
   for (const pattern of patterns) {
     const match = message.match(pattern);
-    if (match) return match[1];
+    if (match && match[1]) {
+      const materialName = match[1].toLowerCase().trim();
+      // Skip if it's a common word or too generic
+      if (!excludeWords.includes(materialName) && materialName.length > 1) {
+        return match[1];
+      }
+    }
   }
   return null;
 }

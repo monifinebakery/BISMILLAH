@@ -28,6 +28,7 @@ export const SummaryCards: React.FC<SummaryCardsProps> = ({
   lastRefresh, 
   onRefresh 
 }) => {
+  const { formatCurrency } = useCurrency();
   const formatCurrency = (amount: number) => 
     new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR' }).format(amount);
 

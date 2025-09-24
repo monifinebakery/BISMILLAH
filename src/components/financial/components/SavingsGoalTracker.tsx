@@ -45,6 +45,7 @@ const SavingsGoalTracker: React.FC<SavingsGoalTrackerProps> = ({
   transactions, 
   className 
 }) => {
+  const { formatCurrency } = useCurrency();
   // State untuk target tabungan (dalam praktik nyata, ini harus disimpan di database)
   const [monthlyTarget, setMonthlyTarget] = useState<number>(() => {
     const saved = localStorage.getItem('umkm-savings-target');

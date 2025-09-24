@@ -90,6 +90,7 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
   transactions, 
   className 
 }) => {
+  const { formatCurrency } = useCurrency();
   // Analisis kategori pengeluaran bulan ini
   const categoryAnalysis = useMemo((): CategoryData[] => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM

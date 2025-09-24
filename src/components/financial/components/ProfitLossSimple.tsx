@@ -41,6 +41,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
   transactions, 
   className 
 }) => {
+  const { formatCurrency } = useCurrency();
   // Analisis data bulan ini
   const monthlyAnalysis = useMemo((): MonthlyAnalysis => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM

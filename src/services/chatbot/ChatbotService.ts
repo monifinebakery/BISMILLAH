@@ -11,6 +11,21 @@ export class ChatbotService {
   private readonly businessNameStorageKey: string;
   private readonly ownerNameStorageKey: string;
 
+  // Conversation context for NLP understanding
+  private conversationContext: {
+    currentTopic: string;
+    lastIntent: string;
+    activeEntities: Record<string, any>;
+    conversationState: 'general' | 'inventory_focus' | 'order_focus' | 'report_focus' | 'emergency';
+    confidence: number;
+  } = {
+    currentTopic: 'general',
+    lastIntent: 'general',
+    activeEntities: {},
+    conversationState: 'general',
+    confidence: 0.5
+  };
+
   // Enhanced memory management
   private memoryConfig = {
     maxHistorySize: 100, // Maximum messages in memory
@@ -165,7 +180,7 @@ export class ChatbotService {
 
       // Pre-processing
       const normalizedMessage = this.normalizeMessage(message);
-      const intent = this.detectIntent(normalizedMessage);
+      const intent = await this.detectIntent(normalizedMessage);
 
       console.log('🤖 Processing message:', { intent, userId, normalizedMessage, serviceUserId: this.userId });
 
@@ -281,6 +296,164 @@ export class ChatbotService {
   }
 
   private detectIntent(message: string): string {
+    // First try AI-powered intent detection for more natural understanding
+    // Fall back to keyword matching if AI fails
+    return this.detectIntentWithAI(message);
+  }
+
+  private async detectIntentWithAI(message: string): Promise<string> {
+    try {
+      console.log('🧠 Analyzing intent with AI for message:', message);
+
+      const intentAnalysis = await this.openRouter.generateIntentAnalysis(message, {
+        history: this.getContextHistory(),
+        currentPage: this.detectCurrentPage(),
+        businessName: this.businessName,
+        availableActions: {
+          canCreateOrders: true,
+          canUpdateInventory: true,
+          canCreateRecipes: true,
+          canCreatePromos: true,
+          canSearchOrders: true,
+          canGenerateReports: true
+        },
+        // Enhanced context for better NLP understanding
+        conversationContext: {
+          currentTopic: this.conversationContext.currentTopic,
+          lastIntent: this.conversationContext.lastIntent,
+          conversationState: this.conversationContext.conversationState,
+          activeEntities: this.conversationContext.activeEntities
+        },
+        systemPrompt: `You are an AI intent classifier for a bakery management chatbot. Analyze the user's message and determine the most appropriate intent considering the conversation context.
+
+Available intents:
+- greeting: General greetings and hello messages
+- orderSearch: Finding, searching, or viewing existing orders
+- inventory: Checking stock levels, warehouse status, or material availability
+- purchase: Adding new purchases or buying materials
+- orderCreate: Creating new customer orders
+- orderDelete: Canceling or deleting orders
+- inventoryUpdate: Updating stock levels or material quantities
+- recipeCreate: Adding new recipes or products
+- promoCreate: Creating promotional offers
+- report: Generating sales reports, financial summaries, or analytics
+- cost: Managing operational costs or expenses
+- help: Asking for help, instructions, or guidance
+- emergency: Urgent situations, emergencies, or critical issues
+- general: General conversation, questions, or unclear requests
+
+Current conversation context:
+- Topic: ${this.conversationContext.currentTopic}
+- Last intent: ${this.conversationContext.lastIntent}
+- State: ${this.conversationContext.conversationState}
+
+Consider context, synonyms, and natural language variations. Return only the intent name that best matches the user's message in the current conversation context.`
+      });
+
+      console.log('🤖 AI Intent Analysis Result:', intentAnalysis);
+
+      // Extract intent from AI response
+      if (intentAnalysis && intentAnalysis.intent) {
+        const detectedIntent = intentAnalysis.intent.toLowerCase().trim();
+
+        // Validate that the intent is one of our supported intents
+        const validIntents = [
+          'greeting', 'orderSearch', 'inventory', 'purchase', 'orderCreate',
+          'orderDelete', 'inventoryUpdate', 'recipeCreate', 'promoCreate',
+          'report', 'cost', 'help', 'emergency', 'general'
+        ];
+
+        if (validIntents.includes(detectedIntent)) {
+          console.log('✅ AI-detected intent:', detectedIntent);
+
+          // Update conversation context
+          this.updateConversationContext(detectedIntent, message, intentAnalysis.confidence || 0.8);
+
+          return detectedIntent;
+        }
+      }
+
+      // Fallback to keyword matching if AI fails or returns invalid intent
+      console.log('⚠️ AI intent detection failed, falling back to keyword matching');
+      const keywordIntent = this.detectIntentWithKeywords(message);
+      this.updateConversationContext(keywordIntent, message, 0.5);
+      return keywordIntent;
+
+    } catch (error) {
+      console.warn('🧠 AI intent detection error, using keyword fallback:', error);
+      const keywordIntent = this.detectIntentWithKeywords(message);
+      this.updateConversationContext(keywordIntent, message, 0.5);
+      return keywordIntent;
+    }
+  }
+
+  private updateConversationContext(intent: string, message: string, confidence: number): void {
+    // Update conversation state based on intent
+    switch (intent) {
+      case 'inventory':
+      case 'inventoryUpdate':
+        this.conversationContext.conversationState = 'inventory_focus';
+        this.conversationContext.currentTopic = 'inventory_management';
+        break;
+      case 'orderCreate':
+      case 'orderSearch':
+      case 'orderDelete':
+        this.conversationContext.conversationState = 'order_focus';
+        this.conversationContext.currentTopic = 'order_management';
+        break;
+      case 'report':
+        this.conversationContext.conversationState = 'report_focus';
+        this.conversationContext.currentTopic = 'business_analytics';
+        break;
+      case 'emergency':
+        this.conversationContext.conversationState = 'emergency';
+        this.conversationContext.currentTopic = 'emergency_response';
+        break;
+      default:
+        this.conversationContext.conversationState = 'general';
+        this.conversationContext.currentTopic = 'general_conversation';
+    }
+
+    this.conversationContext.lastIntent = intent;
+    this.conversationContext.confidence = confidence;
+
+    // Extract and store entities from message (simple implementation)
+    this.extractEntitiesFromMessage(message);
+
+    console.log('📝 Updated conversation context:', {
+      topic: this.conversationContext.currentTopic,
+      state: this.conversationContext.conversationState,
+      intent: this.conversationContext.lastIntent,
+      confidence: this.conversationContext.confidence,
+      entities: Object.keys(this.conversationContext.activeEntities)
+    });
+  }
+
+  private extractEntitiesFromMessage(message: string): void {
+    const lowerMessage = message.toLowerCase();
+
+    // Extract numbers (quantities, amounts)
+    const numberMatches = message.match(/\d+(\.\d+)?/g);
+    if (numberMatches) {
+      this.conversationContext.activeEntities.quantities = numberMatches.map(n => parseFloat(n));
+    }
+
+    // Extract material names (simple pattern)
+    const materialPattern = /(tepung|gula|telur|margarin|susu|ragi|garam)/gi;
+    const materials = message.match(materialPattern);
+    if (materials) {
+      this.conversationContext.activeEntities.materials = materials;
+    }
+
+    // Extract customer names (capitalized words)
+    const customerPattern = /\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\b/g;
+    const customers = message.match(customerPattern);
+    if (customers) {
+      this.conversationContext.activeEntities.customers = customers;
+    }
+  }
+
+  private detectIntentWithKeywords(message: string): string {
     const intents = {
       greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
       orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan', 'daftar pesanan'],

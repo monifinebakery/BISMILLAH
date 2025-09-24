@@ -223,4 +223,73 @@ Assistant: "📊 Laporan Penjualan Bulan ${new Date().toLocaleDateString('id-ID'
 📋 Detail lengkap tersedia di menu Reports.`;
 
   }
+
+  async generateIntentAnalysis(message: string, context: any = {}): Promise<any> {
+    try {
+      console.log('🧠 Intent Analysis API Key:', this.apiKey ? 'Present' : 'Missing');
+      console.log('🧠 Analyzing intent for:', message);
+
+      if (!this.apiKey) {
+        throw new Error('OpenRouter API key not found');
+      }
+
+      const messages = [
+        {
+          role: 'system',
+          content: context.systemPrompt || 'You are an AI intent classifier. Analyze the user message and return only the intent name.'
+        },
+        {
+          role: 'user',
+          content: `Analyze this message and determine the intent: "${message}"
+
+Return only the intent name (lowercase) that best matches.`
+        }
+      ];
+
+      console.log('🧠 Sending intent analysis request to OpenRouter...');
+
+      const response = await fetch(`${this.baseUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.apiKey}`,
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://monifine.my.id',
+          'X-Title': 'BISMILLAH Bakery Intent Analysis'
+        },
+        body: JSON.stringify({
+          model: 'x-ai/grok-4-fast:free',
+          messages,
+          temperature: 0.1, // Lower temperature for more consistent intent detection
+          max_tokens: 50,
+          stop: ['\n', '.', ' '] // Stop at first word
+        })
+      });
+
+      console.log('🧠 Intent analysis response status:', response.status);
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('🧠 Intent Analysis API Error:', errorText);
+        throw new Error(`Intent Analysis API Error: ${response.status} - ${errorText}`);
+      }
+
+      const data = await response.json();
+      console.log('🧠 Intent analysis response received:', data);
+
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('Invalid response format from intent analysis');
+      }
+
+      const intent = data.choices[0].message.content.trim().toLowerCase();
+
+      return {
+        intent: intent,
+        confidence: 0.8, // Placeholder confidence score
+        originalMessage: message
+      };
+    } catch (error) {
+      console.error('🧠 Intent analysis error:', error);
+      throw error;
+    }
+  }
 }

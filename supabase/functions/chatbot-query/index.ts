@@ -702,7 +702,7 @@ function extractMaterialName(message: string): string | null {
   const excludeWords = [
     'baku', 'mentah', 'basah', 'kering', 'semua', 'all', 'list',
     'apa', 'yang', 'dong', 'deh', 'ya', 'nah', 'kok', 'nih',
-    'hampir', 'abis', 'habis', 'kurang', 'sedikit'
+    'hampir', 'abis', 'habis', 'kurang', 'sedikit', 'stok', 'cek', 'lihat'
   ];
 
   for (const pattern of patterns) {

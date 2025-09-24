@@ -34,8 +34,14 @@ export const useIngredientSelection = ({
     logger.debug('useIngredientSelection: Selected item (before conversion):', {
       nama: frontendItem.nama,
       harga: frontendItem.harga,
+      hargaRataRata: frontendItem.hargaRataRata,
       satuan: frontendItem.satuan,
       rawItem: frontendItem,
+      allWarehouseItems: warehouseItems.map(item => ({
+        nama: item.nama,
+        harga: item.harga,
+        hargaRataRata: item.hargaRataRata
+      }))
     });
 
     // ⚠️ DEBUG: Check if warehouse item has price

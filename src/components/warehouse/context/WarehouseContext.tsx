@@ -104,7 +104,11 @@ const fetchWarehouseData = async (userId?: string): Promise<BahanBakuFrontend[]>
       harga: toNumber(item.harga),
     }));
     
-    logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.length);
+    logger.debug('✅ fetchWarehouseData transformed items:', transformedItems.map((item: BahanBakuFrontend) => ({
+      nama: item.nama,
+      harga: item.harga,
+      hargaRataRata: item.hargaRataRata
+    })));
     return transformedItems;
   } catch (error) {
     logger.error('❌ fetchWarehouseData failed:', error);

@@ -315,6 +315,11 @@ export interface ProfitAnalysisContextType {
   };
   labels?: FNBLabels;       // User-friendly labels
   
+  // 🆕 Currency support
+  currentCurrency?: any; // Currency type from CurrencyContext
+  formatCurrency?: (amount: number, options?: { showSymbol?: boolean }) => string;
+  formatCurrencyCompact?: (amount: number) => string;
+  
   // Actions
   calculateProfit: (period: string, periodType?: 'monthly' | 'quarterly' | 'yearly') => Promise<boolean>;
   loadProfitHistory: (dateRange?: DateRangeFilter) => Promise<void>;

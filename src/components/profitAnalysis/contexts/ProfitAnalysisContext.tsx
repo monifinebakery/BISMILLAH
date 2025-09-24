@@ -5,6 +5,7 @@ import React, { createContext, useContext, useCallback, useReducer, useEffect, u
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { normalizeDateRange } from '@/utils/dateNormalization';
 
 import { 
@@ -81,6 +82,7 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
 }) => {
   const [state, dispatch] = useReducer(profitAnalysisReducer, initialState);
   const { user } = useAuth();
+  const { currentCurrency, formatCurrency, formatCurrencyCompact } = useCurrency();
   const queryClient = useQueryClient();
 
   // Query untuk analisis bulan ini
@@ -295,6 +297,11 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     error: state.error || currentAnalysisQuery.error?.message || null,
     lastUpdated: lastUpdatedDate, //  Use memoized Date object
     
+    // 🆕 Currency support
+    currentCurrency,
+    formatCurrency,
+    formatCurrencyCompact,
+    
     // Actions
     calculateProfit,
     loadProfitHistory,
@@ -317,6 +324,9 @@ export const ProfitAnalysisProvider: React.FC<ProfitAnalysisProviderProps> = ({
     state.currentAnalysis,
     state.error,
     lastUpdatedDate,
+    currentCurrency,
+    formatCurrency,
+    formatCurrencyCompact,
     currentAnalysisQuery.isLoading,
     currentAnalysisQuery.isFetching,
     currentAnalysisQuery.error?.message,

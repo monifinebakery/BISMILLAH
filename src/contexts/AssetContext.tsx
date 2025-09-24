@@ -11,6 +11,7 @@ import { logger } from '@/utils/logger';
 import { useAuth } from './AuthContext';
 import { useActivity } from './ActivityContext';
 import { useSimpleNotification } from './SimpleNotificationContext';
+import { useCurrency } from './CurrencyContext';
 import { supabase } from '@/integrations/supabase/client';
 import { UnifiedDateHandler } from '@/utils/unifiedDateHandler';
 import { safeParseDate } from '@/utils/unifiedDateUtils'; // Keep for transition
@@ -24,6 +25,11 @@ interface AssetContextType {
   isLoading: boolean;
   error: string | null;
   refreshAssets: () => Promise<void>;
+
+  // Currency support
+  currentCurrency?: any;
+  formatCurrency?: (amount: number, options?: { showSymbol?: boolean }) => string;
+  formatCurrencyCompact?: (amount: number) => string;
 }
 
 // ✅ Query Keys
@@ -195,6 +201,7 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const { user } = useAuth();
   const { addActivity } = useActivity();
   const { addNotification } = useSimpleNotification();
+  const { currentCurrency, formatCurrency, formatCurrencyCompact } = useCurrency();
   const queryClient = useQueryClient();
 
   logger.debug('🔍 AssetProvider rendered', {
@@ -241,7 +248,7 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       // Success notification
       addNotification({
         title: '🏢 Aset Baru Ditambahkan!',
-        message: `${newAsset.nama} berhasil ditambahkan dengan nilai Rp ${newAsset.nilaiAwal.toLocaleString()}`,
+        message: `${newAsset.nama} berhasil ditambahkan dengan nilai ${formatCurrency(newAsset.nilaiAwal)}`,
         type: 'success',
         icon: 'package',
         priority: 2,
@@ -466,6 +473,11 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     updateAsset: updateAssetAction,
     deleteAsset: deleteAssetAction,
     refreshAssets,
+    
+    // Currency support
+    currentCurrency,
+    formatCurrency,
+    formatCurrencyCompact,
   };
 
   logger.debug('🎯 AssetContext value prepared:', {

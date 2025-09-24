@@ -181,7 +181,7 @@ Silakan ketik pertanyaan Anda!`;
 
   return (
     <div className="fixed inset-x-4 bottom-[96px] z-50 sm:bottom-24 sm:right-6 sm:left-auto md:bottom-4 md:right-4">
-      <Card className="flex flex-col w-full max-w-[420px] max-h-[85vh] shadow-xl border-2 border-orange-200 rounded-2xl md:w-[420px] md:max-h-[640px]">
+      <Card className="flex flex-col w-full max-w-[420px] h-[85vh] shadow-xl border-2 border-orange-200 rounded-2xl md:w-[420px] md:h-[640px]">
         {/* Header */}
         <CardHeader className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
@@ -216,9 +216,9 @@ Silakan ketik pertanyaan Anda!`;
         </CardHeader>
 
         {/* Messages */}
-        <CardContent className="flex-1 p-0">
-          <div className="flex h-full flex-col min-h-0">
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+        <CardContent className="flex-1 p-0 overflow-hidden">
+          <div className="flex h-full flex-col">
+            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
               <div className="space-y-4">
                 {messages.map((message) => (
                   <div

@@ -307,6 +307,13 @@ export function usePWA() {
         const latestCommit = data.commitHash;
         const currentCommit = import.meta.env.VITE_COMMIT_HASH;
 
+        // Check if we've already updated to this version
+        const lastUpdatedCommit = localStorage.getItem('lastUpdatedCommit');
+        if (lastUpdatedCommit === latestCommit) {
+          console.log('[usePWA] Already updated to latest version:', latestCommit);
+          return;
+        }
+
         if (latestCommit && currentCommit && latestCommit !== currentCommit) {
           setUpdateAvailable(true);
         }
@@ -364,7 +371,21 @@ export function usePWA() {
     return success;
   };
 
-  const updateApp = () => {
+  const updateApp = async () => {
+    try {
+      // Get the latest commit hash before updating
+      const response = await fetch('/version.json?t=' + new Date().getTime(), { cache: 'no-store' });
+      const data = await response.json();
+      const latestCommit = data.commitHash;
+
+      // Store that we've updated to this version
+      if (latestCommit) {
+        localStorage.setItem('lastUpdatedCommit', latestCommit);
+      }
+    } catch (error) {
+      console.warn('[usePWA] Failed to fetch latest version before update:', error);
+    }
+
     pwaManager.skipWaiting();
     setUpdateAvailable(false);
     // Reload page to activate new service worker

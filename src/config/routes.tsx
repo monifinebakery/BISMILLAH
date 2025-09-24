@@ -35,7 +35,7 @@ import menuRoutes from '@/routes/menu';
 
 // Development only - Calendar testing
 import TestCalendarPage from '@/test-calendar-page';
-import { OverheadDebug } from '@/components/debug/OverheadDebug';
+// import { OverheadDebug } from '@/components/debug/OverheadDebug'; // REMOVED - debug component deleted
 
 // Simple auth debug component
 const AuthDebugPage: React.FC = () => {
@@ -147,7 +147,7 @@ export const AppRouter: React.FC = () => (
       {process.env.NODE_ENV === 'development' && (
         <>
           <Route path="/test-calendar" element={<TestCalendarPage />} />
-          <Route path="/debug-overhead" element={<OverheadDebug />} />
+          {/* <Route path="/debug-overhead" element={<OverheadDebug />} /> // REMOVED - debug component deleted */}
           <Route path="/auth-debug" element={<AuthDebugPage />} />
         </>
       )}

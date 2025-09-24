@@ -49,8 +49,8 @@ import { LoadingStates } from '@/components/ui/loading-spinner';
 import { logger } from '@/utils/logger';
 
 // ✅ DEBUG: Context debugger for development
-import ContextDebugger from '@/components/debug/ContextDebugger';
-import OrderUpdateMonitor from '@/components/debug/OrderUpdateMonitor';
+// import ContextDebugger from '@/components/debug/ContextDebugger'; // REMOVED - debug component deleted
+// import OrderUpdateMonitor from '@/components/debug/OrderUpdateMonitor'; // REMOVED - debug component deleted
 
 // ✅ TAMBAHKAN IMPORTS: Untuk fallback langsung ke Supabase dan getStatusText
 // import { fetchOrdersPaginated } from '../services/orderService';
@@ -374,7 +374,7 @@ const OrdersPage: React.FC = () => {
   return (
     <div className="w-full max-w-full px-2 sm:px-4 py-4 overflow-hidden">
       {/* ✅ DEBUG: Context debugger - only in development */}
-      {import.meta.env.DEV && <ContextDebugger />}
+      {/* {import.meta.env.DEV && <ContextDebugger />} // REMOVED - debug component deleted */}
       
       {/* ✅ Extracted: Header */}
       <OrderHeader
@@ -501,7 +501,7 @@ const OrdersPage: React.FC = () => {
       </SafeSuspense>
       
       {/* ✅ DEBUG: Real-time monitoring component - only in development */}
-      {import.meta.env.DEV && <OrderUpdateMonitor />}
+      {/* {import.meta.env.DEV && <OrderUpdateMonitor />} // REMOVED - debug component deleted */}
     </div>
   );
 };

@@ -37,6 +37,7 @@ const TransactionRowComponent = ({
   onDelete,
   isDeleting,
   getDisplayDescription,
+  formatCurrency,
 }: {
   transaction: FinancialTransaction;
   isSelected: boolean;
@@ -45,6 +46,7 @@ const TransactionRowComponent = ({
   onDelete: (transaction: FinancialTransaction) => void;
   isDeleting: boolean;
   getDisplayDescription: (description: string | null) => string;
+  formatCurrency: (value: number) => string;
 }) => {
   const handleToggleSelect = useCallback(() => {
     onToggleSelect?.(transaction.id, !isSelected);
@@ -262,6 +264,7 @@ const TransactionRows = ({
               onDelete={onDeleteTransaction}
               isDeleting={isDeleting}
               getDisplayDescription={getDisplayDescription}
+              formatCurrency={formatCurrency}
             />
           ))
         ) : (

@@ -369,7 +369,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
         harga_satuan,
         harga_rata_rata,
         kategori,
-        supplier_relasi:suppliers ( id, nama ),
+        supplier,
         updated_at
       `)
       .eq('user_id', userId);
@@ -384,6 +384,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
 
     if (error) {
       console.log('🤖 Inventory query error:', error);
+      throw error;
     }
 
     let result: any = null;
@@ -430,7 +431,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       const priceInfo = priceSource != null ? `\n• Harga per unit: ${formatCurrency(priceSource)}` : '';
       const minInfo = item.minimum ? `\n• Stok minimum: ${formatStockValue(item.minimum)} ${item.satuan}` : '';
       const categoryInfo = item.kategori ? `\n• Kategori: ${item.kategori}` : '';
-      const supplierName = item.supplier_relasi?.nama || null;
+      const supplierName = item.supplier;
       const supplierInfo = supplierName ? `\n• Supplier: ${supplierName}` : '';
 
       inventoryList = stockInfo + priceInfo + minInfo + categoryInfo + supplierInfo;
@@ -440,7 +441,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
         const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
         const priceSource = item.harga_satuan ?? item.harga_rata_rata;
         const priceInfo = priceSource != null ? ` - ${formatCurrency(priceSource)}` : '';
-        const supplierName = item.supplier_relasi?.nama || null;
+        const supplierName = item.supplier;
         const supplierInfo = supplierName ? ` (${supplierName})` : '';
         return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})${priceInfo}${supplierInfo}`;
       }).join('\n');

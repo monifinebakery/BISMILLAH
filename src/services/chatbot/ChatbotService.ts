@@ -305,9 +305,9 @@ export class ChatbotService {
   }
 
   private detectIntent(message: string): string {
-    // First try AI-powered intent detection for more natural understanding
-    // Fall back to keyword matching if AI fails
-    return this.detectIntentWithAI(message);
+    // Use keyword-based intent detection for reliable matching
+    // Direct keyword matching approach
+    return this.detectIntentWithKeywords(message);
   }
 
   private async detectIntentWithAI(message: string): Promise<string> {

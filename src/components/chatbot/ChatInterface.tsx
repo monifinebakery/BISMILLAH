@@ -4,7 +4,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bot, User, MessageCircle, X, RefreshCw, Send, MessageSquare } from 'lucide-react';
 import { getChatbotService } from '@/services/chatbot/ChatbotService';
@@ -218,60 +217,62 @@ Silakan ketik pertanyaan Anda!`;
 
         {/* Messages */}
         <CardContent className="flex-1 overflow-hidden p-0">
-          <ScrollArea className="h-full px-4 py-4">
-            <div className="space-y-4">
-              {messages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex gap-3 ${
-                    message.sender === 'user' ? 'justify-end' : 'justify-start'
-                  }`}
-                >
-                  {/* Avatar */}
-                  <Avatar className={`h-8 w-8 ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
-                    <AvatarFallback className={
-                      message.sender === 'user'
-                        ? 'bg-orange-500 text-white'
-                        : 'bg-gray-500 text-white'
-                    }>
-                      {message.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                    </AvatarFallback>
-                  </Avatar>
-
-                  {/* Message Bubble */}
+          <div className="flex h-full flex-col">
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              <div className="space-y-4">
+                {messages.map((message) => (
                   <div
-                    className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                      message.sender === 'user'
-                        ? 'bg-orange-500 text-white order-1'
-                        : 'bg-gray-100 text-gray-800'
+                    key={message.id}
+                    className={`flex gap-3 ${
+                      message.sender === 'user' ? 'justify-end' : 'justify-start'
                     }`}
                   >
-                    {message.isLoading ? (
-                      <div className="flex items-center gap-2">
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        <span>Sedang memproses...</span>
-                      </div>
-                    ) : (
-                      <div className="whitespace-pre-wrap text-sm">
-                        {message.content}
-                      </div>
-                    )}
+                    {/* Avatar */}
+                    <Avatar className={`h-8 w-8 ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
+                      <AvatarFallback className={
+                        message.sender === 'user'
+                          ? 'bg-orange-500 text-white'
+                          : 'bg-gray-500 text-white'
+                      }>
+                        {message.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                      </AvatarFallback>
+                    </Avatar>
 
-                    {/* Timestamp */}
-                    <div className={`text-xs mt-1 ${
-                      message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'
-                    }`}>
-                      {message.timestamp.toLocaleTimeString('id-ID', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                    {/* Message Bubble */}
+                    <div
+                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                        message.sender === 'user'
+                          ? 'bg-orange-500 text-white order-1'
+                          : 'bg-gray-100 text-gray-800'
+                      }`}
+                    >
+                      {message.isLoading ? (
+                        <div className="flex items-center gap-2">
+                          <RefreshCw className="h-4 w-4 animate-spin" />
+                          <span>Sedang memproses...</span>
+                        </div>
+                      ) : (
+                        <div className="whitespace-pre-wrap text-sm">
+                          {message.content}
+                        </div>
+                      )}
+
+                      {/* Timestamp */}
+                      <div className={`text-xs mt-1 ${
+                        message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'
+                      }`}>
+                        {message.timestamp.toLocaleTimeString('id-ID', {
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-              <div ref={messagesEndRef} />
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
             </div>
-          </ScrollArea>
+          </div>
         </CardContent>
 
         {/* Input */}

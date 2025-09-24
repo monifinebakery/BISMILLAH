@@ -7,6 +7,7 @@ import { ArrowLeft, Calculator, Home, Package, RotateCcw, Save, ShoppingCart, Ch
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { FormField, LoadingStates, StatusBadge, EmptyState } from '@/components/ui';
 import { useCurrency } from '@/contexts/CurrencyContext';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
@@ -17,7 +18,7 @@ import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';
 // Import extracted components
 const NewItemForm = React.lazy(() => import('./components/dialogs/NewItemForm').then(module => ({ default: module.NewItemForm })));
-  const { formatCurrency } = useCurrency();import SupplierComboBox from './components/SupplierComboBox';
+  import SupplierComboBox from './components/SupplierComboBox';
 import { ItemRow } from './components/ItemRow';
 import { ItemTotal } from './components/ItemTotal';
 
@@ -116,7 +117,7 @@ const PurchaseAddEditPage: React.FC = () => {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-  const { formatCurrency } = useCurrency();      validateForm();
+      validateForm();
     }, 500);
 
     return () => clearTimeout(timeoutId);
@@ -126,12 +127,12 @@ const PurchaseAddEditPage: React.FC = () => {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
   const handleEditItem = useCallback((index: number) => {
-  const { formatCurrency } = useCurrency();    setEditingItemIndex(index);
+    setEditingItemIndex(index);
     toast.info('Mode edit item aktif');
   }, []);
 
   const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
-  const { formatCurrency } = useCurrency();    const qty = Number(updatedItem.quantity) || 0;
+    const qty = Number(updatedItem.quantity) || 0;
     const price = Number(updatedItem.unitPrice) || 0;
 
     if (qty <= 0 || price <= 0) {
@@ -147,7 +148,7 @@ const PurchaseAddEditPage: React.FC = () => {
   const handleCancelEditItem = useCallback(() => setEditingItemIndex(null), []);
 
   const handleCancel = useCallback(() => {
-  const { formatCurrency } = useCurrency();    if (isDirty) {
+    if (isDirty) {
       if (confirm('Ada perubahan yang belum disimpan. Yakin ingin keluar?')) {
         navigate('/purchase');
       }
@@ -157,7 +158,7 @@ const PurchaseAddEditPage: React.FC = () => {
   }, [isDirty, navigate]);
 
   const handleResetForm = useCallback(() => {
-  const { formatCurrency } = useCurrency();    if (confirm('Reset semua perubahan ke kondisi awal?')) {
+    if (confirm('Reset semua perubahan ke kondisi awal?')) {
       handleReset();
       handleCancelEditItem();
       toast.info('Form direset ke kondisi awal');
@@ -165,7 +166,7 @@ const PurchaseAddEditPage: React.FC = () => {
   }, [handleReset, handleCancelEditItem]);
 
   const onSubmit = useCallback(async (status?: string) => {
-  const { formatCurrency } = useCurrency();    // Authentication is already handled by AuthGuard at router level
+    // Authentication is already handled by AuthGuard at router level
     
     if (formData.items.length === 0) {
       toast.error('Minimal harus ada 1 item dalam pembelian');
@@ -180,7 +181,7 @@ const PurchaseAddEditPage: React.FC = () => {
 
   // Handle adding new item from form
   const handleAddNewItem = useCallback((item: PurchaseItem) => {
-  const { formatCurrency } = useCurrency();    addItem(item);
+    addItem(item);
     toast.success(`${item.nama} berhasil ditambahkan`);
   }, [addItem]);
 

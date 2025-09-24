@@ -188,8 +188,18 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
         nomor_pesanan: orderNumber,
         nama_pelanggan: orderInfo.customerName,
         total_pesanan: orderInfo.totalAmount,
-        status: 'draft',
-        catatan: orderInfo.product ? `Produk: ${orderInfo.product}` : null
+        status: 'draft', // Changed to match database constraint: draft, paid, shipped, completed, cancelled
+        catatan: orderInfo.product ? `Produk: ${orderInfo.product}` : null,
+        telepon_pelanggan: '', // Required field, set empty for now
+        alamat_pengiriman: 'Jakarta (jika ada detail lebih lanjut seperti RT/RW atau landmark, silakan beri tahu untuk kemudahan pengiriman)',
+        items: [{
+          name: orderInfo.product || 'Produk bakery',
+          quantity: 1,
+          price: orderInfo.totalAmount,
+          total: orderInfo.totalAmount
+        }],
+        subtotal: orderInfo.totalAmount,
+        pajak: 0
       })
       .select()
       .single();
@@ -203,7 +213,7 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
 
     return {
       type: 'success',
-      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n\nPesanan akan segera diproses.`
+      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n🏠 Alamat: ${order.alamat_pengiriman}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n\nPesanan telah disimpan di sistem dan siap diproses.`
     };
 
   } catch (error) {
@@ -559,10 +569,9 @@ function getPromoStatusText(status: string): string {
 
 function getStatusText(status: string): string {
   const statusMap: { [key: string]: string } = {
-    'pending': 'Menunggu',
-    'confirmed': 'Dikonfirmasi',
-    'preparing': 'Dipersiapkan',
-    'ready': 'Siap Ambil',
+    'draft': 'Draft',
+    'paid': 'Sudah Dibayar',
+    'shipped': 'Dikirim',
     'completed': 'Selesai',
     'cancelled': 'Dibatalkan'
   };

@@ -188,7 +188,7 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
         nomor_pesanan: orderNumber,
         nama_pelanggan: orderInfo.customerName,
         total_pesanan: orderInfo.totalAmount,
-        status: 'draft', // Changed to match database constraint: draft, paid, shipped, completed, cancelled
+        status: 'pending', // Updated to match current constraint: pending, confirmed, preparing, ready, delivered, cancelled, completed
         catatan: orderInfo.product ? `Produk: ${orderInfo.product}` : null,
         telepon_pelanggan: '', // Required field, set empty for now
         alamat_pengiriman: 'Jakarta (jika ada detail lebih lanjut seperti RT/RW atau landmark, silakan beri tahu untuk kemudahan pengiriman)',
@@ -569,9 +569,11 @@ function getPromoStatusText(status: string): string {
 
 function getStatusText(status: string): string {
   const statusMap: { [key: string]: string } = {
-    'draft': 'Draft',
-    'paid': 'Sudah Dibayar',
-    'shipped': 'Dikirim',
+    'pending': 'Menunggu Konfirmasi',
+    'confirmed': 'Dikonfirmasi',
+    'preparing': 'Sedang Dipersiapkan',
+    'ready': 'Siap Diambil',
+    'delivered': 'Sudah Dikirim',
     'completed': 'Selesai',
     'cancelled': 'Dibatalkan'
   };

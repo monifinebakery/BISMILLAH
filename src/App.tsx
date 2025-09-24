@@ -16,6 +16,7 @@ import InstallBanner from '@/components/InstallBanner';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
+import { FloatingChatbot } from '@/components/chatbot/FloatingChatbot';
 
 const App = () => {
   // ✅ Auto-update system - Setup update detection and notifications
@@ -174,6 +175,9 @@ const App = () => {
 
             {/* PWA Offline Indicator - DISABLED */}
             {/* <OfflineIndicator /> */}
+            
+            {/* Floating Chatbot */}
+            <FloatingChatbot />
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

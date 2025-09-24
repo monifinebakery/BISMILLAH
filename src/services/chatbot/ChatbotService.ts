@@ -1,0 +1,173 @@
+import { OpenRouterService } from './openrouter/OpenRouterService';
+
+export class ChatbotService {
+  private openRouter: OpenRouterService;
+  private history: Array<{role: 'user' | 'assistant', content: string}> = [];
+  
+  // Analytics tracking
+  private analytics = {
+    totalConversations: 0,
+    popularCommands: new Map<string, number>(),
+    responseTimes: [],
+    emergencyCount: 0
+  };
+
+  constructor() {
+    this.openRouter = new OpenRouterService();
+  }
+
+  async processMessage(message: string): Promise<any> {
+    try {
+      // Validate input
+      if (!message.trim()) {
+        return { text: 'Pesan tidak boleh kosong.', type: 'error' };
+      }
+
+      // Pre-processing
+      const normalizedMessage = this.normalizeMessage(message);
+      const intent = this.detectIntent(normalizedMessage);
+      
+      // Track analytics
+      this.analytics.totalConversations++;
+      this.analytics.popularCommands.set(
+        intent, 
+        (this.analytics.popularCommands.get(intent) || 0) + 1
+      );
+
+      // Emergency detection
+      if (this.containsEmergencyKeywords(normalizedMessage)) {
+        this.analytics.emergencyCount++;
+        return this.handleEmergency(message);
+      }
+
+      // Add to history
+      this.history.push({ role: 'user', content: message });
+
+      const startTime = Date.now();
+      
+      // Get response from Grok
+      const response = await this.openRouter.generateResponse(message, {
+        history: this.history.slice(-10), // Keep last 10 messages
+        intent: intent,
+        currentPage: this.detectCurrentPage()
+      });
+
+      const responseTime = Date.now() - startTime;
+      this.analytics.responseTimes.push(responseTime);
+
+      // Add response to history
+      this.history.push({ role: 'assistant', content: response.text });
+
+      return response;
+    } catch (error) {
+      console.error('Chatbot error:', error);
+      return {
+        text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+        type: 'error'
+      };
+    }
+  }
+
+  private normalizeMessage(message: string): string {
+    return message
+      .toLowerCase()
+      .trim()
+      .replace(/[^\w\s]/g, ' ') // Remove special chars
+      .replace(/\s+/g, ' '); // Normalize spaces
+  }
+
+  private detectIntent(message: string): string {
+    const intents = {
+      greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
+      orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan'],
+      inventory: ['stok', 'inventory', 'stock', 'update stok', 'cek stok', 'inventory'],
+      report: ['laporan', 'report', 'sales', 'penjualan', 'keuangan', 'profit'],
+      emergency: ['darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown'],
+      cost: ['biaya', 'cost', 'operational', 'tambah biaya', 'add cost'],
+      help: ['help', 'bantuan', 'tolong', 'cara', 'how to']
+    };
+    
+    for (const [intent, keywords] of Object.entries(intents)) {
+      if (keywords.some(keyword => message.includes(keyword))) {
+        return intent;
+      }
+    }
+    
+    return 'general';
+  }
+
+  private detectCurrentPage(): string {
+    // This would be enhanced with actual routing context
+    // For now, return generic
+    return 'Dashboard';
+  }
+
+  private containsEmergencyKeywords(message: string): boolean {
+    const emergencyWords = [
+      'darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown',
+      'bahaya', 'accident', 'bantuan segera', 'tolong segera', 'critical'
+    ];
+    
+    return emergencyWords.some(word => message.includes(word));
+  }
+
+  private handleEmergency(message: string): any {
+    return {
+      text: `🚨 SITUASI DARURAT TERDETEKSI!
+
+📞 Kontak Emergency: +62812-3456-7890
+🏥 Tim akan segera merespons
+📍 Lokasi: BISMILLAH Bakery
+
+Apakah Anda dalam kondisi aman? Butuh bantuan apa?
+
+⚠️ PESAN DARURAT INI SUDAH DICATAT DI SISTEM`,
+      type: 'emergency',
+      emergency: true,
+      actions: ['call_emergency', 'notify_team', 'log_incident']
+    };
+  }
+
+  clearHistory() {
+    this.history = [];
+  }
+
+  getHistory() {
+    return this.history;
+  }
+
+  getAnalytics() {
+    return {
+      ...this.analytics,
+      averageResponseTime: this.analytics.responseTimes.length > 0 
+        ? this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length 
+        : 0,
+      topCommands: Array.from(this.analytics.popularCommands.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+    };
+  }
+
+  // Auto-adjust rules based on analytics
+  private adjustRulesBasedOnAnalytics() {
+    const avgResponseTime = this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length;
+    
+    if (avgResponseTime > 5000) { // Slow responses
+      console.warn('⚠️ AI responses are slow. Consider using faster model.');
+    }
+    
+    if (this.analytics.emergencyCount > 10) { // High emergency count
+      console.warn('🚨 High emergency count detected. Review safety protocols.');
+    }
+  }
+}
+
+// Singleton instance
+let chatbotInstance: ChatbotService | null = null;
+
+export const getChatbotService = (): ChatbotService => {
+  if (!chatbotInstance) {
+    chatbotInstance = new ChatbotService();
+  }
+  return chatbotInstance;
+};

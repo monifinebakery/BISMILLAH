@@ -5,7 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trophy, Package, ChevronLeft, ChevronRight, TrendingUp, DollarSign, Hash, Target, BarChart3 } from "lucide-react";
-import { formatCurrency, formatCompactCurrency } from '@/lib/shared';
+import { formatCompactCurrency } from '@/lib/shared';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { generateListKey } from '@/utils/keyUtils';
 import { safeNumber, safeMultiply } from '@/utils/safeMath';
 
@@ -205,6 +206,7 @@ const BestSellingProducts: React.FC<Props> = ({
   onPageChange,
   isLoading, 
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   const [sortBy, setSortBy] = useState<SortOption>('revenue');
   const itemsPerPage = 5;
 

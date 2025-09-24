@@ -31,7 +31,8 @@ import {
   TrendingDown,
   Minus,
 } from 'lucide-react';
-import { formatCurrency, formatPercentage, getProfitabilityLevel } from '../../services/recipeUtils';
+import { formatPercentage, getProfitabilityLevel } from '../../services/recipeUtils';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { Recipe, RecipeSortField } from '../../types';
 import { LoadingStates } from '@/components/ui/loading-spinner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -70,6 +71,7 @@ const RecipeTable: React.FC<RecipeTableProps> = ({
   onSelectAll,
   isAllSelected = false,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   const isMobile = (typeof window !== 'undefined') ? undefined : undefined;
   // Sort icon
   const getSortIcon = (field: RecipeSortField) => {

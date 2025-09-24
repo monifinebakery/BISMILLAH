@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 import { useRecipe } from "@/contexts/RecipeContext";
-import { formatCurrency } from "@/utils/formatUtils";
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // Auto-Sync HPP Integration (Simplified)
 import AutoSyncRecipeDisplay from '@/components/operational-costs/components/AutoSyncRecipeDisplay';
@@ -82,6 +82,8 @@ const EnhancedRecipeForm = ({ initialData, onSave, onCancel }: EnhancedRecipeFor
   const [enhancedHppResult, setEnhancedHppResult] = useState<EnhancedHPPCalculationResult | null>(null);
   // Manual selling prices are now handled directly in the form data
   // No separate manual pricing mode needed
+
+  const { formatCurrency } = useSafeCurrency();
 
   // Initialize form with existing data
   useEffect(() => {

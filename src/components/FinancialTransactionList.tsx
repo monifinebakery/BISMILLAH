@@ -10,7 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { formatDateForDisplay, toSafeISOString, safeParseDate } from '@/utils/unifiedDateUtils';
-
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { toast } from 'sonner';
 
 interface FinancialTransactionListProps {
@@ -25,7 +25,7 @@ interface FinancialTransactionListProps {
 }
 
 const FinancialTransactionList = ({
-  const { formatCurrency } = useSafeCurrency();  transactions,
+  const { formatCurrency } = useSafeCurrency();  const { formatCurrency } = useSafeCurrency();  transactions,
   loading,
   onUpdateTransaction,
   onDeleteTransaction,

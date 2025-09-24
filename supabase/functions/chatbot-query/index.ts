@@ -63,7 +63,8 @@ serve(async (req) => {
         result = await handleReportQuery(supabase, user.id);
         break;
       case 'rules':
-        result = await handleRulesQuery();
+        result = await handleStrategyQuery(supabase, user.id, message);
+        break;        result = await handleRulesQuery();
         break;
       default:
         result = {
@@ -139,7 +140,7 @@ async function handleOrderSearch(supabase: any, userId: string) {
     // Simple query for orders
     const { data: orders, error } = await supabase
       .from('orders')
-      .select('nomor_pesanan, nama_pelanggan, total_harga, status')
+      .select('nomor_pesanan, nama_pelanggan, total_pesanan, status')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(5);
@@ -155,7 +156,7 @@ async function handleOrderSearch(supabase: any, userId: string) {
 
     // Simple list
     const list = orders.map((order: any) =>
-      `• ${order.nomor_pesanan}: ${order.nama_pelanggan} - Rp ${order.total_harga.toLocaleString('id-ID')}`
+      `• ${order.nomor_pesanan}: ${order.nama_pelanggan} - Rp ${order.total_pesanan.toLocaleString('id-ID')}`
     ).join('\n');
 
     return {
@@ -181,7 +182,7 @@ async function handleReportQuery(supabase: any, userId: string) {
     // Simple sales query
     const { data: sales, error: salesError } = await supabase
       .from('orders')
-      .select('total_harga')
+      .select('total_pesanan')
       .eq('user_id', userId)
       .eq('status', 'completed')
       .gte('created_at', `${currentMonth}-01T00:00:00`)
@@ -189,7 +190,7 @@ async function handleReportQuery(supabase: any, userId: string) {
 
     if (salesError) throw salesError;
 
-    const totalSales = sales?.reduce((sum, order) => sum + (order.total_harga || 0), 0) || 0;
+    const totalSales = sales?.reduce((sum, order) => sum + (order.total_pesanan || 0), 0) || 0;
 
     return {
       type: 'report',

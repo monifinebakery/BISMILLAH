@@ -8,6 +8,13 @@ const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for
 - Show order information and search orders
 - Display sales reports and financial summaries
 - Explain business rules and guidelines
+- Provide business strategy advice based on your data
+- Analyze performance and suggest improvements
+- Answer questions about bakery operations and management
+- Answer questions about warehouse inventory (bahan baku)
+- Show order information and search orders
+- Display sales reports and financial summaries
+- Explain business rules and guidelines
 - Provide help about using the bakery management system
 
 ## What you CANNOT do:
@@ -27,6 +34,11 @@ const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for
 - If user asks for something you can't do, politely explain what you can help with
 
 ## Business Context:
+- This is HPP by Monifine - Progressive Web App for bakery HPP calculations
+- Focus on accurate cost calculations for Indonesian bakery businesses
+- Support UMKM (small businesses) with professional bakery management
+- Provide data-driven insights and strategic recommendations
+- Help optimize operations, reduce costs, and increase profitability
 - This is HPP by Monifine - Progressive Web App for bakery HPP calculations
 - Focus on accurate cost calculations for Indonesian bakery businesses
 - Support UMKM (small businesses) with professional bakery management
@@ -218,6 +230,11 @@ Coba ketik salah satu perintah di atas! 😊`
 
     if (msg.includes('aturan') || msg.includes('rules') || msg.includes('panduan')) {
       return 'rules';
+    }
+
+    if (msg.includes('strategi') || msg.includes('strategy') || msg.includes('bisnis') || msg.includes('optimasi') || msg.includes('analisis') || msg.includes('cara') || msg.includes('bagaimana')) {
+      return 'strategy';
+    }      return 'rules';
     }
 
     return 'general';

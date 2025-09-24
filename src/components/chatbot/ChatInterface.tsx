@@ -169,7 +169,9 @@ Silakan ketik pertanyaan Anda!`;
       setMessages(historyMessages);
       console.log('🤖 Loaded chat history:', historyMessages.length, 'messages');
     } else {
-      // Only show welcome message if there's no history
+      // Reset UI and persisted data before showing welcome message
+      setMessages([]);
+      chatbotService.clearHistory();
       addWelcomeMessage();
     }
   }, [chatbotService]);

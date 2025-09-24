@@ -175,8 +175,8 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
         user_id: userId,
         nomor_pesanan: orderNumber,
         nama_pelanggan: orderInfo.customerName,
-        total_harga: orderInfo.totalAmount,
-        status: 'pending'
+        total_pesanan: orderInfo.totalAmount,
+        status: 'draft' // Changed from 'pending' to 'draft' to match schema
       })
       .select()
       .single();
@@ -190,7 +190,7 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
 
     return {
       type: 'success',
-      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n💰 Total: ${formatCurrency(order.total_harga)}\n📊 Status: ${getStatusText(order.status)}\n\nPesanan akan segera diproses.`
+      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n\nPesanan akan segera diproses.`
     };
 
   } catch (error) {
@@ -246,7 +246,7 @@ async function handleOrderDelete(supabase: any, userId: string, message: string)
     const deletedOrder = deletedOrders[0];
     return {
       type: 'success',
-      text: `✅ Pesanan berhasil dihapus!\n\n📋 Nomor Pesanan: ${deletedOrder.nomor_pesanan}\n👤 Customer: ${deletedOrder.nama_pelanggan}\n💰 Total: ${formatCurrency(deletedOrder.total_harga)}\n\nPesanan telah dibatalkan.`
+      text: `✅ Pesanan berhasil dihapus!\n\n📋 Nomor Pesanan: ${deletedOrder.nomor_pesanan}\n👤 Customer: ${deletedOrder.nama_pelanggan}\n💰 Total: ${formatCurrency(deletedOrder.total_pesanan)}\n\nPesanan telah dibatalkan.`
     };
 
   } catch (error) {

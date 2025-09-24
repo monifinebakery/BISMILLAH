@@ -367,6 +367,7 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
       console.error('Database action error:', error);
       throw error;
     }
+  }
 }
 
 // Singleton instances per user

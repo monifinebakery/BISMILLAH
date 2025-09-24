@@ -241,7 +241,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
     // ✅ FIXED: Skip legacy calculation if enhanced HPP is active
     if (isEnhancedHppActive) {
       console.log('🔥 Legacy HPP calculation skipped - Enhanced mode is active');
-      return;
+      return () => {}; // Return empty cleanup function
     }
 
     // Only run legacy calculation if conditions are met AND enhanced mode is off
@@ -251,7 +251,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
       setIsCalculating(true);
       const timer = setTimeout(() => {
         try {
-          const totalBahanBaku = formData.bahanResep.reduce((sum, item) => sum + item.totalHarga, 0);
+          const totalBahanBaku = formData.bahanResep.reduce((sum, item) => sum + (item.total_harga || 0), 0);
           const jumlahPcsPerPorsiNum = typeof formData.jumlahPcsPerPorsi === 'string' ? parseInt(formData.jumlahPcsPerPorsi) || 1 : formData.jumlahPcsPerPorsi;
           
           const calculation = calculateHPP(
@@ -291,6 +291,9 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
       }, 500);
       return () => clearTimeout(timer);
     }
+    
+    // Return empty cleanup function if no timer was set
+    return () => {};
   }, [
     formData.bahanResep,
     formData.jumlahPorsi,
@@ -343,7 +346,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
             if (bahan.jumlah <= 0) {
               stepErrors[`bahan_${index}_jumlah`] = `Jumlah bahan ke-${index + 1} harus lebih dari 0`;
             }
-            if (bahan.hargaSatuan <= 0) {
+            if ((bahan.harga_satuan || 0) <= 0) {
               stepErrors[`bahan_${index}_harga`] = `Harga bahan ke-${index + 1} harus lebih dari 0`;
             }
           });
@@ -467,7 +470,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {isEditMode ? `Edit Resep: ${initialData?.namaResep}` : 'Tambah Resep Baru'}
+                {isEditMode ? `Edit Resep: ${initialData?.nama_resep || 'Loading...'}` : 'Tambah Resep Baru'}
               </h1>
               <p className="text-gray-600">
                 {STEPS[currentStepIndex].description}

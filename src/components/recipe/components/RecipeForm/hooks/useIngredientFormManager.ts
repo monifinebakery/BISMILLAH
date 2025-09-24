@@ -28,17 +28,17 @@ export const useIngredientFormManager = ({
     nama: '',
     jumlah: 0,
     satuan: '',
-    hargaSatuan: 0,
-    totalHarga: 0,
+    harga_satuan: 0,
+    total_harga: 0,
   });
 
   // Helper function to get ingredient display name
   const getIngredientDisplayName = useCallback((ingredient: BahanResep): string => {
     // If ingredient has warehouseId, try to get name from warehouse
-    if (ingredient.warehouseId) {
-      const warehouseItem = warehouseItems.find(item => item.id === ingredient.warehouseId);
+    if (ingredient.warehouse_id) {
+      const warehouseItem = warehouseItems.find(item => item.id === ingredient.warehouse_id);
       if (warehouseItem?.nama) {
-        return warehouseItem.nama;
+        return `${warehouseItem.nama} (${ingredient.warehouse_id.slice(0, 8)}...)`;
       }
     }
     
@@ -56,11 +56,11 @@ export const useIngredientFormManager = ({
     if (warehouseItems.length > 0 && recipeData.bahanResep.length > 0) {
       const updatedIngredients = recipeData.bahanResep.map(ingredient => {
         // If ingredient has warehouseId but missing/empty name, try to fix it
-        if (ingredient.warehouseId && (!ingredient.nama || !ingredient.nama.trim())) {
-          const warehouseItem = warehouseItems.find(item => item.id === ingredient.warehouseId);
+        if (ingredient.warehouse_id && (!ingredient.nama || !ingredient.nama.trim())) {
+          const warehouseItem = warehouseItems.find(item => item.id === ingredient.warehouse_id);
           if (warehouseItem?.nama) {
             logger.debug('useIngredientFormManager: Auto-fixing ingredient name:', {
-              warehouseId: ingredient.warehouseId,
+              warehouseId: ingredient.warehouse_id,
               oldName: ingredient.nama,
               newName: warehouseItem.nama
             });
@@ -97,17 +97,17 @@ export const useIngredientFormManager = ({
       nama: newIngredient.nama!,
       jumlah: newIngredient.jumlah!,
       satuan: newIngredient.satuan!,
-      hargaSatuan: newIngredient.hargaSatuan!,
-      totalHarga: newIngredient.jumlah! * newIngredient.hargaSatuan!,
-      warehouseId: newIngredient.warehouseId, // Store warehouse reference
+      harga_satuan: newIngredient.harga_satuan || 0,
+      total_harga: (newIngredient.jumlah || 0) * (newIngredient.harga_satuan || 0),
+      warehouse_id: newIngredient.warehouse_id, // Store warehouse reference
     };
     
     logger.debug('useIngredientFormManager: Adding ingredient:', {
       ingredient,
       jumlah: newIngredient.jumlah,
-      hargaSatuan: newIngredient.hargaSatuan,
-      totalHarga: newIngredient.jumlah! * newIngredient.hargaSatuan!,
-      calculation: `${newIngredient.jumlah} × ${newIngredient.hargaSatuan} = ${newIngredient.jumlah! * newIngredient.hargaSatuan!}`
+      harga_satuan: newIngredient.harga_satuan,
+      totalHarga: (newIngredient.jumlah || 0) * (newIngredient.harga_satuan || 0),
+      calculation: `${newIngredient.jumlah} × ${newIngredient.harga_satuan} = ${(newIngredient.jumlah || 0) * (newIngredient.harga_satuan || 0)}`
     });
 
     onUpdate('bahanResep', [...recipeData.bahanResep, ingredient]);
@@ -117,8 +117,9 @@ export const useIngredientFormManager = ({
       nama: '',
       jumlah: 0,
       satuan: '',
-      hargaSatuan: 0,
-      totalHarga: 0,
+      harga_satuan: 0,
+      total_harga: 0,
+      warehouse_id: undefined,
     });
     
     toast.success('Bahan berhasil ditambahkan');
@@ -163,14 +164,14 @@ export const useIngredientFormManager = ({
     };
 
     // Recalculate total if quantity or unit price changes
-    if (field === 'jumlah' || field === 'hargaSatuan') {
-      newIngredients[index].totalHarga = newIngredients[index].jumlah * newIngredients[index].hargaSatuan;
+    if (field === 'jumlah' || field === 'harga_satuan') {
+      newIngredients[index].total_harga = newIngredients[index].jumlah * newIngredients[index].harga_satuan;
       
       logger.debug('useIngredientFormManager: Updated ingredient with recalculation:', {
         index,
         field,
         value,
-        newTotal: newIngredients[index].totalHarga,
+        newTotal: newIngredients[index].total_harga,
         ingredient: newIngredients[index].nama
       });
     }
@@ -186,18 +187,8 @@ export const useIngredientFormManager = ({
     const updated = { ...newIngredient, [field]: value };
     
     // Auto-calculate total
-    if (field === 'jumlah' || field === 'hargaSatuan') {
-      const jumlah = field === 'jumlah' ? (value || 0) : (updated.jumlah || 0);
-      const harga = field === 'hargaSatuan' ? (value || 0) : (updated.hargaSatuan || 0);
-      updated.totalHarga = jumlah * harga;
-      
-      logger.debug('useIngredientFormManager: New ingredient auto-calculation:', {
-        field,
-        value,
-        jumlah,
-        harga,
-        totalHarga: updated.totalHarga
-      });
+    if (field === 'jumlah' || field === 'harga_satuan') {
+      updated.total_harga = (updated.jumlah || 0) * (updated.harga_satuan || 0);
     }
     
     setNewIngredient(updated);
@@ -217,15 +208,15 @@ export const useIngredientFormManager = ({
       nama: '',
       jumlah: 0,
       satuan: '',
-      hargaSatuan: 0,
-      totalHarga: 0,
+      harga_satuan: 0,
+      total_harga: 0,
     });
   }, []);
 
   // Validate new ingredient form
   // Check if new ingredient form has data
   const hasNewIngredientData = useCallback(() => {
-    return !!(newIngredient.jumlah && newIngredient.hargaSatuan);
+    return !!(newIngredient.jumlah && newIngredient.harga_satuan);
   }, [newIngredient]);
 
   return {

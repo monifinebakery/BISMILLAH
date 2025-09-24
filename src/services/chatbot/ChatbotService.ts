@@ -263,6 +263,13 @@ export class ChatbotService {
           type: 'error'
         };
       }
+    } catch (error) {
+      console.error('Process message error:', error);
+      return {
+        text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+        type: 'error'
+      };
+    }
   }
 
   private normalizeMessage(message: string): string {

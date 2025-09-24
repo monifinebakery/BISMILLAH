@@ -69,6 +69,18 @@ serve(async (req) => {
       case 'cost':
         result = await handleCostQuery(supabase, user.id, message);
         break;
+      case 'purchase':
+        result = await handlePurchaseQuery(supabase, user.id, message);
+        break;
+      case 'asset':
+        result = await handleAssetQuery(supabase, user.id, message);
+        break;
+      case 'recipe':
+        result = await handleRecipeQuery(supabase, user.id, message);
+        break;
+      case 'promo':
+        result = await handlePromoQuery(supabase, user.id, message);
+        break;
       default:
         result = { type: 'general', text: 'Maaf, saya tidak mengerti permintaan tersebut.' };
     }
@@ -103,18 +115,21 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
     // Extract customer name from message
     const customerName = extractCustomerName(message);
 
+    // Query orders table with correct field names
     let query = supabase
       .from('orders')
       .select(`
         id,
-        customer_name,
-        total_amount,
+        nomor_pesanan,
+        nama_pelanggan,
+        total_harga,
         status,
         created_at,
         order_items (
-          product_name,
-          quantity,
-          unit_price
+          nama_produk,
+          jumlah,
+          harga_satuan,
+          total_harga
         )
       `)
       .eq('user_id', userId)
@@ -122,12 +137,12 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
       .limit(5);
 
     if (customerName) {
-      query = query.ilike('customer_name', `%${customerName}%`);
+      query = query.ilike('nama_pelanggan', `%${customerName}%`);
     }
 
     console.log('🤖 Executing order query...');
     const { data: orders, error } = await query;
-    console.log('🤖 Order query result:', { data: orders, error });
+    console.log('🤖 Order query result:', { data: orders?.length, error });
 
     if (error) {
       console.log('🤖 Order query error:', error);
@@ -147,8 +162,8 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
     const orderList = orders.map((order: any, index: number) => {
       const date = new Date(order.created_at).toLocaleDateString('id-ID');
       const status = getStatusText(order.status);
-      const total = formatCurrency(order.total_amount);
-      return `${index + 1}. Order #${order.id.slice(-6)} - ${order.customer_name} - ${total} (${status}) - ${date}`;
+      const total = formatCurrency(order.total_harga);
+      return `${index + 1}. Order ${order.nomor_pesanan} - ${order.nama_pelanggan} - ${total} (${status}) - ${date}`;
     }).join('\n');
 
     return {
@@ -249,30 +264,43 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
 // Handler untuk query laporan
 async function handleReportQuery(supabase: any, userId: string, message: string) {
   try {
+    console.log('🤖 Handling report query for user:', userId, 'message:', message);
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
 
-    // Get sales data for current month
+    // Get sales data from orders for current month
+    console.log('🤖 Querying orders for sales data...');
     const { data: sales, error: salesError } = await supabase
       .from('orders')
-      .select('total_amount, created_at')
+      .select('total_harga, created_at')
       .eq('user_id', userId)
       .eq('status', 'completed')
       .gte('created_at', `${currentMonth}-01`)
       .lt('created_at', `${currentMonth}-32`);
 
-    if (salesError) throw salesError;
+    console.log('🤖 Sales query result:', { data: sales?.length, error: salesError });
 
-    const totalSales = sales?.reduce((sum, order) => sum + (order.total_amount || 0), 0) || 0;
+    if (salesError) {
+      console.log('🤖 Sales query error:', salesError);
+      throw salesError;
+    }
 
-    // Get cost data
+    const totalSales = sales?.reduce((sum, order) => sum + (order.total_harga || 0), 0) || 0;
+
+    // Get cost data from operational_costs
+    console.log('🤖 Querying operational costs...');
     const { data: costs, error: costError } = await supabase
       .from('operational_costs')
-      .select('amount')
+      .select('amount, date')
       .eq('user_id', userId)
       .gte('date', `${currentMonth}-01`)
       .lt('date', `${currentMonth}-32`);
 
-    if (costError) throw costError;
+    console.log('🤖 Costs query result:', { data: costs?.length, error: costError });
+
+    if (costError) {
+      console.log('🤖 Costs query error:', costError);
+      // Don't throw error for costs, just use 0
+    }
 
     const totalCosts = costs?.reduce((sum, cost) => sum + (cost.amount || 0), 0) || 0;
 
@@ -283,7 +311,7 @@ async function handleReportQuery(supabase: any, userId: string, message: string)
 
     return {
       type: 'report',
-      text: `📊 Laporan ${monthName}\n\n💰 Total Penjualan: ${formatCurrency(totalSales)}\n💸 Total Biaya: ${formatCurrency(totalCosts)}\n📈 Keuntungan: ${formatCurrency(profit)}\n📊 Margin: ${profitMargin.toFixed(1)}%`,
+      text: `📊 Laporan ${monthName}\n\n💰 Total Penjualan: ${formatCurrency(totalSales)}\n💸 Total Biaya Operasional: ${formatCurrency(totalCosts)}\n📈 Keuntungan: ${formatCurrency(profit)}\n📊 Margin: ${profitMargin.toFixed(1)}%`,
       data: {
         totalSales,
         totalCosts,
@@ -348,6 +376,224 @@ async function handleCostQuery(supabase: any, userId: string, message: string) {
   }
 }
 
+// Handler untuk query purchases
+async function handlePurchaseQuery(supabase: any, userId: string, message: string) {
+  try {
+    console.log('🤖 Handling purchase query for user:', userId, 'message:', message);
+
+    // Query purchases table
+    const { data: purchases, error } = await supabase
+      .from('purchases')
+      .select('id, supplier, total_nilai, tanggal, status, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    console.log('🤖 Purchase query result:', { data: purchases?.length, error });
+
+    if (error) {
+      console.log('🤖 Purchase query error:', error);
+      throw error;
+    }
+
+    if (!purchases || purchases.length === 0) {
+      return {
+        type: 'purchase',
+        text: '📦 Tidak ada data pembelian yang ditemukan.',
+        data: []
+      };
+    }
+
+    const purchaseList = purchases.map((purchase: any, index: number) => {
+      const date = new Date(purchase.tanggal || purchase.created_at).toLocaleDateString('id-ID');
+      const total = formatCurrency(purchase.total_nilai);
+      const status = getPurchaseStatusText(purchase.status);
+      return `${index + 1}. ${purchase.supplier} - ${total} (${status}) - ${date}`;
+    }).join('\n');
+
+    const totalPurchases = purchases.reduce((sum, p) => sum + (p.total_nilai || 0), 0);
+
+    return {
+      type: 'purchase',
+      text: `📦 Riwayat Pembelian:\n\n${purchaseList}\n\n💰 Total Pembelian: ${formatCurrency(totalPurchases)}`,
+      data: purchases
+    };
+
+  } catch (error) {
+    console.error('Purchase query error:', error);
+    return {
+      type: 'error',
+      text: 'Maaf, terjadi kesalahan saat mengakses data pembelian.'
+    };
+  }
+}
+
+// Handler untuk query assets
+async function handleAssetQuery(supabase: any, userId: string, message: string) {
+  try {
+    console.log('🤖 Handling asset query for user:', userId, 'message:', message);
+
+    // Query assets table
+    const { data: assets, error } = await supabase
+      .from('assets')
+      .select('id, nama, nilai_perolehan, nilai_sekarang, status, tanggal_perolehan, depresiasi_per_tahun')
+      .eq('user_id', userId)
+      .order('tanggal_perolehan', { ascending: false })
+      .limit(10);
+
+    console.log('🤖 Asset query result:', { data: assets?.length, error });
+
+    if (error) {
+      console.log('🤖 Asset query error:', error);
+      throw error;
+    }
+
+    if (!assets || assets.length === 0) {
+      return {
+        type: 'asset',
+        text: '🏢 Tidak ada data aset yang ditemukan.',
+        data: []
+      };
+    }
+
+    const assetList = assets.map((asset: any) => {
+      const acquisitionValue = formatCurrency(asset.nilai_perolehan);
+      const currentValue = formatCurrency(asset.nilai_sekarang || asset.nilai_perolehan);
+      const date = new Date(asset.tanggal_perolehan).toLocaleDateString('id-ID');
+      return `• ${asset.nama}: ${currentValue} (Perolehan: ${acquisitionValue}) - ${date}`;
+    }).join('\n');
+
+    const totalValue = assets.reduce((sum, asset) => sum + (asset.nilai_sekarang || asset.nilai_perolehan || 0), 0);
+
+    return {
+      type: 'asset',
+      text: `🏢 Daftar Aset:\n\n${assetList}\n\n💰 Total Nilai Aset: ${formatCurrency(totalValue)}`,
+      data: assets
+    };
+
+  } catch (error) {
+    console.error('Asset query error:', error);
+    return {
+      type: 'error',
+      text: 'Maaf, terjadi kesalahan saat mengakses data aset.'
+    };
+  }
+}
+
+// Handler untuk query recipes
+async function handleRecipeQuery(supabase: any, userId: string, message: string) {
+  try {
+    console.log('🤖 Handling recipe query for user:', userId, 'message:', message);
+
+    // Extract recipe name from message
+    const recipeName = extractRecipeName(message);
+
+    // Query recipes table
+    let query = supabase
+      .from('recipes')
+      .select('id, nama, harga_jual, kategori, created_at')
+      .eq('user_id', userId);
+
+    if (recipeName) {
+      query = query.ilike('nama', `%${recipeName}%`);
+    }
+
+    const { data: recipes, error } = await query
+      .order('created_at', { ascending: false })
+      .limit(recipeName ? 5 : 10);
+
+    console.log('🤖 Recipe query result:', { data: recipes?.length, error });
+
+    if (error) {
+      console.log('🤖 Recipe query error:', error);
+      throw error;
+    }
+
+    if (!recipes || recipes.length === 0) {
+      return {
+        type: 'recipe',
+        text: recipeName
+          ? `🍽️ Tidak ditemukan resep "${recipeName}".`
+          : '🍽️ Tidak ada data resep yang ditemukan.',
+        data: []
+      };
+    }
+
+    const recipeList = recipes.map((recipe: any) => {
+      const price = formatCurrency(recipe.harga_jual);
+      const category = recipe.kategori || 'Umum';
+      return `• ${recipe.nama}: ${price} (${category})`;
+    }).join('\n');
+
+    return {
+      type: 'recipe',
+      text: `🍽️ ${recipeName ? 'Detail Resep' : 'Daftar Resep'}:\n\n${recipeList}`,
+      data: recipes
+    };
+
+  } catch (error) {
+    console.error('Recipe query error:', error);
+    return {
+      type: 'error',
+      text: 'Maaf, terjadi kesalahan saat mengakses data resep.'
+    };
+  }
+}
+
+// Handler untuk query promos
+async function handlePromoQuery(supabase: any, userId: string, message: string) {
+  try {
+    console.log('🤖 Handling promo query for user:', userId, 'message:', message);
+
+    // Query promos table
+    const { data: promos, error } = await supabase
+      .from('promos')
+      .select('id, nama, diskon_persen, diskon_rupiah, tanggal_mulai, tanggal_selesai, status, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(5);
+
+    console.log('🤖 Promo query result:', { data: promos?.length, error });
+
+    if (error) {
+      console.log('🤖 Promo query error:', error);
+      throw error;
+    }
+
+    if (!promos || promos.length === 0) {
+      return {
+        type: 'promo',
+        text: '🎉 Tidak ada data promo yang ditemukan.',
+        data: []
+      };
+    }
+
+    const promoList = promos.map((promo: any) => {
+      const discount = promo.diskon_persen
+        ? `${promo.diskon_persen}%`
+        : formatCurrency(promo.diskon_rupiah);
+      const startDate = new Date(promo.tanggal_mulai).toLocaleDateString('id-ID');
+      const endDate = new Date(promo.tanggal_selesai).toLocaleDateString('id-ID');
+      const status = getPromoStatusText(promo.status);
+
+      return `• ${promo.nama}: Diskon ${discount} (${startDate} - ${endDate}) [${status}]`;
+    }).join('\n');
+
+    return {
+      type: 'promo',
+      text: `🎉 Daftar Promo Aktif:\n\n${promoList}`,
+      data: promos
+    };
+
+  } catch (error) {
+    console.error('Promo query error:', error);
+    return {
+      type: 'error',
+      text: 'Maaf, terjadi kesalahan saat mengakses data promo.'
+    };
+  }
+}
+
 // Utility functions
 function extractCustomerName(message: string): string | null {
   // Simple extraction - can be enhanced with better NLP
@@ -355,7 +601,8 @@ function extractCustomerName(message: string): string | null {
     /pesanan\s+(?:bu|bapak|pak|nyonya|ibu)\s+(\w+)/i,
     /cari\s+(?:bu|bapak|pak|nyonya|ibu)\s+(\w+)/i,
     /lihat\s+(?:bu|bapak|pak|nyonya|ibu)\s+(\w+)/i,
-    /nama\s+(\w+)/i
+    /nama\s+(\w+)/i,
+    /pelanggan\s+(\w+)/i
   ];
 
   for (const pattern of patterns) {
@@ -377,6 +624,41 @@ function extractMaterialName(message: string): string | null {
     if (match) return match[1];
   }
   return null;
+}
+
+function extractRecipeName(message: string): string | null {
+  const patterns = [
+    /resep\s+(\w+)/i,
+    /recipe\s+(\w+)/i,
+    /produk\s+(\w+)/i
+  ];
+
+  for (const pattern of patterns) {
+    const match = message.match(pattern);
+    if (match) return match[1];
+  }
+  return null;
+}
+function getPurchaseStatusText(status: string): string {
+  const statusMap: { [key: string]: string } = {
+    'draft': 'Draft',
+    'pending': 'Menunggu',
+    'approved': 'Disetujui',
+    'ordered': 'Dipesan',
+    'received': 'Diterima',
+    'cancelled': 'Dibatalkan'
+  };
+  return statusMap[status] || status;
+}
+
+function getPromoStatusText(status: string): string {
+  const statusMap: { [key: string]: string } = {
+    'active': 'Aktif',
+    'inactive': 'Tidak Aktif',
+    'expired': 'Kadaluarsa',
+    'scheduled': 'Terjadwal'
+  };
+  return statusMap[status] || status;
 }
 
 function getStatusText(status: string): string {

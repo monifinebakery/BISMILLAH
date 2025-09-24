@@ -162,7 +162,7 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
       console.log('🤖 Missing required info. Customer:', orderInfo.customerName, 'Amount:', orderInfo.totalAmount);
       return {
         type: 'error',
-        text: '❌ Informasi pesanan tidak lengkap. Format yang benar:\n• "tambah pesanan untuk [nama customer] senilai [jumlah]"\n• "buat pesanan [produk] untuk [nama] [jumlah]"\n\nContoh: "tambah pesanan donat untuk Bu Rika senilai 5000"'
+        text: 'Waduh Kak 😅, informasi pesanan kurang lengkap nih. Coba sebut nama customer dan harganya ya! \n\nContoh yang benar:\n• "Buat pesanan donat untuk Bu Ani 5000 rupiah"\n• "Tambah pesanan roti untuk Pak Budi senilai 10rb"\n\nAtau ada detail lain yang mau ditambahin? 🤔'
       };
     }
 
@@ -213,7 +213,7 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
 
     return {
       type: 'success',
-      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n🏠 Alamat: ${order.alamat_pengiriman}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n\nPesanan telah disimpan di sistem dan siap diproses.`
+      text: `Sip Kak! 🎉 Pesanan berhasil dibuat nih!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n🏠 Alamat: ${order.alamat_pengiriman}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n\nPesanan udah tersimpan di sistem dan siap diproses ya Kak! Ada lagi yang bisa dibantu? 😊`
     };
 
   } catch (error) {
@@ -328,7 +328,7 @@ async function handleInventoryUpdate(supabase: any, userId: string, message: str
 
     return {
       type: 'success',
-      text: `✅ Stok berhasil diupdate!\n\n📦 Bahan: ${updatedMaterial.nama}\n📊 Perubahan: ${existingMaterial.stok} → ${updatedMaterial.stok}\n🔄 Selisih: ${updatedMaterial.stok - existingMaterial.stok > 0 ? '+' : ''}${updatedMaterial.stok - existingMaterial.stok}\n\nStok warehouse telah diperbarui.`
+      text: `Sip Kak! ✅ Stok berhasil diupdate nih!\n\n📦 Bahan: ${updatedMaterial.nama}\n📊 Perubahan: ${existingMaterial.stok} → ${updatedMaterial.stok}\n🔄 Selisih: ${updatedMaterial.stok - existingMaterial.stok > 0 ? '+' : ''}${updatedMaterial.stok - existingMaterial.stok}\n\nWarehouse udah diperbarui ya Kak! Mau update stok yang lain? 😊`
     };
 
   } catch (error) {

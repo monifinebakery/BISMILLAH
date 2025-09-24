@@ -4,7 +4,11 @@ export class ChatbotService {
   private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string}> = [];
   private businessName: string = 'Bisnis Anda'; // Default fallback
-
+  
+  // Chat persistence key
+  private readonly CHAT_HISTORY_KEY = 'chatbot_history';
+  private readonly BUSINESS_NAME_KEY = 'chatbot_business_name';
+  
   // Analytics tracking
   private analytics = {
     totalConversations: 0,
@@ -15,12 +19,60 @@ export class ChatbotService {
 
   constructor() {
     this.openRouter = new OpenRouterService();
+    this.loadPersistedData();
+  }
+
+  // Load persisted chat data
+  private loadPersistedData() {
+    try {
+      // Load chat history
+      const savedHistory = localStorage.getItem(this.CHAT_HISTORY_KEY);
+      if (savedHistory) {
+        const parsedHistory = JSON.parse(savedHistory);
+        if (Array.isArray(parsedHistory)) {
+          this.history = parsedHistory;
+        }
+      }
+
+      // Load business name
+      const savedBusinessName = localStorage.getItem(this.BUSINESS_NAME_KEY);
+      if (savedBusinessName) {
+        this.businessName = savedBusinessName;
+      }
+
+      console.log('🤖 Loaded persisted chat data:', { 
+        messages: this.history.length, 
+        businessName: this.businessName 
+      });
+    } catch (error) {
+      console.warn('🤖 Failed to load persisted chat data:', error);
+      // Reset to defaults if loading fails
+      this.history = [];
+      this.businessName = 'Bisnis Anda';
+    }
+  }
+
+  // Save chat data to localStorage
+  private savePersistedData() {
+    try {
+      // Save chat history (keep only last 50 messages to avoid storage bloat)
+      const recentHistory = this.history.slice(-50);
+      localStorage.setItem(this.CHAT_HISTORY_KEY, JSON.stringify(recentHistory));
+      
+      // Save business name
+      localStorage.setItem(this.BUSINESS_NAME_KEY, this.businessName);
+      
+      console.log('🤖 Saved chat data:', { messages: recentHistory.length });
+    } catch (error) {
+      console.warn('🤖 Failed to save chat data:', error);
+    }
   }
 
   // Set business name for personalization
   setBusinessName(name: string) {
     this.businessName = name || 'Bisnis Anda';
     console.log('🤖 Chatbot business name set to:', this.businessName);
+    this.savePersistedData(); // Save after update
   }
 
   async processMessage(message: string, userId?: string): Promise<any> {
@@ -45,6 +97,7 @@ export class ChatbotService {
             // Add to history
             this.history.push({ role: 'user', content: message });
             this.history.push({ role: 'assistant', content: dbResponse.text });
+            this.savePersistedData(); // Save after successful response
             console.log('🤖 Returning database response');
             return dbResponse;
           } else {
@@ -88,6 +141,7 @@ export class ChatbotService {
 
       // Add response to history
       this.history.push({ role: 'assistant', content: response.text });
+      this.savePersistedData(); // Save after AI response
 
       return response;
     } catch (error) {
@@ -199,6 +253,19 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
 
   clearHistory() {
     this.history = [];
+    this.savePersistedData(); // Save empty history
+    console.log('🤖 Chat history cleared');
+  }
+
+  // Clear all persisted data
+  clearPersistedData() {
+    try {
+      localStorage.removeItem(this.CHAT_HISTORY_KEY);
+      localStorage.removeItem(this.BUSINESS_NAME_KEY);
+      console.log('🤖 All persisted chat data cleared');
+    } catch (error) {
+      console.warn('🤖 Failed to clear persisted data:', error);
+    }
   }
 
   getHistory() {

@@ -136,6 +136,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   const clearChat = () => {
     setMessages([]);
     chatbotService.clearHistory();
+    chatbotService.clearPersistedData(); // Clear from localStorage too
     addWelcomeMessage();
   };
 
@@ -154,12 +155,28 @@ Silakan ketik pertanyaan Anda!`;
     addMessage(welcomeMessage, 'bot');
   };
 
-  // Welcome message on first open
+  // Load chat history on mount
+  useEffect(() => {
+    const savedHistory = chatbotService.getHistory();
+    if (savedHistory.length > 0) {
+      // Convert history to message format and add to state
+      const historyMessages: ChatMessage[] = savedHistory.map((msg, index) => ({
+        id: `history-${index}`,
+        content: msg.content,
+        sender: msg.role === 'user' ? 'user' : 'bot',
+        timestamp: new Date() // We don't have timestamp in persisted history
+      }));
+      setMessages(historyMessages);
+      console.log('🤖 Loaded chat history:', historyMessages.length, 'messages');
+    }
+  }, [chatbotService]);
+
+  // Welcome message on first open (only if no history)
   useEffect(() => {
     if (isOpen && messages.length === 0) {
       addWelcomeMessage();
     }
-  }, [isOpen]);
+  }, [isOpen, messages.length]);
 
   if (!isOpen) return null;
 

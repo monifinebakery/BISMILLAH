@@ -216,8 +216,8 @@ Silakan ketik pertanyaan Anda!`;
         </CardHeader>
 
         {/* Messages */}
-        <CardContent className="flex-1 overflow-hidden p-0">
-          <div className="flex h-full flex-col">
+        <CardContent className="flex-1 p-0">
+          <div className="flex h-full flex-col min-h-0">
             <div className="flex-1 overflow-y-auto px-4 py-4">
               <div className="space-y-4">
                 {messages.map((message) => (
@@ -252,7 +252,7 @@ Silakan ketik pertanyaan Anda!`;
                           <span>Sedang memproses...</span>
                         </div>
                       ) : (
-                        <div className="whitespace-pre-wrap text-sm">
+                        <div className="whitespace-pre-wrap text-sm max-h-60 overflow-y-auto">
                           {message.content}
                         </div>
                       )}

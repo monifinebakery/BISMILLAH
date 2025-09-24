@@ -7,6 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { getStatusText, getStatusColor } from '../../constants';
 import type { Order, OrderStatus } from '../../types';
 
@@ -26,7 +27,7 @@ interface BulkEditData {
 }
 
 const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
-  const { formatCurrency } = useCurrency();  isOpen,
+  isOpen,
   onClose,
   operation,
   selectedOrders,
@@ -47,17 +48,17 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Handle form field changes
   const handleFieldChange = (field: keyof BulkEditData, value: string | undefined) => {
-  const { formatCurrency } = useCurrency();    setBulkEditData(prev => ({ ...prev, [field]: value }));
+    setBulkEditData(prev => ({ ...prev, [field]: value }));
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-  const { formatCurrency } = useCurrency();    e.preventDefault();
+    e.preventDefault();
     
     if (isEditMode) {
       // Filter out empty values for bulk edit
       const cleanedData = Object.entries(bulkEditData).reduce((acc, [key, value]) => {
-  const { formatCurrency } = useCurrency();        if (value !== undefined && value !== '' && value !== null) {
+        if (value !== undefined && value !== '' && value !== null) {
           acc[key as keyof BulkEditData] = value;
         }
         return acc;
@@ -75,7 +76,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Group orders by status
   const statusGroups = selectedOrders.reduce((groups, order) => {
-  const { formatCurrency } = useCurrency();    if (!groups[order.status]) {
+    if (!groups[order.status]) {
       groups[order.status] = [];
     }
     groups[order.status].push(order);

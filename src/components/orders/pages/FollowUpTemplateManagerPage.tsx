@@ -22,7 +22,9 @@ import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
 
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
-import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
+import { getStatusText } from '../constants';
+import { useOrder } from '../context/OrderContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import type { Order } from '../types';
 
 interface Template {
@@ -33,7 +35,12 @@ interface Template {
 }
 
 const FollowUpTemplateManagerPage: React.FC = () => {
-  const { formatCurrency } = useCurrency();  const navigate = useNavigate();
+  const navigate = useNavigate();
+  const { id: orderId } = useParams<{ id: string }>();
+  const { formatCurrency } = useCurrency();
+
+  // Order Context
+  const { orders, loading: ordersLoading } = useOrder();
 
   // Use FollowUpTemplateContext
   const { templates: contextTemplates, saveTemplate } = useFollowUpTemplate();
@@ -44,14 +51,14 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [templateForm, setTemplateForm] = useState({ message: '' });
-  const { formatCurrency } = useCurrency();  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [previewMessage, setPreviewMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Update templates when context changes
   useEffect(() => {
     const templateArray = Object.entries(contextTemplates).map(([status, message]) => ({
-  const { formatCurrency } = useCurrency();      id: status,
+      id: status,
       name: getStatusDisplayName(status),
       message: message,
       createdAt: new Date()
@@ -66,8 +73,8 @@ const FollowUpTemplateManagerPage: React.FC = () => {
 
   // Helper function to get display name for status
   const getStatusDisplayName = (status: string): string => {
-  const { formatCurrency } = useCurrency();    const statusNames: Record<string, string> = {
-  const { formatCurrency } = useCurrency();      pending: 'Konfirmasi Pesanan',
+    const statusNames: Record<string, string> = {
+      pending: 'Konfirmasi Pesanan',
       confirmed: 'Pesanan Dikonfirmasi',
       preparing: 'Sedang Diproses',
       ready: 'Siap Diambil/Dikirim',
@@ -81,7 +88,7 @@ const FollowUpTemplateManagerPage: React.FC = () => {
 
   // Sample order data for preview
   const sampleOrder: Order = {
-  const { formatCurrency } = useCurrency();    id: 'sample-001',
+    id: 'sample-001',
     orderNumber: 'ORD-2024-001',
     customerName: 'John Doe',
     totalAmount: 150000,
@@ -163,7 +170,7 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   const { formatCurrency } = useCurrency();    if (!selectedTemplate) return;
     
     const defaultTemplates: Record<string, string> = {
-  const { formatCurrency } = useCurrency();      pending: 'Halo {{customerName}}, terima kasih sudah memesan di toko kami!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami konfirmasi. Kami akan menghubungi Anda kembali segera.',
+      pending: 'Halo {{customerName}}, terima kasih sudah memesan di toko kami!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami konfirmasi. Kami akan menghubungi Anda kembali segera.',
       confirmed: 'Halo {{customerName}}, pesanan Anda telah dikonfirmasi!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami siapkan.',
       preparing: 'Halo {{customerName}}, pesanan Anda sedang dalam proses pembuatan.\n\nNomor pesanan: {{orderNumber}}\n\nMohon ditunggu, kami akan update Anda segera.',
       ready: 'Halo {{customerName}}, pesanan Anda sudah siap!\n\nNomor pesanan: {{orderNumber}}\n\nSilakan ambil pesanan Anda atau kami akan kirim sesuai kesepakatan.',

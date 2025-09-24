@@ -7,6 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Edit, Info, Trash2 } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 
 
@@ -29,7 +30,7 @@ interface TransactionRowsProps {
 }
 
 const TransactionRowComponent = ({
-  const { formatCurrency } = useCurrency();  transaction,
+  transaction,
   isSelected,
   onToggleSelect,
   onEdit,
@@ -46,15 +47,15 @@ const TransactionRowComponent = ({
   getDisplayDescription: (description: string | null) => string;
 }) => {
   const handleToggleSelect = useCallback(() => {
-  const { formatCurrency } = useCurrency();    onToggleSelect?.(transaction.id, !isSelected);
+    onToggleSelect?.(transaction.id, !isSelected);
   }, [isSelected, onToggleSelect, transaction.id]);
 
   const handleEdit = useCallback(() => {
-  const { formatCurrency } = useCurrency();    onEdit?.(transaction);
+    onEdit?.(transaction);
   }, [onEdit, transaction]);
 
   const handleDelete = useCallback(() => {
-  const { formatCurrency } = useCurrency();    onDelete(transaction);
+    onDelete(transaction);
   }, [onDelete, transaction]);
 
   return (
@@ -86,8 +87,7 @@ const TransactionRowComponent = ({
                 date.getMinutes() !== 0 ||
                 date.getSeconds() !== 0;
               const dateStr = format(date, 'dd MMM yyyy', { locale: id });
-  const { formatCurrency } = useCurrency();              const timeStr = format(date, 'HH:mm', { locale: id });
-  const { formatCurrency } = useCurrency();
+              const timeStr = format(date, 'HH:mm', { locale: id });
               if (hasTimeInfo) {
                 return (
                   <div className="text-sm">
@@ -183,7 +183,7 @@ const TransactionRowComponent = ({
 };
 
 const MemoizedTransactionRow = memo(TransactionRowComponent, (previous, next) => {
-  const { formatCurrency } = useCurrency();  return (
+  return (
     previous.transaction.id === next.transaction.id &&
     previous.transaction.updatedAt === next.transaction.updatedAt &&
     previous.isSelected === next.isSelected &&
@@ -193,7 +193,7 @@ const MemoizedTransactionRow = memo(TransactionRowComponent, (previous, next) =>
 MemoizedTransactionRow.displayName = 'MemoizedTransactionRow';
 
 const TransactionRows = ({
-  const { formatCurrency } = useCurrency();  transactions,
+  transactions,
   selectedIds,
   isSelectionMode,
   isAllSelected,
@@ -206,6 +206,7 @@ const TransactionRows = ({
   dateRange,
   onAddTransaction,
 }: TransactionRowsProps) => {
+  const { formatCurrency } = useCurrency();
   return (
     <>
       <TableHeader>

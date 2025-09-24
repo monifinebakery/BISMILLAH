@@ -7,6 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { warehouseUtils } from '../services/warehouseUtils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 import type { BahanBakuFrontend } from '../types';
 import { toNumber } from '../utils/typeUtils';
@@ -45,7 +46,7 @@ interface BulkEditData {
  * Compatible with useWarehouseCore and BahanBakuFrontend
  */
 const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
-  const { formatCurrency } = useCurrency();  isOpen,
+  isOpen,
   onClose,
   operation,
   selectedItems,
@@ -56,7 +57,8 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   availableSuppliers,
 }) => {
   const [bulkEditData, setBulkEditData] = useState<BulkEditData>({});
-  const { formatCurrency } = useCurrency();  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
+  const { formatCurrency } = useCurrency();
+  const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
 
   const isEditMode = operation === 'edit';
@@ -71,12 +73,12 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Handle form field changes
   const handleFieldChange = (field: keyof BulkEditData, value: string | number | undefined) => {
-  const { formatCurrency } = useCurrency();    setBulkEditData(prev => ({ ...prev, [field]: value }));
+     setBulkEditData(prev => ({ ...prev, [field]: value }));
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-  const { formatCurrency } = useCurrency();    e.preventDefault();
+     e.preventDefault();
     
     console.log('🔄 BulkOperationsDialog handleSubmit called', { 
       isEditMode, 
@@ -87,7 +89,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
     if (isEditMode) {
       // Filter out empty values for bulk edit
       const cleanedData = Object.entries(bulkEditData).reduce((acc, [key, value]) => {
-  const { formatCurrency } = useCurrency();        if (value !== undefined && value !== '' && value !== null) {
+         if (value !== undefined && value !== '' && value !== null) {
           acc[key as keyof BulkEditData] = value;
         }
         return acc;
@@ -110,12 +112,12 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Auto-complete handlers
   const handleCategorySelect = (category: string) => {
-  const { formatCurrency } = useCurrency();    handleFieldChange('kategori', category);
+     handleFieldChange('kategori', category);
     setShowCategoryDropdown(false);
   };
 
   const handleSupplierSelect = (supplier: string) => {
-  const { formatCurrency } = useCurrency();    handleFieldChange('supplier', supplier);
+     handleFieldChange('supplier', supplier);
     setShowSupplierDropdown(false);
   };
 
@@ -130,7 +132,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // ✅ FIXED: Utility functions with fallbacks
   const getStockLevel = (stok: number, minimum: number) => {
-  const { formatCurrency } = useCurrency();    if (warehouseUtils?.formatStockLevel) {
+     if (warehouseUtils?.formatStockLevel) {
       return warehouseUtils.formatStockLevel(stok, minimum);
     }
     // Fallback implementation
@@ -141,7 +143,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   };
 
   const formatCurrencyValue = (value: number) => {
-  const { formatCurrency } = useCurrency();    if (warehouseUtils?.formatCurrency) {
+     if (warehouseUtils?.formatCurrency) {
       return warehouseUtils.formatCurrency(value);
     }
     if (typeof formatCurrency === 'function') {
@@ -157,7 +159,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   };
 
   const getLowStockCount = (items: BahanBakuFrontend[]) => {
-  const { formatCurrency } = useCurrency();    if (warehouseUtils?.getLowStockItems) {
+     if (warehouseUtils?.getLowStockItems) {
       return warehouseUtils.getLowStockItems(items).length;
     }
     // Fallback implementation
@@ -165,7 +167,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   };
 
   const getExpiringCount = (items: BahanBakuFrontend[], days: number = 30) => {
-  const { formatCurrency } = useCurrency();    if (warehouseUtils?.getExpiringItems) {
+     if (warehouseUtils?.getExpiringItems) {
       return warehouseUtils.getExpiringItems(items, days).length;
     }
     // Fallback implementation

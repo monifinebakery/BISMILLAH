@@ -35,11 +35,13 @@ import { onCompletedFinancialSync, onRevertedFinancialCleanup, cleanupFinancialF
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
 const warehouseQueryKeys = {
+  list: () => ['warehouse', 'list'] as const,
   analysis: () => ['warehouse', 'analysis'] as const,
 } as const;
 
 // ------------------- API helpers -------------------
 const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
+  const { data, error } = await PurchaseApiService.fetchPurchases(userId);
   if (error) throw new Error(error);
   return data || [];
 };
@@ -93,6 +95,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const queryClient = useQueryClient();
 
   const { addActivity } = useActivity();
+  const { user } = useAuth();
   
   // ✅ SAFE CONTEXT ACCESS: Use optional context pattern
   const financialContext = useContext(FinancialContext);
@@ -210,10 +213,15 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   });
 
   // ------------------- Optimistic helpers -------------------
-  const setCacheList = useCallback((updater: (old: Purchase[]) => Purchase[]) => {
-      return updater(old || []);
-    });
-  }, [queryClient, user?.id]);
+  const setCacheList = useCallback(
+    (updater: (old: Purchase[]) => Purchase[]) => {
+      queryClient.setQueryData<Purchase[] | undefined>(
+        purchaseQueryKeys.list(user?.id),
+        (old) => updater(old || [])
+      );
+    },
+    [queryClient, user?.id]
+  );
 
   const findPurchase = useCallback((id: string) => (purchases as Purchase[]).find((p: Purchase) => p.id === id), [purchases]);
 
@@ -466,29 +474,30 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Public actions -------------------
   const addPurchase = useCallback(async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
+    if (!user) {
       logger.error('addPurchase: User not logged in');
-      toast.error('Anda harus login'); 
-      return false; 
+      toast.error('Anda harus login');
+      return false;
     }
-    
-    logger.debug('addPurchase: Starting purchase creation', { 
+
+    logger.debug('addPurchase: Starting purchase creation', {
       supplier: purchase.supplier,
       itemCount: purchase.items?.length,
       totalNilai: purchase.total_nilai
     });
-    
+
     const errs = validatePurchaseData(purchase);
-    if (errs.length) { 
+    if (errs.length) {
       logger.error('addPurchase: Validation failed', { errors: errs });
-      toast.error(errs[0]); 
-      return false; 
+      toast.error(errs[0]);
+      return false;
     }
-    
+
     try {
       logger.debug('addPurchase: Ensuring bahan baku IDs');
       const items = await ensureBahanBakuIds(purchase.items || [], purchase.supplier);
       logger.debug('addPurchase: Bahan baku IDs ensured', { itemCount: items.length });
-      
+
       logger.debug('addPurchase: Calling createMutation');
       await createMutation.mutateAsync({ ...purchase, items });
       logger.debug('addPurchase: Purchase created successfully');
@@ -503,6 +512,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
     try {
       const payload = { ...updated };
+      if (updated.items) {
         const supplierId = updated.supplier || findPurchase(id)?.supplier || '';
         payload.items = await ensureBahanBakuIds(updated.items, supplierId);
       }

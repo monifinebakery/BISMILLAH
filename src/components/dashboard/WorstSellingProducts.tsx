@@ -19,10 +19,11 @@ import {
 
 import { generateListKey } from '@/utils/keyUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 // 🔧 Local pagination calculation utility
 const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
-  const { formatCurrency } = useCurrency();  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   
@@ -62,8 +63,8 @@ interface SortConfig {
 }
 
 const sortConfigs: Record<SortOption, SortConfig> = {
-  const { formatCurrency } = useCurrency();  quantity: {
-    key: 'quantity', 
+  quantity: {
+    key: 'quantity',
     label: 'Penjualan Terendah',
     icon: <Hash className="h-4 w-4" />,
     description: 'Produk dengan unit terjual paling sedikit',
@@ -299,17 +300,18 @@ const PaginationControls: React.FC<{
   );
 };
 
-const WorstSellingProducts: React.FC<Props> = ({ 
-  const { formatCurrency } = useCurrency();  products, 
-  pagination, 
-  onPageChange, 
-  isLoading 
+const WorstSellingProducts: React.FC<Props> = ({
+  products,
+  pagination,
+  onPageChange,
+  isLoading
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('quantity');
   const itemsPerPage = 5;
 
   // 📊 Sort products based on selected option (ascending for worst)
   const sortedProducts = useMemo(() => {
+    if (isLoading || !products.length) return products;
   const { formatCurrency } = useCurrency();    if (isLoading || !products.length) return products;
     
     const config = sortConfigs[sortBy];

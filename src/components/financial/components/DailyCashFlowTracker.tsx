@@ -74,15 +74,6 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
     });
   }, [transactions]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();

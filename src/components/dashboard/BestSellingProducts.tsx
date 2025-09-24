@@ -49,7 +49,7 @@ interface SortConfig {
 }
 
 const sortConfigs: Record<SortOption, SortConfig> = {
-  const { formatCurrency } = useCurrency();  revenue: {
+  revenue: {
     key: 'revenue',
     label: 'Total Pendapatan',
     icon: <DollarSign className="h-4 w-4" />,
@@ -199,19 +199,19 @@ const PaginationControls: React.FC<{
   );
 };
 
-const BestSellingProducts: React.FC<Props> = ({ 
-  const { formatCurrency } = useCurrency();  products, 
-  pagination, 
-  onPageChange, 
-  isLoading 
+const BestSellingProducts: React.FC<Props> = ({
+  products,
+  pagination,
+  onPageChange,
+  isLoading, 
 }) => {
   const [sortBy, setSortBy] = useState<SortOption>('revenue');
   const itemsPerPage = 5;
 
   // 📊 Sort products based on selected option
   const sortedProducts = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (isLoading || !products.length) return products;
-    
+    if (isLoading || !products.length) return products;
+
     const config = sortConfigs[sortBy];
     return [...products].sort((a, b) => config.getValue(b) - config.getValue(a));
   }, [products, sortBy, isLoading]);

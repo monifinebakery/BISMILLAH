@@ -24,10 +24,11 @@ import {
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../constants';
 import { useOrder } from '../context/OrderContext';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import type { Order } from '../types';
 
 const OrdersViewPage: React.FC = () => {
-  const { formatCurrency } = useCurrency();  const navigate = useNavigate();
+  const navigate = useNavigate();
   const { id: orderId } = useParams<{ id: string }>();
   const { formatCurrency } = useCurrency();
   // Order Context
@@ -35,23 +36,23 @@ const OrdersViewPage: React.FC = () => {
 
   // Find the order
   const order = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (!orderId) return null;
+    if (!orderId) return null;
     return orders.find(o => o.id === orderId) || null;
   }, [orderId, orders]);
 
   // Handle navigation
   const handleBack = () => {
-  const { formatCurrency } = useCurrency();    navigate('/pesanan');
+    navigate('/pesanan');
   };
 
   const handleEdit = () => {
-  const { formatCurrency } = useCurrency();    if (order?.id) {
+    if (order?.id) {
       navigate(`/pesanan/edit/${order.id}`);
     }
   };
 
   const handleWhatsApp = () => {
-  const { formatCurrency } = useCurrency();    if (!order?.teleponPelanggan) {
+    if (!order?.teleponPelanggan) {
       toast.error('Nomor telepon tidak tersedia');
       return;
     }
@@ -59,16 +60,16 @@ const OrdersViewPage: React.FC = () => {
     try {
       // Create a basic message for follow-up
       const message = `Halo ${order.namaPelanggan}, terima kasih atas pesanan Anda #${order.nomorPesanan}. Status pesanan: ${getStatusText(order.status)}.`;
-  const { formatCurrency } = useCurrency();      
+
       // Format phone number
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
-      
+
       // Create WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(message)}`;
-  const { formatCurrency } = useCurrency();      
+
       // Open WhatsApp
       window.open(whatsappUrl, '_blank');
-      
+
       toast.success('WhatsApp berhasil dibuka');
     } catch (error) {
       console.error('Error opening WhatsApp:', error);

@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
 import { parseRobustNumber } from '@/utils/robustNumberParser';
+import { useCurrency } from '@/contexts/CurrencyContext';
 // Avoid importing warehouseUtils to reduce bundle graph and prevent potential cycles
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
@@ -30,14 +31,15 @@ interface NewItemFormProps {
 
 // Use robust number parser for better Indonesian format support
 const toNumber = (v: string | number | '' | undefined | null): number => {
-  const { formatCurrency } = useCurrency();  return parseRobustNumber(v, 0);
+  return parseRobustNumber(v, 0);
 };
 
 export const NewItemForm: React.FC<NewItemFormProps> = ({
-  const { formatCurrency } = useCurrency();  onAddItem
+  onAddItem
 }) => {
+  const { formatCurrency } = useCurrency();
   const [formData, setFormData] = useState<FormData>({
-  const { formatCurrency } = useCurrency();    nama: '',
+     nama: '',
     satuan: '',
     kuantitas: '',
     totalBayar: '',
@@ -49,13 +51,13 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   // Handle numeric input changes
   const handleNumericChange = useCallback((field: keyof FormData, value: string) => {
-  const { formatCurrency } = useCurrency();    const cleanValue = value.replace(/[^\d.,]/g, '');
+     const cleanValue = value.replace(/[^\d.,]/g, '');
     setFormData(prev => ({ ...prev, [field]: cleanValue }));
   }, []);
   
   // Computed values - calculate unit price from total payment
   const computedUnitPrice = useMemo(() => {
-  const { formatCurrency } = useCurrency();    const qty = toNumber(formData.kuantitas);
+     const qty = toNumber(formData.kuantitas);
     const pay = toNumber(formData.totalBayar);
     if (qty > 0 && pay > 0) {
       return Math.round((pay / qty) * 100) / 100;
@@ -65,7 +67,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   // Check if using automatic calculation
   const isUsingAutomaticCalculation = useMemo(() => {
-  const { formatCurrency } = useCurrency();    return toNumber(formData.kuantitas) > 0 && 
+     return toNumber(formData.kuantitas) > 0 && 
            toNumber(formData.totalBayar) > 0;
   }, [formData.kuantitas, formData.totalBayar]);
 
@@ -89,13 +91,13 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
 
   // Handle form submission
   const handleSubmit = useCallback(() => {
-  const { formatCurrency } = useCurrency();    if (!formData.nama.trim()) {
+     if (!formData.nama.trim()) {
       toast.error('Nama bahan baku harus diisi');
       return;
     }
 
     const purchaseItem: PurchaseItem = {
-  const { formatCurrency } = useCurrency();      bahanBakuId: generateUUID(),
+       bahanBakuId: generateUUID(),
       nama: formData.nama,
       satuan: formData.satuan,
       quantity: effectiveQty,

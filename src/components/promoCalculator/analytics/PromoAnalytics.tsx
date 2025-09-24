@@ -6,13 +6,15 @@ import PromoPerformanceCard from './PromoPerformanceCard';
 import { usePromoAnalytics } from '../hooks/usePromoAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency, formatCompactCurrency, CurrencyDisplay } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 const PromoAnalytics = () => {
-  const { formatCurrency } = useCurrency();  const isMobile = useIsMobile(768);
+  const isMobile = useIsMobile(768);
   const [showDateFilter, setShowDateFilter] = useState(false);
+  const { formatCurrency } = useCurrency();
   
   const [dateRange, setDateRange] = useState({
-  const { formatCurrency } = useCurrency();    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
+    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
     end: new Date().toISOString().split('T')[0] // today
   });
   
@@ -34,19 +36,19 @@ const PromoAnalytics = () => {
   const presetCategories = ['Makanan', 'Minuman', 'Snack', 'Paket', 'Lainnya'];
 
   const channels = useMemo(() => {
-  const { formatCurrency } = useCurrency();    const dynamic = Array.from(new Set(baseRows.map(getRowChannel)));
+     const dynamic = Array.from(new Set(baseRows.map(getRowChannel)));
     const merged = Array.from(new Set([...presetChannels, ...dynamic]));
     return ['all', ...merged];
   }, [baseRows]);
 
   const categories = useMemo(() => {
-  const { formatCurrency } = useCurrency();    const dynamic = Array.from(new Set(baseRows.map(getRowCategory)));
+     const dynamic = Array.from(new Set(baseRows.map(getRowCategory)));
     const merged = Array.from(new Set([...presetCategories, ...dynamic]));
     return ['all', ...merged];
   }, [baseRows]);
 
   const filteredPromos = useMemo(() => {
-  const { formatCurrency } = useCurrency();    let rows = baseRows;
+     let rows = baseRows;
     if (selectedChannel !== 'all') {
       rows = rows.filter(r => getRowChannel(r) === selectedChannel);
     }
@@ -62,7 +64,7 @@ const PromoAnalytics = () => {
 
 
   const handleDateRangeApply = () => {
-  const { formatCurrency } = useCurrency();    setShowDateFilter(false);
+     setShowDateFilter(false);
     refreshAnalytics(dateRange);
   };
 

@@ -25,7 +25,7 @@ interface BulkDeleteDialogProps {
 }
 
 const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
-  const { formatCurrency } = useCurrency();  isOpen,
+  isOpen,
   onClose,
   onConfirm,
   selectedOrders,

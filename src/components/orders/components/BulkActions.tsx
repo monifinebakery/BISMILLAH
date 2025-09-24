@@ -3,6 +3,7 @@ import React from 'react';
 import { Trash2, Edit3, X, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 import { useOrderBulk } from '../hooks/useOrderBulk';
 import { getStatusText, getStatusColor } from '../constants';
@@ -20,7 +21,7 @@ interface BulkActionsProps {
 }
 
 const BulkActions: React.FC<BulkActionsProps> = ({
-  const { formatCurrency } = useCurrency();  selectedOrders,
+  selectedOrders,
   selectedIds,
   onClearSelection,
   onSelectAll,
@@ -28,14 +29,15 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   totalCount,
   onRefresh,
 }) => {
-  const { 
-    isDialogOpen, 
-    operationType, 
-    openDialog, 
-    closeDialog, 
-    executeBulkDelete, 
+  const { formatCurrency } = useCurrency();
+  const {
+    isDialogOpen,
+    operationType,
+    openDialog,
+    closeDialog,
+    executeBulkDelete,
     executeBulkEdit,
-    isProcessing 
+    isProcessing
   } = useOrderBulk();
 
   const selectedCount = selectedIds.length;
@@ -47,7 +49,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
   // Group orders by status
   const statusGroups = selectedOrders.reduce((acc, order) => {
-  const { formatCurrency } = useCurrency();    acc[order.status] = (acc[order.status] || 0) + 1;
+    acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
   }, {} as Record<OrderStatus, number>);
 

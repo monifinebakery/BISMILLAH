@@ -3,6 +3,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Edit3, Trash2 } from 'lucide-react';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 import { PurchaseItem } from '../types/purchase.types';
 
@@ -17,7 +18,7 @@ interface ItemRowProps {
 }
 
 export const ItemRow: React.FC<ItemRowProps> = React.memo(({
-  const { formatCurrency } = useCurrency();  item,
+  item,
   index,
   isViewOnly,
   isSubmitting,
@@ -29,7 +30,7 @@ export const ItemRow: React.FC<ItemRowProps> = React.memo(({
   const { formatCurrency } = useCurrency();
   // ✅ PERFORMANCE: Memoized action buttons to prevent unnecessary re-renders
   const actionButtons = React.useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (isViewOnly) return null;
+    if (isViewOnly) return null;
 
     return (
       <div 

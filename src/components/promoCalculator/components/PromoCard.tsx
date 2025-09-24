@@ -4,10 +4,11 @@ import { Edit, Trash2, Eye, Copy, MoreVertical } from 'lucide-react';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
+import { useCurrency } from '@/contexts/CurrencyContext';
 
 
-const PromoCard = ({ 
-  const { formatCurrency } = useCurrency();  promo, 
+const PromoCard = ({
+  promo,
   onEdit, 
   onDelete, 
   onView, 
@@ -15,6 +16,7 @@ const PromoCard = ({
   className = "",
   showActions = true 
 }: any) => {
+  const { formatCurrency } = useCurrency();
   // ✅ State untuk mengontrol dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null); // Untuk mendeteksi klik di luar dropdown
@@ -22,8 +24,8 @@ const PromoCard = ({
   // Utility functions
 
   const getPromoTypeIcon = (type) => {
-  const { formatCurrency } = useCurrency();    const icons = {
-  const { formatCurrency } = useCurrency();      bogo: '🎁',
+     const icons = {
+       bogo: '🎁',
       discount: '💰',
       bundle: '📦',
     };
@@ -31,8 +33,8 @@ const PromoCard = ({
   };
 
   const getStatusColor = (status) => {
-  const { formatCurrency } = useCurrency();    const colors = {
-  const { formatCurrency } = useCurrency();      aktif: 'bg-green-100 text-green-800 border-green-200',
+     const colors = {
+       aktif: 'bg-green-100 text-green-800 border-green-200',
       nonaktif: 'bg-gray-100 text-gray-800 border-gray-200',
       draft: 'bg-yellow-100 text-yellow-800 border-yellow-200',
     };
@@ -42,8 +44,8 @@ const PromoCard = ({
 
 
   const getPromoTypeText = (type) => {
-  const { formatCurrency } = useCurrency();    const types = {
-  const { formatCurrency } = useCurrency();      bogo: 'Buy One Get One',
+     const types = {
+       bogo: 'Buy One Get One',
       discount: 'Diskon',
       bundle: 'Paket Bundle'
     };
@@ -52,7 +54,7 @@ const PromoCard = ({
 
   // Calculate days remaining
   const getDaysRemaining = (endDate) => {
-  const { formatCurrency } = useCurrency();    if (!endDate) return null;
+     if (!endDate) return null;
     const today = new Date();
     const end = new Date(endDate);
     const diffTime = end - today;
@@ -68,18 +70,18 @@ const PromoCard = ({
 
   // ✅ Fungsi untuk toggle dropdown
   const toggleDropdown = () => {
-  const { formatCurrency } = useCurrency();    setIsDropdownOpen(prev => !prev);
+     setIsDropdownOpen(prev => !prev);
   };
 
   // ✅ Fungsi untuk menutup dropdown
   const closeDropdown = () => {
-  const { formatCurrency } = useCurrency();    setIsDropdownOpen(false);
+     setIsDropdownOpen(false);
   };
 
   // ✅ Fungsi untuk menangani klik di luar dropdown
   useEffect(() => {
     const handleClickOutside = (event) => {
-  const { formatCurrency } = useCurrency();      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
         closeDropdown();
       }
     };
@@ -97,7 +99,7 @@ const PromoCard = ({
 
   // ✅ Fungsi pembungkus untuk menutup dropdown setelah aksi
   const handleAction = (actionFn) => {
-  const { formatCurrency } = useCurrency();    return () => {
+     return () => {
       if (actionFn) actionFn(promo);
       closeDropdown();
     };

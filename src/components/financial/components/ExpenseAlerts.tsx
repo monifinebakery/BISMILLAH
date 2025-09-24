@@ -126,15 +126,6 @@ const ExpenseAlerts: React.FC<ExpenseAlertsProps> = ({ transactions, className }
     };
   }, [transactions, budgets]);
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount);
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     

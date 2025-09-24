@@ -4,7 +4,7 @@ import { Edit, Trash2, Eye, Copy, MoreVertical } from 'lucide-react';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 
 const PromoCard = ({
@@ -16,7 +16,7 @@ const PromoCard = ({
   className = "",
   showActions = true 
 }: any) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // ✅ State untuk mengontrol dropdown
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null); // Untuk mendeteksi klik di luar dropdown

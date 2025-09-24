@@ -29,7 +29,7 @@ interface TransactionBulkActionsProps {
 }
 
 const TransactionBulkActions: React.FC<TransactionBulkActionsProps> = ({
-  const { formatCurrency } = useCurrency();  selectedIds,
+  const { formatCurrency } = useSafeCurrency();  selectedIds,
   selectedTransactions,
   isAllSelected,
   totalCount,
@@ -52,7 +52,7 @@ const TransactionBulkActions: React.FC<TransactionBulkActionsProps> = ({
   const expenseCount = selectedTransactions.filter(t => t.type === 'expense').length;
 
   const handleBulkDelete = async () => {
-  const { formatCurrency } = useCurrency();    if (selectedCount === 0) return;
+  const { formatCurrency } = useSafeCurrency();    if (selectedCount === 0) return;
 
     setIsDeleting(true);
     try {

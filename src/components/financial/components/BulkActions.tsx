@@ -34,7 +34,7 @@ import { toast } from 'sonner';
 
 import { useTransactionBulk, type FinancialTransaction, type BulkEditData } from '../hooks/useTransactionBulk';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface BulkActionsProps {
   selectedTransactions: FinancialTransaction[];
@@ -53,7 +53,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   isAllSelected,
   totalCount,
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editData, setEditData] = useState<BulkEditData>({

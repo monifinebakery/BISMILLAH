@@ -8,7 +8,7 @@ import {
 
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 const PromoTable = ({
-  const { formatCurrency } = useCurrency();  promos,
+  const { formatCurrency } = useSafeCurrency();  promos,
   isLoading,
   selectedItems,
   pagination,
@@ -22,7 +22,7 @@ const PromoTable = ({
 }: any) => {
 
   const getPromoIcon = (type) => {
-  const { formatCurrency } = useCurrency();    switch (type) {
+  const { formatCurrency } = useSafeCurrency();    switch (type) {
       case 'bogo': return <Gift className="h-4 w-4 text-green-600" />;
       case 'discount': return <Percent className="h-4 w-4 text-blue-600" />;
       case 'bundle': return <Package className="h-4 w-4 text-purple-600" />;
@@ -31,7 +31,7 @@ const PromoTable = ({
   };
 
   const getPromoTypeLabel = (type) => {
-  const { formatCurrency } = useCurrency();    switch (type) {
+  const { formatCurrency } = useSafeCurrency();    switch (type) {
       case 'bogo': return 'BOGO';
       case 'discount': return 'Diskon';
       case 'bundle': return 'Bundle';
@@ -40,8 +40,8 @@ const PromoTable = ({
   };
 
   const getStatusBadge = (status) => {
-  const { formatCurrency } = useCurrency();    const statusConfig = {
-  const { formatCurrency } = useCurrency();      aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
+  const { formatCurrency } = useSafeCurrency();    const statusConfig = {
+  const { formatCurrency } = useSafeCurrency();      aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
       nonaktif: { bg: 'bg-red-100', text: 'text-red-800', label: 'Non-aktif' },
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' }
     };
@@ -56,7 +56,7 @@ const PromoTable = ({
   };
 
   const handleSort = (field) => {
-  const { formatCurrency } = useCurrency();    const newOrder = pagination.sortBy === field && pagination.sortOrder === 'asc' ? 'desc' : 'asc';
+  const { formatCurrency } = useSafeCurrency();    const newOrder = pagination.sortBy === field && pagination.sortOrder === 'asc' ? 'desc' : 'asc';
     onPaginationChange({
       sortBy: field,
       sortOrder: newOrder
@@ -64,7 +64,7 @@ const PromoTable = ({
   };
 
   const getSortIcon = (field) => {
-  const { formatCurrency } = useCurrency();    if (pagination.sortBy !== field) return null;
+  const { formatCurrency } = useSafeCurrency();    if (pagination.sortBy !== field) return null;
     return pagination.sortOrder === 'asc' ? 
       <ChevronUp className="h-4 w-4" /> : 
       <ChevronDown className="h-4 w-4" />;

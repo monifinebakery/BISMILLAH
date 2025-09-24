@@ -30,7 +30,7 @@ import {
   getConfidenceColor,
   type SmartSuggestion 
 } from '../utils/smartDefaults';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface CostFormDialogProps {
   isOpen: boolean;
@@ -47,7 +47,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   cost = null,
   isLoading = false
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const [formData, setFormData] = useState<CostFormData>({
      nama_biaya: '',
     jumlah_per_bulan: 0,
@@ -155,7 +155,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
 
   const validateForm = () => {
      const newErrors: Record<string, string> = {};
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
     if (!formData.nama_biaya.trim()) {
       newErrors.nama_biaya = 'Nama biaya harus diisi';
     } else if (formData.nama_biaya.trim().length < 3) {

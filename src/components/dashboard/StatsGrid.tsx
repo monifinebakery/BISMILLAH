@@ -23,7 +23,7 @@ import {
   AlertTriangle
 } from "lucide-react";
 import { formatPercentage, CurrencyDisplay, PercentageDisplay, StatCard } from '@/lib/shared';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 
@@ -200,7 +200,7 @@ const StatCardComponent: React.FC<{
   trend,
   syncStatus
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const [isMobile, setIsMobile] = React.useState(false);
   const [showMobileTooltip, setShowMobileTooltip] = React.useState(false);
 
@@ -382,7 +382,7 @@ export const StatsGrid: React.FC<StatsGridProps> = ({
   isLoading = false,
   showTrends = false
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // ✅ NEW: Extract sync information for enhanced display
   const isFromProfitAnalysis = stats.isFromProfitAnalysis;
   const syncInfo = stats.profitAnalysisSync;

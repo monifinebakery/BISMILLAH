@@ -36,7 +36,7 @@ interface WACImpactWarningProps {
 }
 
 const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
-  const { formatCurrency } = useCurrency();  items,
+  const { formatCurrency } = useSafeCurrency();  items,
   onCalculateImpact,
   className = ''
 }) => {
@@ -54,7 +54,7 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
     }
 
     const calculateImpact = async () => {
-  const { formatCurrency } = useCurrency();      if (!onCalculateImpact) return;
+  const { formatCurrency } = useSafeCurrency();      if (!onCalculateImpact) return;
       
       setIsCalculating(true);
       try {
@@ -91,7 +91,7 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
   );
 
   const getImpactSeverity = () => {
-  const { formatCurrency } = useCurrency();    if (Math.abs(totalProfitImpact) > 100000) return 'high'; // > Rp 100,000
+  const { formatCurrency } = useSafeCurrency();    if (Math.abs(totalProfitImpact) > 100000) return 'high'; // > Rp 100,000
     if (Math.abs(totalProfitImpact) > 50000) return 'medium'; // > Rp 50,000
     return 'low';
   };
@@ -99,7 +99,7 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
   const severity = getImpactSeverity();
 
   const getAlertStyle = () => {
-  const { formatCurrency } = useCurrency();    switch (severity) {
+  const { formatCurrency } = useSafeCurrency();    switch (severity) {
       case 'high':
         return 'border-red-200 bg-red-50';
       case 'medium':
@@ -110,7 +110,7 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
   };
 
   const getIconColor = () => {
-  const { formatCurrency } = useCurrency();    switch (severity) {
+  const { formatCurrency } = useSafeCurrency();    switch (severity) {
       case 'high':
         return 'text-red-500';
       case 'medium':

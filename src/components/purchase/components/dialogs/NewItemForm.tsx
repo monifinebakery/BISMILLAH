@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 import { generateUUID } from '@/utils/uuid';
 import { SafeNumericInput } from './SafeNumericInput';
 import { parseRobustNumber } from '@/utils/robustNumberParser';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 // Avoid importing warehouseUtils to reduce bundle graph and prevent potential cycles
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { PurchaseItem } from '../../types/purchase.types';
@@ -37,7 +37,7 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
 export const NewItemForm: React.FC<NewItemFormProps> = ({
   onAddItem
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const [formData, setFormData] = useState<FormData>({
      nama: '',
     satuan: '',

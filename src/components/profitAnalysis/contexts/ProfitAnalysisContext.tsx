@@ -5,7 +5,7 @@ import React, { createContext, useContext, useCallback, useReducer, useEffect, u
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { normalizeDateRange } from '@/utils/dateNormalization';
 
 import { 

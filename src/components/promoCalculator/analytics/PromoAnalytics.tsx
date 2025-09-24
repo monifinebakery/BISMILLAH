@@ -6,12 +6,12 @@ import PromoPerformanceCard from './PromoPerformanceCard';
 import { usePromoAnalytics } from '../hooks/usePromoAnalytics';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency, formatCompactCurrency, CurrencyDisplay } from '@/lib/shared';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 const PromoAnalytics = () => {
   const isMobile = useIsMobile(768);
   const [showDateFilter, setShowDateFilter] = useState(false);
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   
   const [dateRange, setDateRange] = useState({
     start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago

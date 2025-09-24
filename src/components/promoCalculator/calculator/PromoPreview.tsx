@@ -5,7 +5,7 @@ import { Save, TrendingUp, DollarSign, Percent, AlertCircle } from 'lucide-react
 
 
 const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
-  const { formatCurrency } = useCurrency();  const { calculationResult } = data;
+  const { formatCurrency } = useSafeCurrency();  const { calculationResult } = data;
 
 
 

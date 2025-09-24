@@ -24,13 +24,13 @@ import {
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../constants';
 import { useOrder } from '../context/OrderContext';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { Order } from '../types';
 
 const OrdersViewPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: orderId } = useParams<{ id: string }>();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // Order Context
   const { orders, loading: ordersLoading } = useOrder();
 

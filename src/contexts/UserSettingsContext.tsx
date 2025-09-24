@@ -18,6 +18,7 @@ export interface UserSettings {
   phone: string;
   address: string;
   whatsappType: 'personal' | 'business'; // Added WhatsApp type selection
+  currencyCode: string; // Added currency preference for cross-device sync
   notifications: {
     lowStock: boolean;
     newOrder: boolean;
@@ -65,6 +66,7 @@ const defaultSettings: UserSettings = {
   phone: '',
   address: '',
   whatsappType: 'personal', // Default to personal WhatsApp
+  currencyCode: 'IDR', // Default currency for cross-device sync
   notifications: {
     lowStock: true,
     newOrder: true,
@@ -86,6 +88,7 @@ const userSettingsApi = {
         phone,
         address,
         whatsapp_type,
+        currency_code,
         notifications
       `)
       .eq('user_id', userId)
@@ -122,6 +125,7 @@ const userSettingsApi = {
       phone: data.phone || defaultSettings.phone,
       address: data.address || defaultSettings.address,
       whatsappType: (data.whatsapp_type as 'personal' | 'business') || defaultSettings.whatsappType,
+      currencyCode: data.currency_code || defaultSettings.currencyCode,
       notifications: {
         lowStock: notifications?.lowStock ?? defaultSettings.notifications.lowStock,
         newOrder: notifications?.newOrder ?? defaultSettings.notifications.newOrder,
@@ -144,6 +148,7 @@ const userSettingsApi = {
       phone: settings.phone,
       address: settings.address,
       whatsapp_type: settings.whatsappType,
+      currency_code: settings.currencyCode,
       notifications: settings.notifications,
       updated_at: new Date().toISOString()
     };
@@ -179,6 +184,7 @@ const userSettingsApi = {
       phone: data.phone || '',
       address: data.address || '',
       whatsappType: (data.whatsapp_type as 'personal' | 'business') || defaultSettings.whatsappType,
+      currencyCode: data.currency_code || defaultSettings.currencyCode,
       notifications: {
         lowStock: savedNotifications?.lowStock ?? defaultSettings.notifications.lowStock,
         newOrder: savedNotifications?.newOrder ?? defaultSettings.notifications.newOrder,

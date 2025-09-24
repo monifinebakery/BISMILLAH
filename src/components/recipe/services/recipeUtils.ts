@@ -1,7 +1,7 @@
 // src/components/recipe/services/recipeUtils.ts
 
 import { logger } from '@/utils/logger';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type {
   Recipe,
   NewRecipe,

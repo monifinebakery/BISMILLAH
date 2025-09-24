@@ -1,7 +1,8 @@
-// src/contexts/CurrencyContext.tsx
+// src/contexts/CurrencyContext.tsx - UPDATED to use UserSettings for cross-device sync
 
 import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { safeStorageGetJSON, safeStorageSetJSON } from '@/utils/auth/safeStorage';
+import { useUserSettings } from './UserSettingsContext';
 import { logger } from '@/utils/logger';
 
 export interface Currency {
@@ -63,9 +64,20 @@ interface CurrencyProviderProps {
 }
 
 export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) => {
-  // Synchronous initialization to prevent hydration mismatch
+  const { settings, saveSettings } = useUserSettings();
+
+  // Use currency from user settings, fallback to localStorage for backward compatibility
   const getInitialCurrency = (): Currency => {
     try {
+      // First try to get from user settings
+      if (settings.currencyCode) {
+        const found = CURRENCIES.find(c => c.code === settings.currencyCode);
+        if (found) {
+          return found;
+        }
+      }
+
+      // Fallback to localStorage for backward compatibility
       const saved = safeStorageGetJSON<{ code: string }>(STORAGE_KEY);
       if (saved?.code) {
         const found = CURRENCIES.find(c => c.code === saved.code);
@@ -74,21 +86,33 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
         }
       }
     } catch (error) {
-      logger.warn('CurrencyContext: Failed to load initial currency from storage', error);
+      logger.warn('CurrencyContext: Failed to load initial currency', error);
     }
     return CURRENCIES[0]; // Default to IDR
   };
 
   const [currentCurrency, setCurrentCurrency] = useState<Currency>(getInitialCurrency);
 
-  // No need for useEffect anymore since initialization is synchronous
+  // Sync with user settings when they change
+  useEffect(() => {
+    if (settings.currencyCode) {
+      const currencyFromSettings = CURRENCIES.find(c => c.code === settings.currencyCode);
+      if (currencyFromSettings && currencyFromSettings.code !== currentCurrency.code) {
+        setCurrentCurrency(currencyFromSettings);
+      }
+    }
+  }, [settings.currencyCode, currentCurrency.code]);
 
-  // Save currency to safeStorage when changed
+  // Save currency to user settings (and localStorage as backup)
   const handleSetCurrency = async (currency: Currency) => {
     setCurrentCurrency(currency);
-    const success = await safeStorageSetJSON(STORAGE_KEY, { code: currency.code });
+
+    // Save to user settings for cross-device sync
+    const success = await saveSettings({ currencyCode: currency.code });
     if (!success) {
-      logger.warn('CurrencyContext: Failed to save currency preference');
+      logger.warn('CurrencyContext: Failed to save currency to user settings');
+      // Fallback to localStorage
+      await safeStorageSetJSON(STORAGE_KEY, { code: currency.code });
     }
   };
 

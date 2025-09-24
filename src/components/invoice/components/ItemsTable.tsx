@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Trash2, Plus } from 'lucide-react';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { InvoiceItem } from '../types';
 
 interface ItemsTableProps {
@@ -23,7 +23,7 @@ export const ItemsTable: React.FC<ItemsTableProps> = ({
   onRemoveItem,
   className = ''
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   return (
     <div className={`mb-6 sm:mb-8 ${className}`}>
       <h3 className="text-base sm:text-lg font-semibold text-gray-700 mb-3 sm:mb-4">

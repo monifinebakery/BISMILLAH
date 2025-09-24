@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, AlertCircle, CheckCircle, Lightbulb } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // ==============================================
 // TYPES
@@ -42,7 +42,7 @@ const ProfitLossSimple: React.FC<ProfitLossSimpleProps> = ({
   transactions, 
   className 
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // Analisis data bulan ini
   const monthlyAnalysis = useMemo((): MonthlyAnalysis => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM

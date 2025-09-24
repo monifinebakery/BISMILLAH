@@ -13,7 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 
 import type { Purchase, PurchaseStatus } from '../../types/purchase.types';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface BulkOperationsDialogProps {
   type: 'edit' | 'delete';
@@ -58,7 +58,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   onCancel,
   suppliers = [],
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const isEditMode = type === 'edit';
   
   // Internal state for bulk edit data

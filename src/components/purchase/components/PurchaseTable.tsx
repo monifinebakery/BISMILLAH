@@ -31,7 +31,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { getStatusDisplayText, getFormattedTotalQuantities } from '../utils/purchaseHelpers';
 
 // Type imports
@@ -102,7 +102,7 @@ const PurchaseTableCore: React.FC<PurchaseTablePropsExtended> = ({
   onDelete,
   validateStatusChange
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // 📊 Performance monitoring in development
   const renderCount = useRenderCount('PurchaseTable');
   if (import.meta.env.DEV) {

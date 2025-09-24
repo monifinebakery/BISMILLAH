@@ -11,7 +11,7 @@ interface ClassicTemplateProps {
 }
 
 export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, className = '' }) => {
-  const { formatCurrency } = useCurrency();  const { settings } = useUserSettings();
+  const { formatCurrency } = useSafeCurrency();  const { settings } = useUserSettings();
   
   return (
     <div className={`bg-white border-2 border-gray-800 max-w-4xl mx-auto ${className}`} id="classic-invoice">

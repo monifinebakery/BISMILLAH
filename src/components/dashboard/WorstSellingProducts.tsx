@@ -19,7 +19,7 @@ import {
 
 import { generateListKey } from '@/utils/keyUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // 🔧 Local pagination calculation utility
 const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {

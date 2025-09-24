@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Edit, Info, Trash2 } from 'lucide-react';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 
 
@@ -208,7 +208,7 @@ const TransactionRows = ({
   dateRange,
   onAddTransaction,
 }: TransactionRowsProps) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   return (
     <>
       <TableHeader>

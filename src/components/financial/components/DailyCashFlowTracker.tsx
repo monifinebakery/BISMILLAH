@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { TrendingUp, TrendingDown, Calendar, DollarSign } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // ==============================================
 // TYPES
@@ -40,7 +40,7 @@ const DailyCashFlowTracker: React.FC<DailyCashFlowProps> = ({
   transactions, 
   className 
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // Hitung data harian
   const dailyData = useMemo(() => {
     const last7Days = Array.from({ length: 7 }, (_, i) => {

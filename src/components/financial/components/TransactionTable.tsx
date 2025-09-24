@@ -17,7 +17,7 @@ import {
 
 import { cn } from '@/lib/utils';
 import { formatPercentage } from '@/lib/shared';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupplier } from '@/contexts/SupplierContext';
@@ -289,7 +289,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   onSelectAll,
   isAllSelected = false,
 }: TransactionTableProps) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { suppliers } = useSupplier();

@@ -28,14 +28,14 @@ interface EditItemDialogProps {
 }
 
 export const EditItemDialog: React.FC<EditItemDialogProps> = ({
-  const { formatCurrency } = useCurrency();  isOpen,
+  const { formatCurrency } = useSafeCurrency();  isOpen,
   item,
   itemIndex,
   onClose,
   onSave,
 }) => {
   const [formData, setFormData] = useState({
-  const { formatCurrency } = useCurrency();    quantity: '',
+  const { formatCurrency } = useSafeCurrency();    quantity: '',
     unitPrice: '',
     keterangan: '',
   });
@@ -58,7 +58,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
   const subtotal = kuantitasNum * harga_satuan_num;
 
   const handleSave = () => {
-  const { formatCurrency } = useCurrency();    if (!item || itemIndex === undefined) {
+  const { formatCurrency } = useSafeCurrency();    if (!item || itemIndex === undefined) {
       toast.error('Data item tidak valid');
       return;
     }
@@ -74,7 +74,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
     }
 
     const updatedItem: Partial<PurchaseItem> = {
-  const { formatCurrency } = useCurrency();      quantity: kuantitasNum,
+  const { formatCurrency } = useSafeCurrency();      quantity: kuantitasNum,
       unitPrice: harga_satuan_num,
       subtotal: subtotal,
       keterangan: formData.keterangan.trim(),
@@ -87,7 +87,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
   };
 
   const handleCancel = () => {
-  const { formatCurrency } = useCurrency();    onClose();
+  const { formatCurrency } = useSafeCurrency();    onClose();
   };
 
   if (!isOpen || !item) return null;

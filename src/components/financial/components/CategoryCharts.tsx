@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { RefreshCw } from 'lucide-react';
 import {
   PieChart,
@@ -104,7 +104,7 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
   onRefresh,
   lastUpdated,
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
 
   const categoryData = useMemo(() => {
     const result: {

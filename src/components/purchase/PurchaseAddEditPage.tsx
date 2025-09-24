@@ -8,7 +8,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { FormField, LoadingStates, StatusBadge, EmptyState } from '@/components/ui';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseItem } from './types/purchase.types';
@@ -35,7 +35,7 @@ import {
 const PurchaseAddEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: purchaseId } = useParams<{ id: string }>();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const { suppliers } = useSupplier();
   
   // Safely access the purchase context

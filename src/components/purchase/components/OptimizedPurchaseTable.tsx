@@ -35,8 +35,8 @@ import { usePurchase } from '../hooks/usePurchase';
 // ===========================================
 
 const StatusBadge = React.memo(({ status }: { status: PurchaseStatus }) => {
-  const { formatCurrency } = useCurrency();  const statusConfig = useMemo(() => {
-  const { formatCurrency } = useCurrency();    switch (status) {
+  const { formatCurrency } = useSafeCurrency();  const statusConfig = useMemo(() => {
+  const { formatCurrency } = useSafeCurrency();    switch (status) {
       case 'completed':
         return { color: 'bg-green-100 text-green-800', text: 'Selesai' };
       case 'pending':
@@ -57,7 +57,7 @@ const StatusBadge = React.memo(({ status }: { status: PurchaseStatus }) => {
 StatusBadge.displayName = 'StatusBadge';
 
 const ActionButtons = React.memo(({
-  const { formatCurrency } = useCurrency();  purchase,
+  const { formatCurrency } = useSafeCurrency();  purchase,
   onEdit,
   onDelete,
   onStatusChange
@@ -230,7 +230,7 @@ interface OptimizedPurchaseTableProps {
 }
 
 const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
-  const { formatCurrency } = useCurrency();  onEdit,
+  const { formatCurrency } = useSafeCurrency();  onEdit,
   onDelete,
   onStatusChange,
   height = 600,
@@ -251,7 +251,7 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
 
   // Memoized sorted and filtered data
   const sortedPurchases = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (!filteredPurchases) return [];
+  const { formatCurrency } = useSafeCurrency();    if (!filteredPurchases) return [];
 
     return [...filteredPurchases].sort((a, b) => {
       let aValue: any = a[sortColumn as keyof Purchase];
@@ -290,7 +290,7 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
     newStatus: PurchaseStatus
   ) => {
     const result = await smartOptimisticUpdate({
-  const { formatCurrency } = useCurrency();      queryKey: ['purchases', 'list', userId],
+  const { formatCurrency } = useSafeCurrency();      queryKey: ['purchases', 'list', userId],
       optimisticData: { id: purchaseId, status: newStatus } as Partial<Purchase>,
       mutationFn: async () => {
         await updatePurchase(purchaseId, { status: newStatus });
@@ -323,7 +323,7 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
   // ===========================================
 
   const handleSort = useCallback((column: string) => {
-  const { formatCurrency } = useCurrency();    if (sortColumn === column) {
+  const { formatCurrency } = useSafeCurrency();    if (sortColumn === column) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
     } else {
       setSortColumn(column);
@@ -332,7 +332,7 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
   }, [sortColumn]);
 
   const handleRowSelect = useCallback((id: string, selected: boolean) => {
-  const { formatCurrency } = useCurrency();    setSelectedRows(prev => {
+  const { formatCurrency } = useSafeCurrency();    setSelectedRows(prev => {
       const newSet = new Set(prev);
       if (selected) {
         newSet.add(id);
@@ -344,7 +344,7 @@ const OptimizedPurchaseTableCore: React.FC<OptimizedPurchaseTableProps> = ({
   }, []);
 
   const handleRowClick = useCallback((purchase: Purchase) => {
-  const { formatCurrency } = useCurrency();    // Prefetch related data on row click
+  const { formatCurrency } = useSafeCurrency();    // Prefetch related data on row click
     prefetchOnHover('warehouse');
     prefetchOnHover('suppliers');
     
@@ -455,7 +455,7 @@ export default MonitoredOptimizedPurchaseTable;
 import OptimizedPurchaseTable from './components/purchase/OptimizedPurchaseTable';
 
 const PurchasePage = () => {
-  const { formatCurrency } = useCurrency();  const [userId] = useAuth();
+  const { formatCurrency } = useSafeCurrency();  const [userId] = useAuth();
 
   return (
     <div className="p-6">

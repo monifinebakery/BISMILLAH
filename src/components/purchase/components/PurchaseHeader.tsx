@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 import { PurchaseHeaderProps } from '../types/purchase.types';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   totalPurchases,
@@ -22,7 +22,7 @@ const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
   onAddPurchase,
   className = '',
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   return (
     <>
       {/* Alert for pending purchases */}

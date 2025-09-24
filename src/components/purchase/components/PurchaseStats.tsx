@@ -4,7 +4,7 @@ import { Card } from '@/components/ui/card';
 import { PurchaseStatsProps } from '../types/purchase.types';
 
 const PurchaseStats: React.FC<PurchaseStatsProps> = ({ stats, className = '' }) => {
-  const { formatCurrency } = useCurrency();  return (
+  const { formatCurrency } = useSafeCurrency();  return (
     <div className={`grid grid-cols-1 md:grid-cols-4 gap-4 ${className}`}>
       <Card className="p-4">
         <div className="text-sm text-gray-500">Total Pembelian</div>

@@ -4,7 +4,7 @@ import React, { useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShoppingCart, Zap, Users, Truck, Megaphone, Home, Calculator, MoreHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // ==============================================
 // TYPES
@@ -91,7 +91,7 @@ const UMKMExpenseCategories: React.FC<UMKMExpenseCategoriesProps> = ({
   transactions, 
   className 
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   // Analisis kategori pengeluaran bulan ini
   const categoryAnalysis = useMemo((): CategoryData[] => {
     const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM

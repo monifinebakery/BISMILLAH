@@ -34,7 +34,7 @@ const BulkDeleteDialog: React.FC<BulkDeleteDialogProps> = ({
   const [loading, setLoading] = useState(false);
 
   const handleConfirm = async () => {
-  const { formatCurrency } = useCurrency();    setLoading(true);
+  const { formatCurrency } = useSafeCurrency();    setLoading(true);
     try {
       await onConfirm();
       onClose();

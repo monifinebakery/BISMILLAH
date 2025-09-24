@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { warehouseUtils } from '../services/warehouseUtils';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 import type { BahanBakuFrontend } from '../types';
 import { toNumber } from '../utils/typeUtils';
@@ -57,7 +57,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   availableSuppliers,
 }) => {
   const [bulkEditData, setBulkEditData] = useState<BulkEditData>({});
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
 

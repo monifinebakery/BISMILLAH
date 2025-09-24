@@ -25,7 +25,7 @@ interface FinancialTransactionListProps {
 }
 
 const FinancialTransactionList = ({
-  const { formatCurrency } = useCurrency();  transactions,
+  const { formatCurrency } = useSafeCurrency();  transactions,
   loading,
   onUpdateTransaction,
   onDeleteTransaction,
@@ -34,7 +34,7 @@ const FinancialTransactionList = ({
   const [editingTransaction, setEditingTransaction] = useState<FinancialTransaction | null>(null);
   
   const [formData, setFormData] = useState({
-  const { formatCurrency } = useCurrency();    type: 'expense' as FinancialTransactionType,
+  const { formatCurrency } = useSafeCurrency();    type: 'expense' as FinancialTransactionType,
     category: '',
     amount: 0,
     description: '',
@@ -42,9 +42,9 @@ const FinancialTransactionList = ({
   });
 
   const handleChange = (field: keyof typeof formData, value: string | number | FinancialTransactionType) => {
-  const { formatCurrency } = useCurrency();    setFormData(prev => {
+  const { formatCurrency } = useSafeCurrency();    setFormData(prev => {
       const newData = { ...prev, [field]: value };
-  const { formatCurrency } = useCurrency();      if (field === 'type') {
+  const { formatCurrency } = useSafeCurrency();      if (field === 'type') {
         newData.category = '';
       }
       return newData;
@@ -52,7 +52,7 @@ const FinancialTransactionList = ({
   };
 
   const handleEdit = (transaction: FinancialTransaction) => {
-  const { formatCurrency } = useCurrency();    setEditingTransaction(transaction);
+  const { formatCurrency } = useSafeCurrency();    setEditingTransaction(transaction);
     setFormData({
       type: transaction.type,
       category: transaction.category || '',
@@ -63,7 +63,7 @@ const FinancialTransactionList = ({
   };
 
   const handleSave = async () => {
-  const { formatCurrency } = useCurrency();    if (!editingTransaction) return;
+  const { formatCurrency } = useSafeCurrency();    if (!editingTransaction) return;
     if (!formData.category) {
       toast.error('Kategori transaksi wajib dipilih.');
       return;
@@ -74,7 +74,7 @@ const FinancialTransactionList = ({
     }
     
     const success = await onUpdateTransaction(editingTransaction.id, {
-  const { formatCurrency } = useCurrency();      type: formData.type,
+  const { formatCurrency } = useSafeCurrency();      type: formData.type,
       category: formData.category,
       amount: Number(formData.amount),
       description: formData.description,
@@ -88,7 +88,7 @@ const FinancialTransactionList = ({
   };
 
   const handleDelete = async (id: string, description: string | null) => {
-  const { formatCurrency } = useCurrency();    if (window.confirm(`Apakah Anda yakin ingin menghapus transaksi "${description || 'Tanpa Deskripsi'}"?`)) {
+  const { formatCurrency } = useSafeCurrency();    if (window.confirm(`Apakah Anda yakin ingin menghapus transaksi "${description || 'Tanpa Deskripsi'}"?`)) {
       await onDeleteTransaction(id);
     }
   };

@@ -24,7 +24,7 @@ interface PurchaseTableRowProps {
 }
 
 export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
-  const { formatCurrency } = useCurrency();  purchase,
+  const { formatCurrency } = useSafeCurrency();  purchase,
   isSelected,
   isEditingStatus,
   onToggleSelect,

@@ -98,19 +98,41 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
     const jumlahPcsPerPorsi = typeof data.jumlahPcsPerPorsi === 'string'
       ? (data.jumlahPcsPerPorsi === '' ? 1 : parseInt(data.jumlahPcsPerPorsi)) || 1  
       : (data.jumlahPcsPerPorsi || 1);
-      
+
+    // Calculate accurate ingredient cost per pcs from actual recipe data
+    const totalIngredientCost = data.bahanResep.reduce((sum, bahan) => sum + (bahan.total_harga || 0), 0);
+    const accurateIngredientCostPerPcs = jumlahPorsi > 0 && jumlahPcsPerPorsi > 0 
+      ? totalIngredientCost / (jumlahPorsi * jumlahPcsPerPorsi) 
+      : 0;
+
     return {
-      bahanResep: data.bahanResep || [],
-      jumlahPorsi,
-      jumlahPcsPerPorsi,
-      biayaTenagaKerja: data.biayaTenagaKerja || 0,
-      biayaOverhead: data.biayaOverhead || 0,
-      marginKeuntunganPersen: data.marginKeuntunganPersen || 0,
+      id: undefined, // Not available in this component
+      nama_resep: data.namaResep,
+      jumlah_porsi: jumlahPorsi,
+      jumlah_pcs_per_porsi: jumlahPcsPerPorsi,
+      bahan_resep: data.bahanResep,
+      biaya_tenaga_kerja: data.biayaTenagaKerja,
+      biaya_overhead: data.biayaOverhead,
+      margin_keuntungan_persen: data.marginKeuntunganPersen,
+      // Add accurate ingredient cost for validation
+      accurateIngredientCostPerPcs,
+      // Transform to camelCase for AutoSyncRecipeDisplay
+      bahanResep: data.bahanResep.map(bahan => ({
+        nama: bahan.nama,
+        jumlah: bahan.jumlah,
+        satuan: bahan.satuan,
+        hargaSatuan: bahan.harga_satuan || 0,
+        totalHarga: bahan.total_harga || 0,
+        warehouseId: bahan.warehouse_id
+      })),
+      jumlahPorsi: jumlahPorsi,
+      jumlahPcsPerPorsi: jumlahPcsPerPorsi,
+      marginKeuntunganPersen: data.marginKeuntunganPersen
     };
-  }, [data.bahanResep, data.jumlahPorsi, data.jumlahPcsPerPorsi, data.biayaTenagaKerja, data.biayaOverhead, data.marginKeuntunganPersen]); // Fixed dependency array to prevent infinite re-renders
+  }, [data]);
 
   // Calculate accurate ingredient cost for display - handle string values
-  const totalIngredientCost = data.bahanResep.reduce((sum, bahan) => sum + bahan.totalHarga, 0);
+  const totalIngredientCost = data.bahanResep.reduce((sum, bahan) => sum + (bahan.total_harga || 0), 0);
   const jumlahPorsiForCalc = typeof data.jumlahPorsi === 'string' 
     ? (data.jumlahPorsi === '' ? 1 : parseInt(data.jumlahPorsi)) || 1
     : (data.jumlahPorsi || 1);

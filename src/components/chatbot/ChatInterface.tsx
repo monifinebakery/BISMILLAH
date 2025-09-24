@@ -136,6 +136,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   const clearChat = () => {
     setMessages([]);
     chatbotService.clearHistory();
+    chatbotService.clearPersistedData(); // Clear from localStorage too
     addWelcomeMessage();
   };
 
@@ -154,12 +155,26 @@ Silakan ketik pertanyaan Anda!`;
     addMessage(welcomeMessage, 'bot');
   };
 
-  // Welcome message on first open
+  // Load chat history on mount
   useEffect(() => {
-    if (isOpen && messages.length === 0) {
+    const savedHistory = chatbotService.getHistory();
+    if (savedHistory.length > 0) {
+      // Convert history to message format and add to state
+      const historyMessages: ChatMessage[] = savedHistory.map((msg: {role: 'user' | 'assistant', content: string}, index: number) => ({
+        id: `history-${index}`,
+        content: msg.content,
+        sender: msg.role === 'user' ? 'user' : 'bot',
+        timestamp: new Date() // We don't have timestamp in persisted history
+      }));
+      setMessages(historyMessages);
+      console.log('🤖 Loaded chat history:', historyMessages.length, 'messages');
+    } else {
+      // Only show welcome message if there's no history
       addWelcomeMessage();
     }
-  }, [isOpen]);
+  }, [chatbotService]);
+
+  // Remove separate welcome message useEffect since it's now handled above
 
   if (!isOpen) return null;
 

@@ -54,14 +54,15 @@ serve(async (req) => {
     const { intent, message, context }: ChatbotQueryRequest = await req.json();
     console.log('🤖 Received request:', { intent, message, context });
 
+    // Enhanced intent handling with smart responses
     let result: any = null;
 
     switch (intent) {
-      case 'orderSearch':
-        result = await handleOrderSearch(supabase, user.id, message);
-        break;
       case 'inventory':
         result = await handleInventoryQuery(supabase, user.id, message);
+        break;
+      case 'orderSearch':
+        result = await handleOrderSearch(supabase, user.id, message);
         break;
       case 'report':
         result = await handleReportQuery(supabase, user.id, message);
@@ -70,10 +71,8 @@ serve(async (req) => {
         result = await handleCostQuery(supabase, user.id, message);
         break;
       case 'purchase':
+        // Handle basic purchase queries here, actions go to chatbot-action
         result = await handlePurchaseQuery(supabase, user.id, message);
-        break;
-      case 'asset':
-        result = await handleAssetQuery(supabase, user.id, message);
         break;
       case 'recipe':
         result = await handleRecipeQuery(supabase, user.id, message);
@@ -594,7 +593,59 @@ async function handlePromoQuery(supabase: any, userId: string, message: string) 
   }
 }
 
-// Utility functions
+// Enhanced handler for smart responses using database functions
+async function handleSmartResponse(supabase: any, userId: string, message: string, intent: string) {
+  try {
+    console.log('🤖 Handling smart response for user:', userId, 'intent:', intent);
+
+    // Use the new get_chatbot_response function
+    const { data: smartResponse, error } = await supabase
+      .rpc('get_chatbot_response', {
+        p_user_id: userId,
+        p_message: message,
+        p_intent: intent
+      });
+
+    console.log('🤖 Smart response result:', { data: smartResponse, error });
+
+    if (error) {
+      console.log('🤖 Smart response error:', error);
+      // Fallback to regular response
+      return await handleFallbackResponse(supabase, userId, message, intent);
+    }
+
+    if (smartResponse) {
+      return smartResponse;
+    }
+
+    // Fallback if no smart response
+    return await handleFallbackResponse(supabase, userId, message, intent);
+
+  } catch (error) {
+    console.error('Smart response error:', error);
+    return await handleFallbackResponse(supabase, userId, message, intent);
+  }
+}
+
+// Fallback response handler
+async function handleFallbackResponse(supabase: any, userId: string, message: string, intent: string) {
+  const responses = {
+    greeting: {
+      type: 'greeting',
+      text: '👋 Halo! Saya asisten AI untuk bisnis bakery Anda. Saya bisa membantu dengan informasi stok, penjualan, dan operasional sehari-hari.'
+    },
+    help: {
+      type: 'help',
+      text: '💡 Saya bisa membantu Anda dengan:\n• Cek status stok bahan baku\n• Cari dan kelola pesanan\n• Lihat laporan penjualan\n• Tambah biaya operasional\n• Dan masih banyak lagi!'
+    },
+    default: {
+      type: 'general',
+      text: '🤔 Saya mengerti permintaan Anda. Untuk informasi lebih detail, coba tanyakan tentang stok, pesanan, atau laporan penjualan.'
+    }
+  };
+
+  return responses[intent] || responses.default;
+}
 function extractCustomerName(message: string): string | null {
   // Simple extraction - can be enhanced with better NLP
   const patterns = [

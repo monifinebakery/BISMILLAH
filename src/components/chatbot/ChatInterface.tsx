@@ -123,13 +123,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
   const addWelcomeMessage = () => {
     const businessName = settings.businessName || 'Bisnis Anda';
+    const isAuthenticated = !!user;
+
     const welcomeMessage = `👋 Halo! Saya adalah asisten AI untuk ${businessName}.
 
-Saya bisa membantu Anda dengan:
-• Mencari dan mengelola pesanan
-• Update stok bahan baku
-• Generate laporan penjualan
-• Tambah biaya operasional
+${isAuthenticated ? 
+  'Saya bisa membantu Anda dengan:\n• Mencari dan mengelola pesanan\n• Update stok bahan baku\n• Generate laporan penjualan\n• Tambah biaya operasional' :
+  'Untuk fitur lengkap seperti mengakses data pesanan, stok, dan laporan, silakan login terlebih dahulu.\n\nSaya masih bisa membantu dengan:\n• Pertanyaan umum tentang bakery\n• Tips manajemen bisnis\n• Panduan penggunaan aplikasi'
+}
 
 Silakan ketik pertanyaan Anda!`;
     addMessage(welcomeMessage, 'bot');

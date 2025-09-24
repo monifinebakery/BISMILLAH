@@ -215,9 +215,15 @@ Silakan ketik pertanyaan Anda!`;
         </div>
 
         {/* Messages */}
-        <div className="flex-1 overflow-hidden">
-          <div className="h-full overflow-y-auto px-4 py-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
-            <div className="space-y-4">
+        <div className="flex-1 relative">
+          <div
+            className="absolute inset-0 overflow-y-auto px-4 py-4"
+            style={{
+              maxHeight: '100%',
+              minHeight: '200px'
+            }}
+          >
+            <div className="space-y-4 pb-4">
               {messages.map((message) => (
                 <div
                   key={message.id}

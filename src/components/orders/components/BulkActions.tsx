@@ -3,7 +3,7 @@ import React from 'react';
 import { Trash2, Edit3, X, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 import { useOrderBulk } from '../hooks/useOrderBulk';
 import { getStatusText, getStatusColor } from '../constants';
@@ -29,7 +29,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   totalCount,
   onRefresh,
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const {
     isDialogOpen,
     operationType,

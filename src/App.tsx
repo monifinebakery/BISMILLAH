@@ -176,8 +176,8 @@ const App = () => {
             {/* PWA Offline Indicator - DISABLED */}
             {/* <OfflineIndicator /> */}
             
-            {/* Floating Chatbot */}
-            <FloatingChatbot />
+            {/* Floating Chatbot - Disabled in production */}
+            {import.meta.env.DEV && <FloatingChatbot />}
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

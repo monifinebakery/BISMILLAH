@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { Order, UseOrderUIReturn, OrderStatus } from '../types';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
@@ -165,7 +165,7 @@ const MobileOrderRow: React.FC<{
   onViewDetail,
   onStatusChange
 }) => {
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
 
@@ -489,7 +489,7 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
   // ✅ FIXED: Hooks dipanggil di top level component
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
 
   // ✅ PERFORMANCE: Memoized callback functions to prevent unnecessary re-renders
   const handleRowClick = useCallback((order: Order, e: React.MouseEvent) => {

@@ -7,7 +7,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/shared';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { getStatusText, getStatusColor } from '../../constants';
 import type { Order, OrderStatus } from '../../types';
 
@@ -35,7 +35,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   isProcessing,
 }) => {
   const [bulkEditData, setBulkEditData] = useState<BulkEditData>({});
-  const { formatCurrency } = useCurrency();
+  const { formatCurrency } = useSafeCurrency();
   const isEditMode = operation === 'edit';
   const selectedCount = selectedOrders.length;
 

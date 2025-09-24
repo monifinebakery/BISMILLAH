@@ -2,7 +2,8 @@ import React from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { formatCurrency, formatDate } from '@/lib/shared';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
-import { getStatusText } from '../../constants';
+import { getStatusText, getStatusColor } from '../../constants';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { Order } from '../../types';
 import { logger } from '@/utils/logger';
 
@@ -13,7 +14,9 @@ interface OrderDetailDialogProps {
 }
 
 const OrderDetailDialog: React.FC<OrderDetailDialogProps> = ({ open, order, onOpenChange }) => {
-  const { formatCurrency } = useCurrency();  if (!order) return null;
+  const { formatCurrency } = useSafeCurrency();
+  
+  if (!order) return null;
 
   const nomor = (order as any).nomor_pesanan || (order as any).order_number || (order as any)['nomorPesanan'];
   const nama = (order as any).nama_pelanggan || (order as any).customer_name || (order as any)['customerName'];

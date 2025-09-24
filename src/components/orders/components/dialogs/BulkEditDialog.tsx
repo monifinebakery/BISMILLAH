@@ -22,7 +22,7 @@ import { Label } from '@/components/ui/label';
 
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../../constants';
-import { useCurrency } from '@/contexts/CurrencyContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { logger } from '@/utils/logger';
 import type { Order, OrderStatus } from '../../types';
 

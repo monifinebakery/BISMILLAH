@@ -177,7 +177,9 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
                               ingredient: ingredient.nama,
                               oldPrice: ingredient.harga_satuan,
                               newPrice: newValue,
-                              inputValue: e.target.value
+                              inputValue: e.target.value,
+                              currentQuantity: ingredient.jumlah,
+                              calculatedTotal: newValue * ingredient.jumlah
                             });
                             onUpdateIngredient(index, 'harga_satuan', newValue);
                           }}

@@ -106,7 +106,7 @@ export const IngredientsStep: React.FC<IngredientsStepProps> = ({
         onSubmit={handleAddIngredient}
         getConversionPreview={ingredientSelection.getConversionPreview}
         hasNewIngredientData={formManager.hasNewIngredientData()}
-        totalPreview={calculations.formatCurrency(formManager.newIngredient.totalHarga || 0)}
+        totalPreview={calculations.formatCurrency(formManager.newIngredient.total_harga || 0)}
         isWarehouseLoading={loadingWarehouse}
         isDisabled={isLoading}
       >

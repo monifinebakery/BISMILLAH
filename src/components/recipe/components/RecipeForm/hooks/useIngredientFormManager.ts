@@ -171,6 +171,19 @@ export const useIngredientFormManager = ({
       
       newIngredients[index].total_harga = total_harga;
       
+      console.log('🧮 useIngredientFormManager: Recalculating ingredient total:', {
+        index,
+        field,
+        value,
+        jumlah,
+        harga_satuan,
+        total_harga,
+        calculation: `${jumlah} × ${harga_satuan} = ${total_harga}`,
+        ingredient: newIngredients[index].nama,
+        beforeUpdate: recipeData.bahanResep[index],
+        afterUpdate: newIngredients[index]
+      });
+      
       logger.debug('🧮 useIngredientFormManager: Recalculating ingredient total:', {
         index,
         field,

@@ -91,6 +91,7 @@ const MobileTransactionRow: React.FC<{
   onEdit: () => void;
   onDelete: () => void;
   isDeleting: boolean;
+  formatCurrency: (value: number) => string;
 }> = ({
   transaction,
   isSelected,
@@ -98,7 +99,8 @@ const MobileTransactionRow: React.FC<{
   onSelectionChange,
   onEdit,
   onDelete,
-  isDeleting
+  isDeleting,
+  formatCurrency
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
 
@@ -247,7 +249,7 @@ const MobileTransactionRow: React.FC<{
             {transaction.relatedId && (
               <div className="flex justify-between">
                 <span className="text-gray-500">Related ID:</span>
-                <span className="font-medium text-gray-900">{transaction.relatedId.slice(0, 8)}...</span>
+              <span className="font-medium text-gray-900">{transaction.relatedId.slice(0, 8)}...</span>
               </div>
             )}
             <div className="flex justify-between pt-2 border-t border-gray-300">
@@ -440,6 +442,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
                       onEdit={() => onAddTransaction?.()}
                       onDelete={() => handleDeleteTransaction(transaction)}
                       isDeleting={isDeleting}
+                      formatCurrency={formatCurrency}
                     />
                   ))}
                 </div>

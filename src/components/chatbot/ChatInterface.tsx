@@ -180,7 +180,7 @@ Silakan ketik pertanyaan Anda!`;
 
   return (
     <div className="fixed inset-x-4 bottom-[96px] z-50 sm:bottom-24 sm:right-6 sm:left-auto md:bottom-4 md:right-4">
-      <div className="flex flex-col w-full max-w-[420px] h-[85vh] bg-white shadow-xl border-2 border-orange-200 rounded-2xl md:w-[420px] md:h-[640px] overflow-hidden">
+      <div className="flex flex-col w-full max-w-[420px] h-[75vh] bg-white shadow-xl border-2 border-orange-200 rounded-2xl sm:h-[80vh] md:w-[420px] md:h-[640px] overflow-hidden">
         {/* Header */}
         <div className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg px-6 py-4">
           <div className="flex items-center justify-between">

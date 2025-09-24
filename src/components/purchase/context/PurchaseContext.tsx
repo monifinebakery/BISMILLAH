@@ -17,7 +17,6 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
-// ✅ SAFE CONTEXT IMPORTS: Import contexts directly to check availability
 import FinancialContext from '@/components/financial/contexts/FinancialContext';
 import { SupplierContext } from '@/contexts/SupplierContext';
 import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehouseItemUtils';
@@ -36,13 +35,11 @@ import { onCompletedFinancialSync, onRevertedFinancialCleanup, cleanupFinancialF
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
 const warehouseQueryKeys = {
-  const { formatCurrency } = useCurrency();  list: () => ['warehouse', 'list'] as const,
   analysis: () => ['warehouse', 'analysis'] as const,
 } as const;
 
 // ------------------- API helpers -------------------
 const fetchPurchases = async (userId: string): Promise<Purchase[]> => {
-  const { formatCurrency } = useCurrency();  const { data, error } = await PurchaseApiService.fetchPurchases(userId);
   if (error) throw new Error(error);
   return data || [];
 };
@@ -60,7 +57,6 @@ const fetchPurchasesPaginated = async (
 
 // CREATE via service and fetch fresh row in service
 const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>, userId: string) => {
-  const { formatCurrency } = useCurrency();  logger.debug('🆕 apiCreatePurchase called');
   const { data, error } = await PurchaseApiService.createPurchaseAndFetch(payload, userId);
   if (error || !data) throw new Error(error || 'Gagal membuat pembelian');
   logger.info('✅ apiCreatePurchase success', { id: data.id });
@@ -68,7 +64,6 @@ const apiCreatePurchase = async (payload: Omit<Purchase, 'id' | 'userId' | 'crea
 };
 
 const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId: string) => {
-  const { formatCurrency } = useCurrency();  logger.debug('✏️ apiUpdatePurchase called:', { id });
   const { data, error } = await PurchaseApiService.updatePurchaseAndFetch(id, updates, userId);
   if (error || !data) throw new Error(error || 'Gagal memperbarui pembelian');
   logger.info('✅ apiUpdatePurchase success', { id: data.id });
@@ -77,7 +72,6 @@ const apiUpdatePurchase = async (id: string, updates: Partial<Purchase>, userId:
 
 // Status via service (service handles manual warehouse sync) and fetch within service
 const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatus) => {
-  const { formatCurrency } = useCurrency();  logger.debug('📊 apiSetStatus called:', { id, newStatus });
   const { data, error } = await PurchaseApiService.setStatusAndFetch(id, userId, newStatus);
   if (error || !data) throw new Error(error || 'Gagal update status');
   logger.info('✅ apiSetStatus success', { id: data.id, status: data.status });
@@ -85,7 +79,6 @@ const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatu
 };
 
 const apiDeletePurchase = async (id: string, userId: string) => {
-  const { formatCurrency } = useCurrency();  const res = await PurchaseApiService.deletePurchase(id, userId);
   if (!res.success) throw new Error(res.error || 'Gagal menghapus pembelian');
 };
 
@@ -96,7 +89,6 @@ const PurchaseContext = createContext<PurchaseContextType | undefined>(undefined
 export { PurchaseContext };
 
 export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { formatCurrency } = useCurrency();  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   const { addActivity } = useActivity();
@@ -106,7 +98,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   
   // Financial context handlers with safe fallbacks using useMemo
   const addFinancialTransaction = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (financialContext?.addFinancialTransaction) {
       logger.debug('PurchaseContext: FinancialContext available');
       return financialContext.addFinancialTransaction;
     }
@@ -118,7 +109,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [financialContext]);
   
   const deleteFinancialTransaction = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (financialContext?.deleteFinancialTransaction) {
       return financialContext.deleteFinancialTransaction;
     }
     return async () => {
@@ -130,7 +120,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ✅ Supplier context access with safe fallback (no hook rule violations)
   const supplierContext = useContext(SupplierContext);
   const suppliers = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (supplierContext?.suppliers) {
       logger.debug('PurchaseContext: SupplierContext available');
       return supplierContext.suppliers;
     }
@@ -144,11 +133,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const warehouseContext = useBahanBaku();
   const bahanBaku = warehouseContext?.bahanBaku || [];
   const addBahanBaku = warehouseContext?.addBahanBaku || (async (_: any) => {
-  const { formatCurrency } = useCurrency();    logger.warn('addBahanBaku not available in warehouse context');
     return false;
   });
   const getSupplierName = useCallback((supplierValue: string): string => {
-  const { formatCurrency } = useCurrency();    // Handle supplier field that could be either ID or name
     try {
       if (!supplierValue || typeof supplierValue !== 'string') {
         return 'Supplier Tidak Diketahui';
@@ -178,7 +165,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ✅ HELPER: Invalidate warehouse data after purchase changes
   const invalidateWarehouseData = useCallback(() => {
-  const { formatCurrency } = useCurrency();    logger.debug('🔄 Invalidating warehouse data');
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.list() });
     queryClient.invalidateQueries({ queryKey: warehouseQueryKeys.analysis() });
   }, [queryClient]);
@@ -221,7 +207,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Optimistic helpers -------------------
   const setCacheList = useCallback((updater: (old: Purchase[]) => Purchase[]) => {
-  const { formatCurrency } = useCurrency();    queryClient.setQueryData(purchaseQueryKeys.list(user?.id), (old: Purchase[] | undefined) => {
       return updater(old || []);
     });
   }, [queryClient, user?.id]);
@@ -230,10 +215,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Stats (memo) -------------------
   const stats = useMemo(() => {
-  const { formatCurrency } = useCurrency();    const total = (purchases as Purchase[]).length;
     const totalValue = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(((p as any).totalNilai ?? (p as any).total_nilai ?? 0)), 0);
     const statusCounts = (purchases as Purchase[]).reduce((acc: Record<string, number>, p: Purchase) => {
-  const { formatCurrency } = useCurrency();      acc[p.status] = (acc[p.status] || 0) + 1;
       return acc;
     }, {});
     return {
@@ -252,12 +235,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // CREATE (optimistic append)
   const createMutation = useMutation({
-  const { formatCurrency } = useCurrency();    mutationFn: (payload: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => apiCreatePurchase(payload, user!.id),
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
       const temp: Purchase = {
-  const { formatCurrency } = useCurrency();        id: `temp-${Date.now()}`,
         userId: user!.id,
         supplier: payload.supplier,
         tanggal: payload.tanggal,
@@ -315,7 +296,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // UPDATE (optimistic merge)
   const updateMutation = useMutation({
-  const { formatCurrency } = useCurrency();    mutationFn: ({ id, updates }: { id: string; updates: Partial<Purchase> }) => apiUpdatePurchase(id, updates, user!.id),
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
@@ -345,7 +325,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // SET STATUS (optimistic)
   const statusMutation = useMutation({
-  const { formatCurrency } = useCurrency();    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) => {
+    mutationFn: ({ id, newStatus }: { id: string; newStatus: PurchaseStatus }) => {
       logger.debug('🔄 Status mutation called with:', { id, newStatus });
       return apiSetStatus(id, user!.id, newStatus);
     },
@@ -441,7 +421,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // DELETE (optimistic remove)
   const deleteMutation = useMutation({
-  const { formatCurrency } = useCurrency();    mutationFn: (id: string) => apiDeletePurchase(id, user!.id),
     onMutate: async (id) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
@@ -483,7 +462,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Public actions -------------------
   const addPurchase = useCallback(async (purchase: Omit<Purchase, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-  const { formatCurrency } = useCurrency();    if (!user) { 
       logger.error('addPurchase: User not logged in');
       toast.error('Anda harus login'); 
       return false; 
@@ -519,10 +497,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Edit diperbolehkan walau completed — manual sync akan rekalkulasi stok jika perlu
   const updatePurchaseAction = useCallback(async (id: string, updated: Partial<Purchase>) => {
-  const { formatCurrency } = useCurrency();    if (!user) { toast.error('Anda harus login'); return false; }
     try {
       const payload = { ...updated };
-  const { formatCurrency } = useCurrency();      if (updated.items && updated.items.length > 0) {
         const supplierId = updated.supplier || findPurchase(id)?.supplier || '';
         payload.items = await ensureBahanBakuIds(updated.items, supplierId);
       }
@@ -535,7 +511,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user, updateMutation, ensureBahanBakuIds, findPurchase]);
 
   const setStatus = useCallback(async (id: string, newStatus: PurchaseStatus) => {
-  const { formatCurrency } = useCurrency();    if (!user) { toast.error('Anda harus login'); return false; }
     const p = findPurchase(id);
     if (!p) { toast.error('Pembelian tidak ditemukan'); return false; }
 
@@ -550,7 +525,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Enhanced item validation for better error reporting
       const invalid = p.items.filter((it: any) => {
-  const { formatCurrency } = useCurrency();        const issues = [];
         if (!it.bahanBakuId) issues.push('ID bahan baku');
         if (!it.nama || !it.nama.trim()) issues.push('nama');
         // Use standardized field name 'quantity' (mapped from DB 'jumlah')
@@ -598,7 +572,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [user, findPurchase, statusMutation]);
 
   const deletePurchaseAction = useCallback(async (id: string) => {
-  const { formatCurrency } = useCurrency();    if (!user) { toast.error('Anda harus login'); return false; }
     try {
       await deleteMutation.mutateAsync(id);
       return true;
@@ -612,7 +585,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
-  const { formatCurrency } = useCurrency();    const hasSuppliers = (suppliers?.length || 0) > 0;
     if (!hasSuppliers) {
       toast.warning('Belum ada data supplier. Kamu bisa menambahkannya nanti.');
     }
@@ -620,7 +592,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [suppliers?.length]);
 
   const refreshPurchases = useCallback(async () => {
-  const { formatCurrency } = useCurrency();    logger.debug('🔄 Manual refresh purchases triggered');
     await queryClient.invalidateQueries({ 
       queryKey: purchaseQueryKeys.list(user?.id),
       refetchType: 'active' // Force active queries to refetch immediately
@@ -636,7 +607,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (!user?.id) return;
 
     const requestInvalidate = () => {
-  const { formatCurrency } = useCurrency();      if (blockRealtimeRef.current) return;
       if (debounceTimerRef.current) {
         window.clearTimeout(debounceTimerRef.current);
       }
@@ -672,7 +642,6 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // ------------------- Context value -------------------
   const contextValue: PurchaseContextType = useMemo(() => ({
-  const { formatCurrency } = useCurrency();    // from original type
     purchases: purchases as Purchase[],
     isLoading: isLoading || createMutation.isPending || updateMutation.isPending || deleteMutation.isPending || statusMutation.isPending,
     error: error ? (error instanceof Error ? error.message : String(error)) : null,

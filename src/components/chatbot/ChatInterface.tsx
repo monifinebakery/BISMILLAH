@@ -93,16 +93,34 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
     updateMessage(loadingId, { isLoading: true });
 
     try {
-      const response = await chatbotService.processMessage(userMessage);
+      const response = await chatbotService.processMessage(userMessage, user?.id);
 
-      // Remove loading message and add actual response
-      setMessages(prev => prev.filter(msg => msg.id !== loadingId));
-      addMessage(response.text, 'bot');
+      // Replace loading message with actual response
+      setMessages(prev => {
+        // Remove loading message and add response in one update
+        const filteredMessages = prev.filter(msg => msg.id !== loadingId);
+        const newMessage: ChatMessage = {
+          id: Date.now().toString(),
+          content: response.text,
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        return [...filteredMessages, newMessage];
+      });
 
     } catch (error) {
       console.error('Chat error:', error);
-      setMessages(prev => prev.filter(msg => msg.isLoading));
-      addMessage('Maaf, terjadi kesalahan. Silakan coba lagi.', 'bot');
+      // Replace loading message with error response
+      setMessages(prev => {
+        const filteredMessages = prev.filter(msg => msg.id !== loadingId);
+        const errorMessage: ChatMessage = {
+          id: Date.now().toString(),
+          content: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+          sender: 'bot',
+          timestamp: new Date()
+        };
+        return [...filteredMessages, errorMessage];
+      });
     } finally {
       setIsLoading(false);
     }
@@ -123,13 +141,14 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
   const addWelcomeMessage = () => {
     const businessName = settings.businessName || 'Bisnis Anda';
+    const isAuthenticated = !!user;
+
     const welcomeMessage = `👋 Halo! Saya adalah asisten AI untuk ${businessName}.
 
-Saya bisa membantu Anda dengan:
-• Mencari dan mengelola pesanan
-• Update stok bahan baku
-• Generate laporan penjualan
-• Tambah biaya operasional
+${isAuthenticated ? 
+  'Saya bisa membantu Anda dengan:\n• Mencari dan mengelola pesanan\n• Update stok bahan baku\n• Generate laporan penjualan\n• Tambah biaya operasional' :
+  'Untuk fitur lengkap seperti mengakses data pesanan, stok, dan laporan, silakan login terlebih dahulu.\n\nSaya masih bisa membantu dengan:\n• Pertanyaan umum tentang bakery\n• Tips manajemen bisnis\n• Panduan penggunaan aplikasi'
+}
 
 Silakan ketik pertanyaan Anda!`;
     addMessage(welcomeMessage, 'bot');

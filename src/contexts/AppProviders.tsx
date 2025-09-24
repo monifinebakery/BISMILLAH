@@ -12,6 +12,7 @@ import { PaymentProvider } from './PaymentContext';
 // ⚡ HIGH PRIORITY: Load after auth is ready
 import { SimpleNotificationProvider } from './SimpleNotificationContext';
 import { UserSettingsProvider } from './UserSettingsContext';
+import { CurrencyProvider } from './CurrencyContext';
 
 // ⚡ MEDIUM PRIORITY: Load progressively
 import { ActivityProvider } from './ActivityContext';
@@ -59,6 +60,7 @@ export const AppProviders: React.FC<AppProvidersProps> = ({ children }) => {
   
   const coreProviders = [
     { component: UserSettingsProvider, name: 'UserSettings' },
+    { component: CurrencyProvider, name: 'Currency' },
     { component: FinancialProvider, name: 'Financial' },
     { component: ActivityProvider, name: 'Activity' },
   ];

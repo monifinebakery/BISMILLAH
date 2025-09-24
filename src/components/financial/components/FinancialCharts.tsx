@@ -72,16 +72,17 @@ const ChartLoading = () => {
  * - Performance optimizations
  */
 const FinancialCharts: React.FC<FinancialChartsProps> = ({ 
-  const { formatCurrency } = useCurrency();  filteredTransactions, 
+  filteredTransactions, 
   dateRange,
   isLoading = false,
   isRefreshing = false,
   onRefresh,
   lastUpdated
 }) => {
+  const { formatCurrency } = useCurrency();
   const { transactionData, dailyData } = useMemo(() => {
-  const { formatCurrency } = useCurrency();    const result = {
-  const { formatCurrency } = useCurrency();      transactionData: [] as Array<{
+    const result = {
+      transactionData: [] as Array<{
         month: string;
         Pemasukan: number;
         Pengeluaran: number;
@@ -101,8 +102,8 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
     }
 
     const monthlyData: Record<string, { income: number; expense: number; date: Date }> = {};
-  const { formatCurrency } = useCurrency();    const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
-  const { formatCurrency } = useCurrency();
+    const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
+    
     // ✅ IMPROVED: Process transactions with consistent date handling
     filteredTransactions.forEach(t => {
       if (!t.date) return;
@@ -164,7 +165,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
       const currentDate = startOfDay(subDays(today, 29 - i));
       const dayKey = UnifiedDateHandler.toDatabaseString(currentDate);
       const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
-  const { formatCurrency } = useCurrency();      result.dailyData.push({
+      result.dailyData.push({
         date: format(currentDate, 'd MMM', { locale: id }),
         Pemasukan: existingData.income,
         Pengeluaran: existingData.expense,

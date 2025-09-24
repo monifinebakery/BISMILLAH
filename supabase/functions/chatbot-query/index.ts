@@ -188,10 +188,10 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     // Extract material name from message
     const materialName = extractMaterialName(message);
 
-    // Query bahan_baku table (correct table name)
+    // Query bahan_baku table using validated schema fields
     let query = supabase
       .from('bahan_baku')
-      .select('id, nama, stok, satuan, minimum, harga, kategori')
+      .select('id, nama, stok, satuan, minimum, harga_satuan, harga_rata_rata, kategori, supplier')
       .eq('user_id', userId);
 
     if (materialName) {
@@ -226,16 +226,20 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       const item = inventory[0];
       const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
       const stockInfo = `• ${item.nama}: ${item.stok} ${item.satuan} (${status})`;
-      const priceInfo = item.harga ? `\n• Harga per unit: Rp ${item.harga.toLocaleString('id-ID')}` : '';
+      const priceSource = item.harga_satuan ?? item.harga_rata_rata;
+      const priceInfo = priceSource != null ? `\n• Harga per unit: ${formatCurrency(priceSource)}` : '';
       const minInfo = item.minimum ? `\n• Stok minimum: ${item.minimum} ${item.satuan}` : '';
       const categoryInfo = item.kategori ? `\n• Kategori: ${item.kategori}` : '';
+      const supplierInfo = item.supplier ? `\n• Supplier: ${item.supplier}` : '';
 
-      inventoryList = stockInfo + priceInfo + minInfo + categoryInfo;
+      inventoryList = stockInfo + priceInfo + minInfo + categoryInfo + supplierInfo;
     } else {
       // Show summary of all materials
       inventoryList = inventory.slice(0, 10).map((item: any) => {
         const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
-        return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})`;
+        const priceSource = item.harga_satuan ?? item.harga_rata_rata;
+        const priceInfo = priceSource != null ? ` - ${formatCurrency(priceSource)}` : '';
+        return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})${priceInfo}`;
       }).join('\n');
     }
 

@@ -17,6 +17,75 @@ import { formatCurrency as formatCurrencyShared } from '@/lib/shared/formatters'
  */
 
 /**
+ * Normalisasi data bahan resep agar konsisten menggunakan snake_case
+ * sekaligus memastikan nilai numerik selalu bertipe number.
+ */
+export const normalizeBahanResep = (ingredients: any[] | null | undefined): BahanResep[] => {
+  if (!Array.isArray(ingredients)) {
+    return [];
+  }
+
+  return ingredients.map((ingredient, index) => {
+    const rawNama = ingredient?.nama ?? ingredient?.name ?? '';
+    const nama = typeof rawNama === 'string' && rawNama.trim().length > 0
+      ? rawNama
+      : `Bahan ${index + 1}`;
+
+    const jumlahValue = Number(
+      ingredient?.jumlah ?? ingredient?.quantity ?? ingredient?.qty ?? 0
+    );
+    const jumlah = Number.isFinite(jumlahValue) ? jumlahValue : 0;
+
+    const rawSatuan = ingredient?.satuan ?? ingredient?.unit ?? ingredient?.uom ?? '';
+    const satuan = typeof rawSatuan === 'string'
+      ? rawSatuan
+      : String(rawSatuan ?? '');
+
+    const hargaSatuanValue = Number(
+      ingredient?.harga_satuan ??
+      ingredient?.hargaSatuan ??
+      ingredient?.harga ??
+      ingredient?.price ??
+      ingredient?.price_per_unit ??
+      0
+    );
+    const harga_satuan = Number.isFinite(hargaSatuanValue) ? hargaSatuanValue : 0;
+
+    const totalHargaValue = Number(
+      ingredient?.total_harga ??
+      ingredient?.totalHarga ??
+      ingredient?.total ??
+      ingredient?.harga_total ??
+      ingredient?.total_price ??
+      ingredient?.totalPrice ??
+      NaN
+    );
+    const calculatedTotal = jumlah * harga_satuan;
+    const total_harga = Number.isFinite(totalHargaValue) && totalHargaValue > 0
+      ? totalHargaValue
+      : (Number.isFinite(calculatedTotal) ? calculatedTotal : 0);
+
+    const rawWarehouseId = ingredient?.warehouse_id ?? ingredient?.warehouseId ?? ingredient?.bahan_baku_id;
+    const warehouse_id = rawWarehouseId ? String(rawWarehouseId) : undefined;
+
+    const rawId = ingredient?.id ?? ingredient?.ingredient_id ?? ingredient?.bahan_id;
+    const id = rawId ? String(rawId) : undefined;
+
+    const normalized: BahanResep = {
+      ...(id ? { id } : {}),
+      nama,
+      jumlah,
+      satuan,
+      harga_satuan,
+      total_harga,
+      ...(warehouse_id ? { warehouse_id } : {}),
+    };
+
+    return normalized;
+  });
+};
+
+/**
  * Calculate ingredient total cost
  * Uses totalHarga if available, otherwise calculates from jumlah * hargaSatuan
  */

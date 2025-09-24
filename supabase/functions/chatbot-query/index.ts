@@ -27,12 +27,16 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🤖 Chatbot Edge Function called');
+    
     // Require authentication
     const authResult = await requireAuth(req);
     if (authResult instanceof Response) {
+      console.log('🤖 Authentication failed');
       return authResult;
     }
     const { user } = authResult;
+    console.log('🤖 Authenticated user:', user.id);
 
     // Create Supabase client with user's context
     const supabase = createClient(
@@ -48,6 +52,7 @@ serve(async (req) => {
     );
 
     const { intent, message, context }: ChatbotQueryRequest = await req.json();
+    console.log('🤖 Received request:', { intent, message, context });
 
     let result: any = null;
 
@@ -94,6 +99,7 @@ serve(async (req) => {
 // Handler untuk pencarian pesanan
 async function handleOrderSearch(supabase: any, userId: string, message: string) {
   try {
+    console.log('🤖 Handling order search for user:', userId, 'message:', message);
     // Extract customer name from message
     const customerName = extractCustomerName(message);
 
@@ -119,9 +125,14 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
       query = query.ilike('customer_name', `%${customerName}%`);
     }
 
+    console.log('🤖 Executing order query...');
     const { data: orders, error } = await query;
+    console.log('🤖 Order query result:', { data: orders, error });
 
-    if (error) throw error;
+    if (error) {
+      console.log('🤖 Order query error:', error);
+      throw error;
+    }
 
     if (!orders || orders.length === 0) {
       return {
@@ -158,44 +169,66 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
 // Handler untuk query inventory
 async function handleInventoryQuery(supabase: any, userId: string, message: string) {
   try {
+    console.log('🤖 Handling inventory query for user:', userId, 'message:', message);
+    
     // Extract material name from message
     const materialName = extractMaterialName(message);
 
+    // Query bahan_baku table (correct table name)
     let query = supabase
-      .from('inventory')
-      .select('*')
+      .from('bahan_baku')
+      .select('id, nama, stok, satuan, minimum, harga, kategori')
       .eq('user_id', userId);
 
     if (materialName) {
-      query = query.ilike('material_name', `%${materialName}%`);
+      query = query.ilike('nama', `%${materialName}%`);
     }
 
+    console.log('🤖 Executing inventory query...');
     const { data: inventory, error } = await query;
+    console.log('🤖 Inventory query result:', { data: inventory?.length, error });
 
-    if (error) throw error;
+    if (error) {
+      console.log('🤖 Inventory query error:', error);
+      throw error;
+    }
 
     if (!inventory || inventory.length === 0) {
       return {
         type: 'inventory',
         text: materialName
-          ? `📦 Tidak ditemukan stok untuk "${materialName}".`
-          : '📦 Tidak ada data inventory.',
+          ? `📦 Tidak ditemukan bahan "${materialName}" di inventory.`
+          : '📦 Tidak ada data bahan baku di inventory.',
         data: []
       };
     }
 
     // Filter low stock items
-    const lowStock = inventory.filter((item: any) => item.current_stock <= item.min_stock_level);
+    const lowStock = inventory.filter((item: any) => item.stok <= (item.minimum || 0));
 
-    const inventoryList = inventory.slice(0, 10).map((item: any) => {
-      const status = item.current_stock <= item.min_stock_level ? '⚠️ PERLU RESTOCK' : '✅ OK';
-      return `• ${item.material_name}: ${item.current_stock} ${item.unit} (${status})`;
-    }).join('\n');
+    let inventoryList;
+    if (materialName) {
+      // Show specific material details
+      const item = inventory[0];
+      const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
+      const stockInfo = `• ${item.nama}: ${item.stok} ${item.satuan} (${status})`;
+      const priceInfo = item.harga ? `\n• Harga per unit: Rp ${item.harga.toLocaleString('id-ID')}` : '';
+      const minInfo = item.minimum ? `\n• Stok minimum: ${item.minimum} ${item.satuan}` : '';
+      const categoryInfo = item.kategori ? `\n• Kategori: ${item.kategori}` : '';
 
-    let text = `📦 Status Inventory:\n\n${inventoryList}`;
+      inventoryList = stockInfo + priceInfo + minInfo + categoryInfo;
+    } else {
+      // Show summary of all materials
+      inventoryList = inventory.slice(0, 10).map((item: any) => {
+        const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
+        return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})`;
+      }).join('\n');
+    }
 
-    if (lowStock.length > 0) {
-      text += `\n\n⚠️ ${lowStock.length} item perlu direstock segera!`;
+    let text = `📦 ${materialName ? 'Detail Bahan' : 'Status Inventory Bahan Baku'}:\n\n${inventoryList}`;
+
+    if (lowStock.length > 0 && !materialName) {
+      text += `\n\n⚠️ ${lowStock.length} bahan perlu direstock segera!`;
     }
 
     return {
@@ -208,7 +241,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     console.error('Inventory query error:', error);
     return {
       type: 'error',
-      text: 'Maaf, terjadi kesalahan saat mengakses inventory.'
+      text: 'Maaf, terjadi kesalahan saat mengakses data inventory.'
     };
   }
 }

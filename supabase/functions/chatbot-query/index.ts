@@ -2,12 +2,6 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 import { requireAuth } from "../_shared/middleware.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
-};
-
 interface ChatbotQueryRequest {
   intent: string;
   message: string;
@@ -16,6 +10,129 @@ interface ChatbotQueryRequest {
     businessName?: string;
   };
 }
+
+// Knowledge Base untuk chatbot
+const KNOWLEDGE_BASE = {
+  business: {
+    name: "HPP by Monifine",
+    description: "Progressive Web App enterprise-grade untuk menghitung Harga Pokok Produksi (HPP) UMKM kuliner Indonesia",
+    mission: "Memberdayakan UMKM kuliner Indonesia dengan teknologi terdepan untuk menghitung HPP secara akurat",
+    target_users: "UMKM Kuliner Indonesia (64 juta UMKM, fokus 4.2 juta kuliner)",
+    capabilities: [
+      "Kalkulasi HPP akurat berdasarkan resep",
+      "Manajemen biaya operasional",
+      "Offline-first architecture",
+      "Progressive Web App (PWA)",
+      "Analytics & reporting"
+    ]
+  },
+  hpp_calculation: {
+    formula: "HPP = (Σ(Biaya Bahan Baku × Jumlah × Waste Factor) + Biaya Operasional Allocated) / Jumlah Porsi",
+    components: {
+      bahan_baku: "Biaya per unit dari supplier",
+      waste_factor: "Persentase waste bahan baku (default 5-10%)",
+      biaya_operasional: "Biaya bulanan yang dialokasikan per resep",
+      jumlah_porsi: "Target output porsi"
+    },
+    allocation_methods: [
+      "Per Unit: Total Cost / Monthly Units Produced",
+      "Percentage: Cost as % of total production cost",
+      "Fixed Amount: Fixed cost per recipe",
+      "Staff-Based: Based on staff hours per recipe"
+    ]
+  },
+  operational_costs: {
+    types: ["Tetap (fixed costs)", "Variabel (variable costs)"],
+    categories: ["Biaya bahan baku", "Biaya tenaga kerja", "Biaya overhead", "Biaya marketing", "Biaya utilitas"],
+    tracking: "Monthly cost tracking dengan kategorisasi otomatis",
+    allocation: "Auto-allocate ke resep berdasarkan usage patterns"
+  },
+  recipes: {
+    features: [
+      "Multi-ingredient support (hingga 50+ bahan per resep)",
+      "Portion scaling otomatis",
+      "Waste factor calculation",
+      "Seasonal pricing support"
+    ],
+    validation: [
+      "Minimum 1 bahan baku wajib",
+      "Ukuran porsi harus > 0",
+      "Waste factor antara 0-50%",
+      "Biaya per unit harus > 0"
+    ]
+  },
+  pwa_features: {
+    offline_capabilities: [
+      "Full calculator functionality tanpa internet",
+      "Recipe creation/editing offline",
+      "Cost management dengan local storage",
+      "Settings persistence",
+      "Calculation history"
+    ],
+    installation: "Install seperti native app di desktop, tablet, mobile",
+    sync: "Intelligent background sync saat koneksi kembali",
+    cache: "Advanced caching strategies untuk performa optimal"
+  },
+  policies: {
+    pricing: "Cost-Plus Pricing dengan overhead allocation",
+    profit_margin: "Selling Price = HPP × (1 + Target Margin %)",
+    waste_management: "Default waste factor 5-10% per bahan",
+    data_retention: "7 tahun untuk data finansial, 1 tahun untuk logs",
+    backup: "Automated daily backups dengan disaster recovery < 4 jam"
+  }
+};
+
+// Business Rules untuk chatbot
+const BUSINESS_RULES = {
+  hpp_calculation: [
+    "HPP harus dihitung berdasarkan resep yang akurat",
+    "Waste factor minimal 0%, maksimal 50%",
+    "Biaya operasional harus dialokasikan secara proporsional",
+    "Margin keuntungan minimal 10% untuk sustainability",
+    "Harga jual = HPP × (1 + margin target %)"
+  ],
+  data_validation: [
+    "Semua bahan baku harus memiliki nama, satuan, dan harga",
+    "Stok bahan tidak boleh negatif",
+    "Tanggal operasional tidak boleh di masa depan",
+    "Biaya bulanan harus > 0",
+    "Resep minimal memiliki 1 bahan baku"
+  ],
+  operational_procedures: [
+    "Update harga supplier minimal bulanan",
+    "Catat biaya operasional tepat waktu",
+    "Lakukan inventory check mingguan",
+    "Backup data secara berkala",
+    "Monitor profit margin per resep"
+  ],
+  sync_priorities: [
+    "User-initiated actions (save, delete) - Prioritas Tertinggi",
+    "Critical data (settings, auth) - Prioritas Tinggi",
+    "Operational costs - Prioritas Sedang",
+    "Recipe calculations - Prioritas Rendah",
+    "History/logs - Prioritas Terendah"
+  ],
+  quality_standards: [
+    "HPP accuracy > 95%",
+    "Uptime aplikasi 99.9%",
+    "Sync success rate > 98%",
+    "Load time < 2 detik",
+    "Storage usage < 100MB"
+  ],
+  business_ethics: [
+    "Transparansi perhitungan harga",
+    "Data pelanggan aman dan terlindungi",
+    "Harga kompetitif namun profitable",
+    "Dukung pertumbuhan UMKM lokal",
+    "Inovasi berkelanjutan untuk industri kuliner"
+  ]
+};
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS"
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -79,6 +196,12 @@ serve(async (req) => {
         break;
       case 'promo':
         result = await handlePromoQuery(supabase, user.id, message);
+        break;
+      case 'knowledge':
+        result = await handleKnowledgeQuery(message);
+        break;
+      case 'rules':
+        result = await handleRulesQuery(message);
         break;
       default:
         result = { type: 'general', text: 'Maaf, saya tidak mengerti permintaan tersebut.' };
@@ -187,13 +310,28 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
 
     // Validate user authentication and data access
     if (!userId || userId === 'anonymous' || userId === 'test-user-id') {
-      console.log('❌ User not properly authenticated');
+      console.log('❌ User not properly authenticated:', { userId, type: typeof userId });
       return {
         type: 'error',
-        text: '❌ Untuk mengakses data bahan baku, silakan login terlebih dahulu ke aplikasi.',
-        data: []
+        text: '❌ Akses ditolak: Anda belum login ke aplikasi.\n\n💡 Silakan login terlebih dahulu untuk mengakses fitur chatbot lengkap.',
+        data: [],
+        debug: { userId, authenticated: false }
       };
     }
+
+    // Validate userId format (should be UUID)
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(userId)) {
+      console.log('❌ Invalid userId format:', userId);
+      return {
+        type: 'error',
+        text: '❌ User ID tidak valid. Silakan login kembali.',
+        data: [],
+        debug: { userId, format: 'invalid' }
+      };
+    }
+
+    console.log('✅ User authenticated:', userId);
 
     // Extract material name from message
     const materialName = extractMaterialName(message);
@@ -267,8 +405,14 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       } else {
         return {
           type: 'inventory',
-          text: `📦 Belum ada data bahan baku di warehouse Anda.\n\n💡 Untuk mulai menggunakan fitur ini, silakan tambahkan bahan baku terlebih dahulu melalui menu Warehouse di aplikasi.\n\nContoh bahan yang bisa ditambahkan:\n• Tepung Terigu\n• Gula Pasir\n• Telur Ayam\n• Margarin\n• Susu Bubuk\n• Ragi Instan\n\nSetelah menambahkan bahan, Anda bisa bertanya: "cek stok bahan baku"`,
-          data: []
+          text: `📦 Belum ada data bahan baku di warehouse Anda untuk user ID: ${userId}.\n\n💡 **Kemungkinan penyebab:**\n• Anda belum menambahkan bahan baku apapun ke sistem\n• Data bahan baku ada di user ID yang berbeda\n• Ada masalah sinkronisasi data\n\n**Solusi:**\n1. Buka menu "Warehouse" di aplikasi\n2. Klik tombol "Tambah Bahan Baku"\n3. Masukkan data bahan baku Anda\n\nSetelah menambahkan bahan, coba lagi perintah: "cek stok bahan baku"\n\n**Debug Info:**\n• User ID: ${userId}\n• Query berhasil dieksekusi\n• Database response: empty result set`,
+          data: [],
+          debug: {
+            userId,
+            queryExecuted: true,
+            resultSet: 'empty',
+            suggestion: 'add_materials_via_warehouse_menu'
+          }
         };
       }
     }
@@ -652,6 +796,155 @@ async function handlePromoQuery(supabase: any, userId: string, message: string) 
     return {
       type: 'error',
       text: 'Maaf, terjadi kesalahan saat mengakses data promo.'
+    };
+  }
+}
+
+// Handler untuk query knowledge base
+async function handleKnowledgeQuery(message: string) {
+  try {
+    console.log('🤖 Handling knowledge query:', message);
+
+    const lowerMessage = message.toLowerCase();
+
+    // Extract knowledge topic from message
+    let topic: string | null = null;
+    if (lowerMessage.includes('hpp') || lowerMessage.includes('harga pokok')) {
+      topic = 'hpp_calculation';
+    } else if (lowerMessage.includes('bisnis') || lowerMessage.includes('aplikasi') || lowerMessage.includes('tentang')) {
+      topic = 'business';
+    } else if (lowerMessage.includes('biaya') || lowerMessage.includes('operasional') || lowerMessage.includes('cost')) {
+      topic = 'operational_costs';
+    } else if (lowerMessage.includes('resep') || lowerMessage.includes('recipe')) {
+      topic = 'recipes';
+    } else if (lowerMessage.includes('pwa') || lowerMessage.includes('offline') || lowerMessage.includes('install')) {
+      topic = 'pwa_features';
+    } else if (lowerMessage.includes('kebijakan') || lowerMessage.includes('policy')) {
+      topic = 'policies';
+    }
+
+    if (topic && KNOWLEDGE_BASE[topic]) {
+      const knowledge = KNOWLEDGE_BASE[topic];
+
+      let responseText = `📚 **${topic.toUpperCase()} - Knowledge Base**\n\n`;
+
+      if (topic === 'business') {
+        responseText += `**Nama:** ${knowledge.name}\n`;
+        responseText += `**Deskripsi:** ${knowledge.description}\n`;
+        responseText += `**Misi:** ${knowledge.mission}\n`;
+        responseText += `**Target Users:** ${knowledge.target_users}\n\n`;
+        responseText += `**Capabilities:**\n${knowledge.capabilities.map((cap: string) => `• ${cap}`).join('\n')}`;
+      } else if (topic === 'hpp_calculation') {
+        responseText += `**Formula HPP:** ${knowledge.formula}\n\n`;
+        responseText += `**Komponen:**\n`;
+        Object.entries(knowledge.components).forEach(([key, value]) => {
+          responseText += `• ${key}: ${value}\n`;
+        });
+        responseText += `\n**Metode Alokasi:**\n${knowledge.allocation_methods.map((method: string) => `• ${method}`).join('\n')}`;
+      } else if (topic === 'operational_costs') {
+        responseText += `**Tipe Biaya:** ${knowledge.types.join(', ')}\n`;
+        responseText += `**Kategori:** ${knowledge.categories.join(', ')}\n`;
+        responseText += `**Tracking:** ${knowledge.tracking}\n`;
+        responseText += `**Alokasi:** ${knowledge.allocation}`;
+      } else if (topic === 'recipes') {
+        responseText += `**Fitur:**\n${knowledge.features.map((feat: string) => `• ${feat}`).join('\n')}\n\n`;
+        responseText += `**Validasi:**\n${knowledge.validation.map((val: string) => `• ${val}`).join('\n')}`;
+      } else if (topic === 'pwa_features') {
+        responseText += `**Offline Capabilities:**\n${knowledge.offline_capabilities.map((cap: string) => `• ${cap}`).join('\n')}\n\n`;
+        responseText += `**Instalasi:** ${knowledge.installation}\n`;
+        responseText += `**Sinkronisasi:** ${knowledge.sync}\n`;
+        responseText += `**Cache:** ${knowledge.cache}`;
+      } else if (topic === 'policies') {
+        responseText += `**Pricing:** ${knowledge.pricing}\n`;
+        responseText += `**Profit Margin:** ${knowledge.profit_margin}\n`;
+        responseText += `**Waste Management:** ${knowledge.waste_management}\n`;
+        responseText += `**Data Retention:** ${knowledge.data_retention}\n`;
+        responseText += `**Backup:** ${knowledge.backup}`;
+      }
+
+      return {
+        type: 'knowledge',
+        text: responseText,
+        data: knowledge
+      };
+    } else {
+      // Show all available knowledge topics
+      const topics = Object.keys(KNOWLEDGE_BASE);
+      const topicList = topics.map(topic => {
+        const displayName = topic.replace('_', ' ').toUpperCase();
+        return `• ${displayName}`;
+      }).join('\n');
+
+      return {
+        type: 'knowledge',
+        text: `📚 **Knowledge Base HPP by Monifine**\n\n**Topik yang tersedia:**\n${topicList}\n\n💡 **Cara menggunakan:**\nTanyakan "apa itu HPP", "tentang biaya operasional", "bagaimana resep", dll.\n\nContoh: "jelaskan tentang HPP" atau "apa itu PWA"`,
+        data: KNOWLEDGE_BASE
+      };
+    }
+
+  } catch (error) {
+    console.error('Knowledge query error:', error);
+    return {
+      type: 'error',
+      text: 'Maaf, terjadi kesalahan saat mengakses knowledge base.'
+    };
+  }
+}
+
+// Handler untuk query business rules
+async function handleRulesQuery(message: string) {
+  try {
+    console.log('🤖 Handling rules query:', message);
+
+    const lowerMessage = message.toLowerCase();
+
+    // Extract rules category from message
+    let category: string | null = null;
+    if (lowerMessage.includes('hpp') || lowerMessage.includes('harga') || lowerMessage.includes('kalkulasi')) {
+      category = 'hpp_calculation';
+    } else if (lowerMessage.includes('validasi') || lowerMessage.includes('data')) {
+      category = 'data_validation';
+    } else if (lowerMessage.includes('operasional') || lowerMessage.includes('prosedur')) {
+      category = 'operational_procedures';
+    } else if (lowerMessage.includes('sinkronisasi') || lowerMessage.includes('sync') || lowerMessage.includes('prioritas')) {
+      category = 'sync_priorities';
+    } else if (lowerMessage.includes('kualitas') || lowerMessage.includes('standard')) {
+      category = 'quality_standards';
+    } else if (lowerMessage.includes('etika') || lowerMessage.includes('bisnis')) {
+      category = 'business_ethics';
+    }
+
+    if (category && BUSINESS_RULES[category]) {
+      const rules = BUSINESS_RULES[category];
+
+      const displayName = category.replace('_', ' ').toUpperCase();
+      const rulesList = rules.map((rule: string, index: number) => `${index + 1}. ${rule}`).join('\n');
+
+      return {
+        type: 'rules',
+        text: `📋 **Business Rules - ${displayName}**\n\n${rulesList}`,
+        data: rules
+      };
+    } else {
+      // Show all available rule categories
+      const categories = Object.keys(BUSINESS_RULES);
+      const categoryList = categories.map(cat => {
+        const displayName = cat.replace('_', ' ').toUpperCase();
+        return `• ${displayName}`;
+      }).join('\n');
+
+      return {
+        type: 'rules',
+        text: `📋 **Business Rules HPP by Monifine**\n\n**Kategori yang tersedia:**\n${categoryList}\n\n💡 **Cara menggunakan:**\nTanyakan "aturan HPP", "aturan validasi data", "aturan operasional", dll.\n\nContoh: "aturan kalkulasi HPP" atau "aturan etika bisnis"`,
+        data: BUSINESS_RULES
+      };
+    }
+
+  } catch (error) {
+    console.error('Rules query error:', error);
+    return {
+      type: 'error',
+      text: 'Maaf, terjadi kesalahan saat mengakses business rules.'
     };
   }
 }

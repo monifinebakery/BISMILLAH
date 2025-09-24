@@ -173,6 +173,15 @@ export class ChatbotService {
 
   async processMessage(message: string, userId?: string): Promise<any> {
     try {
+      // Debug: Log incoming parameters
+      console.log('🤖 ChatbotService.processMessage called:', {
+        message,
+        userId,
+        userIdType: typeof userId,
+        userIdLength: userId?.length,
+        hasUserId: !!userId
+      });
+
       // Validate input
       if (!message.trim()) {
         return { text: 'Pesan tidak boleh kosong.', type: 'error' };

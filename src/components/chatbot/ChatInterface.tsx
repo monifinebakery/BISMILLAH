@@ -93,6 +93,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
     const loadingId = addMessage('Sedang memproses...', 'bot');
     updateMessage(loadingId, { isLoading: true });
 
+    // Debug: Log authentication and user ID
+    console.log('🤖 Chat Debug:', {
+      userId: user?.id,
+      userEmail: user?.email,
+      isAuthenticated: !!user,
+      message: userMessage,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       const response = await chatbotService.processMessage(userMessage, user?.id);
 

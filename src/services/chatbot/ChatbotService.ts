@@ -37,18 +37,24 @@ export class ChatbotService {
       // Check if this intent requires database query
       const dataIntents = ['orderSearch', 'inventory', 'report', 'cost'];
       if (dataIntents.includes(intent) && userId) {
+        console.log('🤖 Attempting database query for intent:', intent, 'userId:', userId);
         try {
           const dbResponse = await this.queryDatabase(intent, message, userId);
+          console.log('🤖 Database response:', dbResponse);
           if (dbResponse && dbResponse.type !== 'error') {
             // Add to history
             this.history.push({ role: 'user', content: message });
             this.history.push({ role: 'assistant', content: dbResponse.text });
+            console.log('🤖 Returning database response');
             return dbResponse;
+          } else {
+            console.log('🤖 Database returned error or no data, falling back to AI');
           }
         } catch (error) {
           console.warn('Database query failed, falling back to AI:', error);
-          // Continue to AI fallback
         }
+      } else {
+        console.log('🤖 Skipping database query - intent:', intent, 'userId:', userId);
       }
 
       // Track analytics

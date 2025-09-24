@@ -27,12 +27,16 @@ serve(async (req) => {
   }
 
   try {
+    console.log('🤖 Chatbot Edge Function called');
+    
     // Require authentication
     const authResult = await requireAuth(req);
     if (authResult instanceof Response) {
+      console.log('🤖 Authentication failed');
       return authResult;
     }
     const { user } = authResult;
+    console.log('🤖 Authenticated user:', user.id);
 
     // Create Supabase client with user's context
     const supabase = createClient(
@@ -48,6 +52,7 @@ serve(async (req) => {
     );
 
     const { intent, message, context }: ChatbotQueryRequest = await req.json();
+    console.log('🤖 Received request:', { intent, message, context });
 
     let result: any = null;
 
@@ -94,6 +99,7 @@ serve(async (req) => {
 // Handler untuk pencarian pesanan
 async function handleOrderSearch(supabase: any, userId: string, message: string) {
   try {
+    console.log('🤖 Handling order search for user:', userId, 'message:', message);
     // Extract customer name from message
     const customerName = extractCustomerName(message);
 
@@ -119,9 +125,14 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
       query = query.ilike('customer_name', `%${customerName}%`);
     }
 
+    console.log('🤖 Executing order query...');
     const { data: orders, error } = await query;
+    console.log('🤖 Order query result:', { data: orders, error });
 
-    if (error) throw error;
+    if (error) {
+      console.log('🤖 Order query error:', error);
+      throw error;
+    }
 
     if (!orders || orders.length === 0) {
       return {

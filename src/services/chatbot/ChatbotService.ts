@@ -1,9 +1,9 @@
-import { supabase } from '@/integrations/supabase/client';import { OpenRouterService } from './openrouter/OpenRouterService';
+import { supabase } from '@/integrations/supabase/client';
 
 // System prompt for accurate chatbot responses
 const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for HPP by Monifine. You ONLY answer questions about bakery data and operations. You MUST be accurate and never make up information.
 
-## What you CAN do:
+What you CAN do:
 - Answer questions about warehouse inventory (bahan baku)
 - Show order information and search orders
 - Display sales reports and financial summaries
@@ -11,42 +11,42 @@ const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for
 - Provide business strategy advice based on your data
 - Analyze performance and suggest improvements
 - Answer questions about bakery operations and management
-- Answer questions about warehouse inventory (bahan baku)
-- Show order information and search orders
-- Display sales reports and financial summaries
-- Explain business rules and guidelines
-- Provide help about using the bakery management system
 
-## What you CANNOT do:
+What you CANNOT do:
 - Create, update, or delete any data
 - Perform any actions (like creating orders, updating stock)
 - Give advice outside of bakery management
 - Answer questions about topics other than the bakery system
 - Make up or invent data that doesn't exist
 
-## How to respond:
+How to respond:
+- Always use friendly, conversational Indonesian language
+- Address the user as "Kak [owner name]" in every response
+- Be enthusiastic and supportive like a good friend
+- Use emojis to make responses more engaging and fun
+- Keep responses concise but warm and encouraging
+- End responses with questions to continue conversation
+- Show genuine interest in their bakery business success
+- Use casual, friendly Indonesian (ngobrol santai)
+- Celebrate successes and empathize with challenges
 - Always check if the requested data exists before responding
-- If data doesn't exist, say so clearly (e.g., "Belum ada data bahan baku")
+- If data doesn't exist, say so clearly (e.g., "Belum ada data bahan baku, Kak")
 - Use the exact data from the database queries
 - Format numbers as Indonesian Rupiah (Rp XXX,XXX)
 - Be polite and helpful in Indonesian language
 - Keep responses concise and accurate
 - If user asks for something you can't do, politely explain what you can help with
 
-## Business Context:
+Business Context:
 - This is HPP by Monifine - Progressive Web App for bakery HPP calculations
 - Focus on accurate cost calculations for Indonesian bakery businesses
 - Support UMKM (small businesses) with professional bakery management
 - Provide data-driven insights and strategic recommendations
 - Help optimize operations, reduce costs, and increase profitability
-- This is HPP by Monifine - Progressive Web App for bakery HPP calculations
-- Focus on accurate cost calculations for Indonesian bakery businesses
-- Support UMKM (small businesses) with professional bakery management
 
 Remember: Accuracy is more important than being comprehensive. If you're not sure about something, it's better to admit it than guess.`;
 
 export class ChatbotService {
-  private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string, timestamp: number, importance: number}> = [];
   private businessName: string = 'Bisnis Anda';
   private ownerName: string = 'Kak';
@@ -63,11 +63,10 @@ export class ChatbotService {
 
   constructor(userId?: string) {
     this.userId = userId;
-    const storageSuffix = userId ? `_${userId}` : '_anonymous';
-    this.historyStorageKey = `chatbot_history${storageSuffix}`;
-    this.businessNameStorageKey = `chatbot_business_name${storageSuffix}`;
-    this.ownerNameStorageKey = `chatbot_owner_name${storageSuffix}`;
-    this.openRouter = new OpenRouterService();
+    const storageSuffix = userId ? '_' + userId : '_anonymous';
+    this.historyStorageKey = 'chatbot_history' + storageSuffix;
+    this.businessNameStorageKey = 'chatbot_business_name' + storageSuffix;
+    this.ownerNameStorageKey = 'chatbot_owner_name' + storageSuffix;
     this.loadPersistedData();
   }
 
@@ -146,7 +145,7 @@ export class ChatbotService {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData?.session && ['inventory', 'orderSearch', 'report'].includes(intent)) {
         return {
-          text: 'Untuk mengakses data asli, silakan login terlebih dahulu.',
+          text: 'Halo Kak! Untuk lihat data asli, Kakak harus login dulu ya. Login dulu biar bisa akses semua fitur keren! 🔐',
           type: 'error'
         };
       }
@@ -176,13 +175,7 @@ export class ChatbotService {
           default:
             result = {
               type: 'general',
-              text: `Halo! Saya bisa membantu Anda dengan:
-• Cek stok bahan baku: "cek stok bahan baku"
-• Cari pesanan: "cari pesanan"
-• Laporan penjualan: "laporan bulan ini"
-• Aturan bisnis: "aturan"
-
-Coba ketik salah satu perintah di atas! 😊`
+              text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 😊 Saya asisten bakery HPP by Monifine nih, siap bantu kelola bisnis Kakak!\n\nSaya bisa bantu Kakak dengan:\n🍞 **Cek stok bahan baku:** "cek stok bahan baku"\n📋 **Cari data pesanan:** "cari pesanan"\n📊 **Laporan penjualan:** "laporan bulan ini"\n📋 **Aturan bisnis:** "aturan"\n🎯 **Strategi & tips:** "strategi bisnis saya"\n\nCoba ketik salah satu perintah di atas ya Kak! Mau mulai dari mana nih? 🚀'
             };
         }
 
@@ -200,14 +193,14 @@ Coba ketik salah satu perintah di atas! 😊`
       } catch (error) {
         console.error('Chatbot error:', error);
         return {
-          text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+          text: 'Wah Kak, ada error nih. Coba lagi ya! Kalau masih error, bilang ke tim support ya! 😅',
           type: 'error'
         };
       }
     } catch (error) {
       console.error('Process message error:', error);
       return {
-        text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+        text: 'Wah Kak, ada error nih. Coba lagi ya! Kalau masih error, bilang ke tim support ya! 😅',
         type: 'error'
       };
     }
@@ -234,7 +227,6 @@ Coba ketik salah satu perintah di atas! 😊`
 
     if (msg.includes('strategi') || msg.includes('strategy') || msg.includes('bisnis') || msg.includes('optimasi') || msg.includes('analisis') || msg.includes('cara') || msg.includes('bagaimana')) {
       return 'strategy';
-    }      return 'rules';
     }
 
     return 'general';
@@ -253,17 +245,20 @@ Coba ketik salah satu perintah di atas! 😊`
       if (!materials || materials.length === 0) {
         return {
           type: 'inventory',
-          text: '📦 Belum ada data bahan baku di warehouse Anda.'
+          text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 📦 Belum ada data bahan baku di warehouse Kakak nih.\n\nYuk tambahin dulu ya! Buka menu "Warehouse" terus klik "Tambah Bahan Baku". Saya siap bantu cek stoknya kalau udah ada datanya! 😊'
         };
       }
 
       const list = materials.map((item: any) =>
-        `• ${item.nama}: ${item.stok} ${item.satuan}`
+        '• ' + item.nama + ': ' + item.stok + ' ' + item.satuan
       ).join('\n');
+
+      const lowStock = materials.filter((item: any) => item.stok <= (item.minimum || 0));
 
       return {
         type: 'inventory',
-        text: `📦 Status Bahan Baku:\n\n${list}`,
+        text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 👀 Ini nih status warehouse bahan baku Kakak:\n\n' + list + '\n\n' +
+              (lowStock.length > 0 ? '⚠️ Wah Kak, ada ' + lowStock.length + ' bahan yang perlu direstock segera ya! Segera cek dan restock biar produksi lancar! 💪' : '✅ Wah keren Kak! Semua stok aman, produksi bisa jalan lancar! 🎉') + '\n\nAda lagi yang mau dicek Kak? 😊',
         data: materials
       };
 
@@ -271,7 +266,7 @@ Coba ketik salah satu perintah di atas! 😊`
       console.error('Inventory query error:', error);
       return {
         type: 'error',
-        text: `❌ Gagal mengakses data warehouse: ${error.message}`
+        text: '❌ Wah Kak, gagal akses data warehouse nih. Coba lagi ya! ' + error.message
       };
     }
   }
@@ -280,7 +275,7 @@ Coba ketik salah satu perintah di atas! 😊`
     try {
       const { data: orders, error } = await supabase
         .from('orders')
-        .select('nomor_pesanan, nama_pelanggan, total_harga, status')
+        .select('nomor_pesanan, nama_pelanggan, total_pesanan, status')
         .eq('user_id', userId)
         .order('created_at', { ascending: false })
         .limit(5);
@@ -290,17 +285,17 @@ Coba ketik salah satu perintah di atas! 😊`
       if (!orders || orders.length === 0) {
         return {
           type: 'orderSearch',
-          text: '🔍 Tidak ada data pesanan.'
+          text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 📋 Belum ada data pesanan nih.\n\nYuk mulai jualan roti yang enak-enak! Customer pasti suka. Mau tau cara tambah pesanan? 😊'
         };
       }
 
       const list = orders.map((order: any) =>
-        `• ${order.nomor_pesanan}: ${order.nama_pelanggan} - Rp ${order.total_harga.toLocaleString('id-ID')}`
+        '• ' + order.nomor_pesanan + ': ' + order.nama_pelanggan + ' - Rp ' + order.total_pesanan.toLocaleString('id-ID')
       ).join('\n');
 
       return {
         type: 'orderSearch',
-        text: `📋 Pesanan Terbaru:\n\n${list}`,
+        text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 📋 Ini nih pesanan terbaru Kakak:\n\n' + list + '\n\nWah Kak, bisnisnya lagi rame ya! 🎉 Mau lihat detail pesanan tertentu? Bilang aja nomor pesanannya! 😊',
         data: orders
       };
 
@@ -308,7 +303,7 @@ Coba ketik salah satu perintah di atas! 😊`
       console.error('Order search error:', error);
       return {
         type: 'error',
-        text: `❌ Gagal mencari data pesanan: ${error.message}`
+        text: '❌ Wah Kak, gagal cari data pesanan nih. Coba lagi ya! ' + error.message
       };
     }
   }
@@ -319,19 +314,20 @@ Coba ketik salah satu perintah di atas! 😊`
 
       const { data: sales, error: salesError } = await supabase
         .from('orders')
-        .select('total_harga')
+        .select('total_pesanan')
         .eq('user_id', userId)
         .eq('status', 'completed')
-        .gte('created_at', `${currentMonth}-01T00:00:00`)
-        .lt('created_at', `${currentMonth}-32T00:00:00`);
+        .gte('created_at', currentMonth + '-01T00:00:00')
+        .lt('created_at', currentMonth + '-32T00:00:00');
 
       if (salesError) throw salesError;
 
-      const totalSales = sales?.reduce((sum, order) => sum + (order.total_harga || 0), 0) || 0;
+      const totalSales = sales?.reduce((sum, order) => sum + (order.total_pesanan || 0), 0) || 0;
 
       return {
         type: 'report',
-        text: `📊 Laporan Bulan Ini:\n\n💰 Total Penjualan: Rp ${totalSales.toLocaleString('id-ID')}`,
+        text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 📊 Nih laporan penjualan bulan ini:\n\n💰 **Total Penjualan:** Rp ' + totalSales.toLocaleString('id-ID') + '\n\n' +
+              (totalSales > 0 ? 'Wah Kak, bagus banget performanya! 💪 Kalau mau lihat detail per hari atau per produk, bilang aja ya! 📈' : 'Belum ada penjualan bulan ini Kak. Yuk mulai promosi roti yang enak-enak! Semangat ya! 🚀') + '\n\nAda yang mau ditanyain lagi Kak? 😊',
         data: { totalSales }
       };
 
@@ -339,7 +335,7 @@ Coba ketik salah satu perintah di atas! 😊`
       console.error('Report query error:', error);
       return {
         type: 'error',
-        text: `❌ Gagal membuat laporan: ${error.message}`
+        text: '❌ Wah Kak, gagal bikin laporan nih. Coba lagi ya! ' + error.message
       };
     }
   }
@@ -347,21 +343,7 @@ Coba ketik salah satu perintah di atas! 😊`
   private getRules() {
     return {
       type: 'rules',
-      text: `📋 Aturan Bisnis HPP by Monifine:
-
-1. HPP harus dihitung akurat berdasarkan resep
-2. Waste factor minimal 0%, maksimal 50%
-3. Biaya operasional dialokasikan proporsional
-4. Margin keuntungan minimal 10% untuk sustainability
-5. Harga jual = HPP × (1 + margin target %)
-
-6. Semua bahan baku wajib ada nama, satuan, harga
-7. Stok bahan tidak boleh negatif
-8. Update harga supplier minimal bulanan
-9. Catat biaya operasional tepat waktu
-10. Monitor profit margin per resep
-
-💡 Tips: Fokus pada akurasi data dan efisiensi operasional!`
+      text: 'Halo Kak ' + (this.ownerName || 'Kak') + '! 📋 Nih aturan bisnis HPP by Monifine yang bisa bantu Kakak sukses:\n\n🧮 **Kalkulasi HPP:**\n1. Hitung berdasarkan resep yang akurat ya Kak!\n2. Waste factor maksimal 50%, jangan lebih\n3. Biaya operasional harus proporsional\n4. Margin minimal 10% biar sustainable\n5. Harga jual = HPP × (1 + margin target %)\n\n✅ **Validasi Data:**\n1. Bahan baku wajib ada nama, satuan, harga\n2. Stok gak boleh minus ya Kak\n3. Update harga supplier tiap bulan\n4. Catat biaya operasional tepat waktu\n5. Monitor profit margin per resep\n\n💡 **Tips Sukses Kak:**\n• Konsistensi kualitas lebih penting dari diskon\n• Build loyal customer dengan service excellent\n• Monitor kompetitor tapi tetap unik\n• Expand pelan tapi steady dengan data akurat\n\nSemangat ya Kak! 💪 Ada yang mau ditanyain? 😊'
     };
   }
 

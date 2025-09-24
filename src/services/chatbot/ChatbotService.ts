@@ -227,7 +227,7 @@ export class ChatbotService {
 
       const startTime = Date.now();
 
-      // Get enhanced AI response with action awareness
+    try {
       const response = await this.openRouter.generateResponse(message, {
         history: this.getContextHistory(), // Smart context window
         intent: intent,
@@ -248,10 +248,12 @@ export class ChatbotService {
       const responseTime = Date.now() - startTime;
       this.analytics.responseTimes.push(responseTime);
 
-      // Add response to history
-      this.history.push(this.createMessage('assistant', response.text));
-      this.savePersistedData();
-      this.performMemoryCleanup();
+      // Add response to history only if response is valid
+      if (response && response.text) {
+        this.history.push(this.createMessage('assistant', response.text));
+        this.savePersistedData();
+        this.performMemoryCleanup();
+      }
 
       return response;
     } catch (error) {

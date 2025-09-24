@@ -124,6 +124,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
       });
     } finally {
       setIsLoading(false);
+      // Ensure loading message is removed even if response is empty
+      setMessages(prev => prev.filter(msg => msg.id !== loadingId));
     }
   };
 

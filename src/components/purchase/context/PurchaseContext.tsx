@@ -249,10 +249,17 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // CREATE (optimistic append)
   const createMutation = useMutation({
+    mutationFn: async (payload: any) => {
+      console.log('🔄 Creating purchase:', payload);
+      const result = await addPurchase(payload);
+      console.log('✅ Purchase created:', result);
+      return result;
+    },
     onMutate: async (payload) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
       const temp: Purchase = {
+        id: `temp-${Date.now()}`, // Temporary ID for optimistic update
         userId: user!.id,
         supplier: payload.supplier,
         tanggal: payload.tanggal,
@@ -310,6 +317,12 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // UPDATE (optimistic merge)
   const updateMutation = useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: any }) => {
+      console.log('🔄 Updating purchase:', { id, updates });
+      const result = await apiUpdatePurchase(id, updates, user!.id);
+      console.log('✅ Purchase updated:', result);
+      return result;
+    },
     onMutate: async ({ id, updates }) => {
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];

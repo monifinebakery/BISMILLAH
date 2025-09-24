@@ -72,7 +72,15 @@ class RecipeApiService {
     const foto_base64 = recipe.foto_base64 ?? recipe.fotoBase64;
     const bahan_resep = normalizeBahanResep(
       recipe.bahan_resep ?? recipe.bahanResep
-    );
+    ).map((item) => ({
+      ...(item.id ? { id: item.id } : {}),
+      nama: item.nama,
+      jumlah: item.jumlah,
+      satuan: item.satuan,
+      harga_satuan: item.harga_satuan,
+      total_harga: item.total_harga,
+      ...(item.warehouse_id ? { warehouse_id: item.warehouse_id } : {}),
+    }));
     const biaya_tenaga_kerja = recipe.biaya_tenaga_kerja ?? recipe.biayaTenagaKerja ?? 0;
     const biaya_overhead = recipe.biaya_overhead ?? recipe.biayaOverhead ?? 0;
     const margin_keuntungan_persen = recipe.margin_keuntungan_persen ?? recipe.marginKeuntunganPersen ?? 0;

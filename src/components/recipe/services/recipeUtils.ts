@@ -81,7 +81,15 @@ export const normalizeBahanResep = (ingredients: any[] | null | undefined): Baha
       ...(warehouse_id ? { warehouse_id } : {}),
     };
 
-    return normalized;
+    // Tambahkan field camelCase agar kompatibel dengan form lama yang masih mengaksesnya
+    const normalizedWithCamelCase: BahanResep = {
+      ...normalized,
+      hargaSatuan: normalized.harga_satuan,
+      totalHarga: normalized.total_harga,
+      ...(normalized.warehouse_id ? { warehouseId: normalized.warehouse_id } : {}),
+    };
+
+    return normalizedWithCamelCase;
   });
 };
 

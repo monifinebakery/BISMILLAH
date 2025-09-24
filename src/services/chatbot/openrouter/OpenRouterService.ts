@@ -5,7 +5,7 @@ export class OpenRouterService {
   private baseUrl = 'https://openrouter.ai/api/v1';
 
   constructor(apiKey?: string) {
-    this.apiKey = apiKey || import.meta.env.VITE_OPENROUTER_API_KEY || '';
+    this.apiKey = apiKey || Deno.env.get('OPENROUTER_API_KEY') || import.meta.env.VITE_OPENROUTER_API_KEY || '';
     
     // Environment detection
     const isDev = import.meta.env.DEV;

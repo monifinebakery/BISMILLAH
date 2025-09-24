@@ -11,6 +11,7 @@ const corsHeaders = {
 interface ChatbotActionRequest {
   intent: string;
   message: string;
+  userId: string; // Add userId field
   context?: {
     currentPage?: string;
     businessName?: string;
@@ -51,29 +52,29 @@ serve(async (req) => {
       }
     );
 
-    const { intent, message, context }: ChatbotActionRequest = await req.json();
-    console.log('🤖 Received action request:', { intent, message, context });
+    const { intent, message, userId, context }: ChatbotActionRequest = await req.json();
+    console.log('🤖 Received action request:', { intent, message, userId, context });
 
     let result: any = null;
 
     switch (intent) {
       case 'purchase':
-        result = await handlePurchaseCreate(supabase, user.id, message);
+        result = await handlePurchaseCreate(supabase, userId, message);
         break;
       case 'orderCreate':
-        result = await handleOrderCreate(supabase, user.id, message);
+        result = await handleOrderCreate(supabase, userId, message);
         break;
       case 'orderDelete':
-        result = await handleOrderDelete(supabase, user.id, message);
+        result = await handleOrderDelete(supabase, userId, message);
         break;
       case 'inventoryUpdate':
-        result = await handleInventoryUpdate(supabase, user.id, message);
+        result = await handleInventoryUpdate(supabase, userId, message);
         break;
       case 'recipeCreate':
-        result = await handleRecipeCreate(supabase, user.id, message);
+        result = await handleRecipeCreate(supabase, userId, message);
         break;
       case 'promoCreate':
-        result = await handlePromoCreate(supabase, user.id, message);
+        result = await handlePromoCreate(supabase, userId, message);
         break;
       default:
         result = { type: 'error', text: 'Aksi tidak dikenali.' };

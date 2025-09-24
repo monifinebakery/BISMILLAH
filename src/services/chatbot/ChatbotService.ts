@@ -349,6 +349,7 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
         body: {
           intent,
           message,
+          userId, // Add userId for database operations
           context: {
             currentPage: this.detectCurrentPage(),
             businessName: this.businessName

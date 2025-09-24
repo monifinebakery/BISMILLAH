@@ -160,7 +160,7 @@ Silakan ketik pertanyaan Anda!`;
     const savedHistory = chatbotService.getHistory();
     if (savedHistory.length > 0) {
       // Convert history to message format and add to state
-      const historyMessages: ChatMessage[] = savedHistory.map((msg, index) => ({
+      const historyMessages: ChatMessage[] = savedHistory.map((msg: {role: 'user' | 'assistant', content: string}, index: number) => ({
         id: `history-${index}`,
         content: msg.content,
         sender: msg.role === 'user' ? 'user' : 'bot',
@@ -168,15 +168,13 @@ Silakan ketik pertanyaan Anda!`;
       }));
       setMessages(historyMessages);
       console.log('🤖 Loaded chat history:', historyMessages.length, 'messages');
+    } else {
+      // Only show welcome message if there's no history
+      addWelcomeMessage();
     }
   }, [chatbotService]);
 
-  // Welcome message on first open (only if no history)
-  useEffect(() => {
-    if (isOpen && messages.length === 0) {
-      addWelcomeMessage();
-    }
-  }, [isOpen, messages.length]);
+  // Remove separate welcome message useEffect since it's now handled above
 
   if (!isOpen) return null;
 

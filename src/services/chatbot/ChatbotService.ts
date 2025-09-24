@@ -307,7 +307,7 @@ export class ChatbotService {
   private detectIntent(message: string): string {
     // Use keyword-based intent detection for reliable matching
     // Direct keyword matching approach
-    return this.detectIntentWithKeywords(message);
+    return this.detectIntentSimple(message);
   }
 
   private async detectIntentWithAI(message: string): Promise<string> {
@@ -462,7 +462,24 @@ Consider context, synonyms, and natural language variations. Return only the int
     }
   }
 
-  private detectIntentWithKeywords(message: string): string {
+  private detectIntentSimple(message: string): string {
+    const msg = message.toLowerCase();
+
+    // Simple keyword matching
+    if (msg.includes('cek stok') || msg.includes('inventory') || msg.includes('bahan baku') || msg.includes('warehouse')) {
+      return 'inventory';
+    }
+
+    if (msg.includes('cari pesanan') || msg.includes('lihat pesanan') || msg.includes('order') || msg.includes('pesanan')) {
+      return 'orderSearch';
+    }
+
+    if (msg.includes('laporan') || msg.includes('report') || msg.includes('penjualan') || msg.includes('sales')) {
+      return 'report';
+    }
+
+    return 'general';
+  }  }
     const intents = {
       greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
       orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan', 'daftar pesanan'],

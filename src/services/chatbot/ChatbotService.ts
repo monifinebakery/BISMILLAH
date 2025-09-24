@@ -370,7 +370,7 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
 }
 
 // Singleton instances per user
-const chatbotInstances = new Map<string, ChatbotService>();
+const chatbotInstances: Map<string, ChatbotService> = new Map();
 
 export const getChatbotService = (userId?: string): ChatbotService => {
   if (!userId) {

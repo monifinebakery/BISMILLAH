@@ -373,7 +373,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
         harga_satuan,
         harga_rata_rata,
         kategori,
-        supplier,
+        supplier_field:supplier,
         updated_at
       `)
       .eq('user_id', userId);
@@ -435,7 +435,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       const priceInfo = priceSource != null ? `\n• Harga per unit: ${formatCurrency(priceSource)}` : '';
       const minInfo = item.minimum ? `\n• Stok minimum: ${formatStockValue(item.minimum)} ${item.satuan}` : '';
       const categoryInfo = item.kategori ? `\n• Kategori: ${item.kategori}` : '';
-      const supplierName = item.supplier;
+      const supplierName = item.supplier_field;
       const supplierInfo = supplierName ? `\n• Supplier: ${supplierName}` : '';
 
       inventoryList = stockInfo + priceInfo + minInfo + categoryInfo + supplierInfo;
@@ -445,7 +445,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
         const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
         const priceSource = item.harga_satuan ?? item.harga_rata_rata;
         const priceInfo = priceSource != null ? ` - ${formatCurrency(priceSource)}` : '';
-        const supplierName = item.supplier;
+        const supplierName = item.supplier_field;
         const supplierInfo = supplierName ? ` (${supplierName})` : '';
         return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})${priceInfo}${supplierInfo}`;
       }).join('\n');
@@ -595,7 +595,7 @@ async function handlePurchaseQuery(supabase: any, userId: string, message: strin
     // Query purchases table
     const { data: purchases, error } = await supabase
       .from('purchases')
-      .select('id, supplier, total_nilai, tanggal, status, created_at')
+      .select('id, supplier_field:supplier, total_nilai, tanggal, status, created_at')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(5);

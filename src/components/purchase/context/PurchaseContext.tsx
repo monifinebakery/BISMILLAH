@@ -17,7 +17,7 @@ import { useActivity } from '@/contexts/ActivityContext';
 import { useSimpleNotification } from '@/contexts/SimpleNotificationContext';
 import { useBahanBaku } from '@/components/warehouse/context/WarehouseContext';
 
-import FinancialContext from '@/components/financial/contexts/FinancialContext';
+import { useFinancialOperations } from '@/components/financial/hooks/crud/useFinancialOperations';
 import { SupplierContext } from '@/contexts/SupplierContext';
 import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehouseItemUtils';
 import { PurchaseApiService } from '../services/purchaseApi';
@@ -97,33 +97,10 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   const { addActivity } = useActivity();
   const { user } = useAuth();
   
-  // ✅ SAFE CONTEXT ACCESS: Use optional context pattern
-  const financialContext = useContext(FinancialContext);
+  // FINANCIAL OPERATIONS: Use proper hook
+  const { addTransaction: addFinancialTransaction, deleteTransaction: deleteFinancialTransaction } = useFinancialOperations();
   
-  // Financial context handlers with safe fallbacks using useMemo
-  const addFinancialTransaction = useMemo(() => {
-    if (financialContext?.addFinancialTransaction) {
-      logger.debug('PurchaseContext: FinancialContext available');
-      return financialContext.addFinancialTransaction;
-    }
-    logger.warn('PurchaseContext: FinancialContext not available, using fallbacks');
-    return async () => {
-      logger.debug('PurchaseContext: addFinancialTransaction not available, skipping');
-      return false;
-    };
-  }, [financialContext]);
-  
-  const deleteFinancialTransaction = useMemo(() => {
-    if (financialContext?.deleteFinancialTransaction) {
-      return financialContext.deleteFinancialTransaction;
-    }
-    return async () => {
-      logger.debug('PurchaseContext: deleteFinancialTransaction not available, skipping');
-      return false;
-    };
-  }, [financialContext]);
-  
-  // ✅ Supplier context access with safe fallback (no hook rule violations)
+  // Supplier context access with safe fallback (no hook rule violations)
   const supplierContext = useContext(SupplierContext);
   const suppliers = useMemo(() => {
     if (supplierContext?.suppliers) {
@@ -444,6 +421,31 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         });
         
         if (prevPurchase.status !== 'completed' && fresh.status === 'completed') {
+          // 💰 Update warehouse prices when purchase completed
+          (async () => {
+            try {
+              for (const item of fresh.items || []) {
+                if (item.unitPrice && item.unitPrice > 0) {
+                  await updateBahanBaku(item.bahanBakuId, {
+                    harga: item.unitPrice,
+                    supplier: fresh.supplier,
+                  });
+                  logger.info('✅ Updated warehouse price for completed purchase:', {
+                    bahanBakuId: item.bahanBakuId,
+                    nama: item.nama,
+                    newPrice: item.unitPrice,
+                    supplier: fresh.supplier
+                  });
+                }
+              }
+              // Invalidate warehouse data to refresh UI
+              invalidateWarehouseData();
+            } catch (e) {
+              logger.error('Failed to update warehouse prices on purchase completion:', e);
+            }
+          })();
+          
+          // 📊 Create financial transaction
           void onCompletedFinancialSync(fresh, getSupplierName, addFinancialTransaction, queryClient, user!.id);
         } else if (prevPurchase.status === 'completed' && fresh.status !== 'completed') {
           void onRevertedFinancialCleanup(fresh.id, user!.id, deleteFinancialTransaction, queryClient);

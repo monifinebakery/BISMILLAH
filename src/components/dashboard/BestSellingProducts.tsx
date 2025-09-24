@@ -49,55 +49,6 @@ interface SortConfig {
   getSecondaryInfo: (product: Product) => string;
 }
 
-const sortConfigs: Record<SortOption, SortConfig> = {
-  revenue: {
-    key: 'revenue',
-    label: 'Total Pendapatan',
-    icon: <DollarSign className="h-4 w-4" />,
-    description: 'Berdasarkan total uang yang dihasilkan produk',
-    getValue: (product) => safeNumber(product.revenue),
-    formatValue: (value) => formatCurrency(value),
-    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`
-  },
-  quantity: {
-    key: 'quantity', 
-    label: 'Jumlah Terjual',
-    icon: <Hash className="h-4 w-4" />,
-    description: 'Berdasarkan unit yang berhasil terjual',
-    getValue: (product) => safeNumber(product.quantity),
-    formatValue: (value) => `${value.toLocaleString('id-ID')} unit`,
-    getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue))
-  },
-  profit: {
-    key: 'profit',
-    label: 'Total Keuntungan', 
-    icon: <TrendingUp className="h-4 w-4" />,
-    description: 'Berdasarkan profit bersih yang dihasilkan',
-    getValue: (product) => safeNumber(product.profit),
-    formatValue: (value) => formatCurrency(value),
-    getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`
-  },
-  hybrid: {
-    key: 'hybrid',
-    label: 'Skor Gabungan',
-    icon: <Target className="h-4 w-4" />,
-    description: 'Kombinasi volume penjualan dan nilai pendapatan',
-    getValue: (product) => {
-      // Hybrid score: normalize both metrics and combine
-      const revenue = safeNumber(product.revenue);
-      const quantity = safeNumber(product.quantity);
-      
-      // Weight: 40% quantity + 60% revenue
-      const normalizedQty = Math.min(quantity / 1000, 1); // Cap at 1000 units
-      const normalizedRev = Math.min(revenue / 10000000, 1); // Cap at 10M
-      
-      return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
-    },
-    formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
-    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`
-  }
-};
-
 interface Props {
   products: Product[];
   pagination: number;
@@ -210,7 +161,56 @@ const BestSellingProducts: React.FC<Props> = ({
   const [sortBy, setSortBy] = useState<SortOption>('revenue');
   const itemsPerPage = 5;
 
-  // 📊 Sort products based on selected option
+  // Move sortConfigs inside component to access formatCurrency
+  const sortConfigs: Record<SortOption, SortConfig> = {
+    revenue: {
+      key: 'revenue',
+      label: 'Total Pendapatan',
+      icon: <DollarSign className="h-4 w-4" />,
+      description: 'Berdasarkan total uang yang dihasilkan produk',
+      getValue: (product) => safeNumber(product.revenue),
+      formatValue: (value) => formatCurrency(value),
+      getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`
+    },
+    quantity: {
+      key: 'quantity', 
+      label: 'Jumlah Terjual',
+      icon: <Hash className="h-4 w-4" />,
+      description: 'Berdasarkan unit yang berhasil terjual',
+      getValue: (product) => safeNumber(product.quantity),
+      formatValue: (value) => `${value.toLocaleString('id-ID')} unit`,
+      getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue))
+    },
+    profit: {
+      key: 'profit',
+      label: 'Total Keuntungan', 
+      icon: <TrendingUp className="h-4 w-4" />,
+      description: 'Berdasarkan profit bersih yang dihasilkan',
+      getValue: (product) => safeNumber(product.profit),
+      formatValue: (value) => formatCurrency(value),
+      getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`
+    },
+    hybrid: {
+      key: 'hybrid',
+      label: 'Skor Gabungan',
+      icon: <Target className="h-4 w-4" />,
+      description: 'Kombinasi volume penjualan dan nilai pendapatan',
+      getValue: (product) => {
+        // Hybrid score: normalize both metrics and combine
+        const revenue = safeNumber(product.revenue);
+        const quantity = safeNumber(product.quantity);
+        
+        // Weight: 40% quantity + 60% revenue
+        const normalizedQty = Math.min(quantity / 1000, 1); // Cap at 1000 units
+        const normalizedRev = Math.min(revenue / 10000000, 1); // Cap at 10M
+        
+        return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
+      },
+      formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
+      getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`
+    }
+  };
+
   const sortedProducts = useMemo(() => {
     if (isLoading || !products.length) return products;
 

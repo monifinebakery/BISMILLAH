@@ -1,4 +1,4 @@
-import { OpenRouterService } from './openrouter/OpenRouterService';
+import { supabase } from '@/integrations/supabase/client';import { OpenRouterService } from './openrouter/OpenRouterService';
 
 // System prompt for accurate chatbot responses
 const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for HPP by Monifine. You ONLY answer questions about bakery data and operations. You MUST be accurate and never make up information.

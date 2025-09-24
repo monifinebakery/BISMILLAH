@@ -2,7 +2,8 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { DollarSign, TrendingUp, Target, BarChart3, Info, Package, Utensils } from 'lucide-react';
-import { formatCurrency, formatPercentage } from '../utils/formatters';
+import { formatPercentage } from '../utils/formatters';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { CostBreakdown, ProfitAnalysis } from '../utils/types';
 
 interface SummaryGridProps {
@@ -74,6 +75,8 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
   jumlah_pcs_per_porsi, // ✅ Gunakan props yang sudah ada
   margin_keuntungan_persen,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
+
   // ✅ Calculate total pieces untuk konteks yang lebih baik
   const totalPieces = jumlah_porsi * jumlah_pcs_per_porsi;
   const showPerPcsData = jumlah_pcs_per_porsi > 1;
@@ -190,7 +193,7 @@ export const SummaryGrid: React.FC<SummaryGridProps> = ({
             Detail HPP & Harga Jual
             {showPerPcsData && (
               <span className="text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
-                {jumlahPcsPerPorsi} pcs/porsi
+                {jumlah_pcs_per_porsi} pcs/porsi
               </span>
             )}
           </CardTitle>

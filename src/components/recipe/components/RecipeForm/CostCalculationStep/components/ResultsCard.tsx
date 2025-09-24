@@ -4,15 +4,16 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Target, BarChart3, TrendingUp, Zap, Package, Utensils } from 'lucide-react';
-import { formatCurrency, formatPercentage, getProfitabilityColors, getProfitabilityLabel, getProfitabilityRecommendations } from '../utils/formatters';
+import { formatPercentage, getProfitabilityColors, getProfitabilityLabel, getProfitabilityRecommendations } from '../utils/formatters';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { CostBreakdown, ProfitAnalysis, OverheadCalculation } from '../utils/types';
 
 interface ResultsCardProps {
   costBreakdown: CostBreakdown;
   profitAnalysis: ProfitAnalysis;
   jumlah_porsi: number;
-  jumlah_pcs_per_porsi: number;
-  margin_keuntungan_persen: number;
+  jumlahPcsPerPorsi: number;
+  marginKeuntunganPersen: number;
   isUsingAutoOverhead?: boolean;
   overheadCalculation?: OverheadCalculation | null;
 }
@@ -21,18 +22,19 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
   costBreakdown,
   profitAnalysis,
   jumlah_porsi,
-  jumlah_pcs_per_porsi,
-  margin_keuntungan_persen,
+  jumlahPcsPerPorsi,
+  marginKeuntunganPersen,
   isUsingAutoOverhead = false,
   overheadCalculation,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   const profitabilityColors = getProfitabilityColors(profitAnalysis.profitabilityLevel);
   const profitabilityLabel = getProfitabilityLabel(profitAnalysis.profitabilityLevel);
   const recommendations = getProfitabilityRecommendations(profitAnalysis.profitabilityLevel);
 
   // ✅ Calculate totals for better context
-  const totalPieces = jumlah_porsi * jumlah_pcs_per_porsi;
-  const showPerPcsData = jumlah_pcs_per_porsi > 1;
+  const totalPieces = jumlah_porsi * jumlahPcsPerPorsi;
+  const showPerPcsData = jumlahPcsPerPorsi > 1;
 
   return (
     <div className="space-y-6">
@@ -46,7 +48,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
             {/* ✅ NEW: Show total production info */}
             {showPerPcsData && (
               <Badge className="bg-purple-100 text-purple-800 border-purple-300">
-                {jumlah_porsi} porsi x {jumlah_pcs_per_porsi} pcs = {totalPieces} pcs
+                {jumlah_porsi} porsi x {jumlahPcsPerPorsi} pcs = {totalPieces} pcs
               </Badge>
             )}
           </CardTitle>
@@ -146,7 +148,7 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
               </Badge>
             </div>
             <div className="text-xs text-green-600">
-              {formatPercentage(margin_keuntungan_persen)} dari total HPP ({formatCurrency(costBreakdown.totalProductionCost)})
+              {formatPercentage(marginKeuntunganPersen)} dari total HPP ({formatCurrency(costBreakdown.totalProductionCost)})
             </div>
             {showPerPcsData && (
               <div className="text-xs text-green-600 mt-1">
@@ -231,11 +233,11 @@ export const ResultsCard: React.FC<ResultsCardProps> = ({
               <div className="space-y-1">
                 <div className="text-gray-600">Revenue Jika Semua Terjual:</div>
                 <div className="font-bold text-green-700">
-                  {formatCurrency(profitAnalysis.sellingPricePerPortion * jumlahPorsi)}
+                  {formatCurrency(profitAnalysis.sellingPricePerPortion * jumlah_porsi)}
                 </div>
                 {showPerPcsData && (
                   <div className="text-gray-500">
-                    = {formatCurrency(profitAnalysis.sellingPricePerPiece)} x {totalPieces} pcs
+                    {formatCurrency(profitAnalysis.sellingPricePerPiece)} x {jumlah_porsi} pcs
                   </div>
                 )}
               </div>

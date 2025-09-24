@@ -79,6 +79,7 @@ const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatu
 };
 
 const apiDeletePurchase = async (id: string, userId: string) => {
+  const res = await PurchaseApiService.deletePurchase(id, userId);
   if (!res.success) throw new Error(res.error || 'Gagal menghapus pembelian');
 };
 
@@ -98,6 +99,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   
   // Financial context handlers with safe fallbacks using useMemo
   const addFinancialTransaction = useMemo(() => {
+    if (financialContext?.addFinancialTransaction) {
       logger.debug('PurchaseContext: FinancialContext available');
       return financialContext.addFinancialTransaction;
     }
@@ -109,6 +111,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [financialContext]);
   
   const deleteFinancialTransaction = useMemo(() => {
+    if (financialContext?.deleteFinancialTransaction) {
       return financialContext.deleteFinancialTransaction;
     }
     return async () => {
@@ -120,6 +123,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ✅ Supplier context access with safe fallback (no hook rule violations)
   const supplierContext = useContext(SupplierContext);
   const suppliers = useMemo(() => {
+    if (supplierContext?.suppliers) {
       logger.debug('PurchaseContext: SupplierContext available');
       return supplierContext.suppliers;
     }

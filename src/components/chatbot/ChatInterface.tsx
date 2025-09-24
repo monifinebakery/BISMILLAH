@@ -1,7 +1,6 @@
 // src/components/chatbot/ChatInterface.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -181,13 +180,13 @@ Silakan ketik pertanyaan Anda!`;
 
   return (
     <div className="fixed inset-x-4 bottom-[96px] z-50 sm:bottom-24 sm:right-6 sm:left-auto md:bottom-4 md:right-4">
-      <Card className="flex flex-col w-full max-w-[420px] h-[85vh] shadow-xl border-2 border-orange-200 rounded-2xl md:w-[420px] md:h-[640px]">
+      <div className="flex flex-col w-full max-w-[420px] h-[85vh] bg-white shadow-xl border-2 border-orange-200 rounded-2xl md:w-[420px] md:h-[640px] overflow-hidden">
         {/* Header */}
-        <CardHeader className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
+        <div className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              <CardTitle className="text-lg">{settings.businessName || 'Bisnis Anda'} Assistant</CardTitle>
+              <h3 className="text-lg font-semibold">{settings.businessName || 'Bisnis Anda'} Assistant</h3>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -210,71 +209,71 @@ Silakan ketik pertanyaan Anda!`;
               </Button>
             </div>
           </div>
-          <div className="text-sm opacity-90">
+          <div className="text-sm opacity-90 mt-1">
             AI Assistant untuk manajemen bakery
           </div>
-        </CardHeader>
+        </div>
 
         {/* Messages */}
-        <CardContent className="flex-1 p-0 overflow-hidden">
-          <div className="h-full overflow-y-auto px-4 py-4">
+        <div className="flex-1 overflow-hidden">
+          <div className="h-full overflow-y-auto px-4 py-4" style={{ maxHeight: 'calc(100vh - 200px)' }}>
             <div className="space-y-4">
               {messages.map((message) => (
+                <div
+                  key={message.id}
+                  className={`flex gap-3 ${
+                    message.sender === 'user' ? 'justify-end' : 'justify-start'
+                  }`}
+                >
+                  {/* Avatar */}
+                  <Avatar className={`h-8 w-8 ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
+                    <AvatarFallback className={
+                      message.sender === 'user'
+                        ? 'bg-orange-500 text-white'
+                        : 'bg-gray-500 text-white'
+                    }>
+                      {message.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+                    </AvatarFallback>
+                  </Avatar>
+
+                  {/* Message Bubble */}
                   <div
-                    key={message.id}
-                    className={`flex gap-3 ${
-                      message.sender === 'user' ? 'justify-end' : 'justify-start'
+                    className={`max-w-[80%] rounded-lg px-3 py-2 ${
+                      message.sender === 'user'
+                        ? 'bg-orange-500 text-white order-1'
+                        : 'bg-gray-100 text-gray-800'
                     }`}
                   >
-                    {/* Avatar */}
-                    <Avatar className={`h-8 w-8 ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
-                      <AvatarFallback className={
-                        message.sender === 'user'
-                          ? 'bg-orange-500 text-white'
-                          : 'bg-gray-500 text-white'
-                      }>
-                        {message.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
-                      </AvatarFallback>
-                    </Avatar>
-
-                    {/* Message Bubble */}
-                    <div
-                      className={`max-w-[80%] rounded-lg px-3 py-2 ${
-                        message.sender === 'user'
-                          ? 'bg-orange-500 text-white order-1'
-                          : 'bg-gray-100 text-gray-800'
-                      }`}
-                    >
-                      {message.isLoading ? (
-                        <div className="flex items-center gap-2">
-                          <RefreshCw className="h-4 w-4 animate-spin" />
-                          <span>Sedang memproses...</span>
-                        </div>
-                      ) : (
-                        <div className="whitespace-pre-wrap text-sm max-h-60 overflow-y-auto">
-                          {message.content}
-                        </div>
-                      )}
-
-                      {/* Timestamp */}
-                      <div className={`text-xs mt-1 ${
-                        message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'
-                      }`}>
-                        {message.timestamp.toLocaleTimeString('id-ID', {
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
+                    {message.isLoading ? (
+                      <div className="flex items-center gap-2">
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        <span>Sedang memproses...</span>
                       </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-sm max-h-60 overflow-y-auto">
+                        {message.content}
+                      </div>
+                    )}
+
+                    {/* Timestamp */}
+                    <div className={`text-xs mt-1 ${
+                      message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'
+                    }`}>
+                      {message.timestamp.toLocaleTimeString('id-ID', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
                     </div>
                   </div>
+                </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
           </div>
-        </CardContent>
+        </div>
 
         {/* Input */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t bg-white">
           <div className="flex gap-2">
             <Input
               ref={inputRef}
@@ -310,7 +309,7 @@ Silakan ketik pertanyaan Anda!`;
             </div>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

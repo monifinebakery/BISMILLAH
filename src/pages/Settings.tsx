@@ -32,7 +32,8 @@ import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 // Lazy load heavy components to improve initial page load
 // const NotificationSettingsForm = lazy(() => import('@/components/NotificationSettingsForm'));
 const DeviceManagementSection = lazy(() => import('@/components/settings/DeviceManagementSection'));
-const CurrencySettings = lazy(() => import('@/components/settings/components/CurrencySettings'));
+// Temporarily disable lazy loading for CurrencySettings to fix context issues
+import { CurrencySettings } from '@/components/settings/components/CurrencySettings';
 const PWAInstallButton = lazy(() => import('@/components/pwa/PWAInstallButton'));
 
 // ✅ PERFORMANCE: Import utils directly but defer execution
@@ -551,14 +552,10 @@ const SettingsPage = () => {
             </CardContent>
           </Card>
 
-          {/* CURRENCY SETTINGS SECTION - LAZY LOADED */}
+          {/* CURRENCY SETTINGS SECTION - NO LONGER LAZY LOADED */}
           {heavyComponentsLoaded ? (
             <ErrorBoundary fallback={<div className="p-4 text-center text-gray-500">Gagal memuat pengaturan mata uang</div>}>
-              <Suspense fallback={<div className="flex items-center justify-center p-4">
-    <div className="w-6 h-6 border-2 border-gray-300 border-t-blue-600 rounded-full animate-spin" />
-  </div>}>
-                <CurrencySettings />
-              </Suspense>
+              <CurrencySettings />
             </ErrorBoundary>
           ) : (
             <div className="flex items-center justify-center p-4">

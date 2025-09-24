@@ -4,7 +4,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { formatCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import type { Discount, Tax, InvoiceCalculations } from '../types';
 
 interface TotalsSectionProps {
@@ -28,6 +28,7 @@ export const TotalsSection: React.FC<TotalsSectionProps> = ({
   setShipping,
   className = ''
 }) => {
+  const { formatCurrency } = useCurrency();
   return (
     <div className={className}>
       <div className="bg-gray-50 rounded-lg p-4 sm:p-6 border-2 border-gray-200">

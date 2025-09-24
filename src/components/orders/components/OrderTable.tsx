@@ -17,7 +17,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { formatCurrency } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import type { Order, UseOrderUIReturn, OrderStatus } from '../types';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../constants';
@@ -488,6 +488,7 @@ const OrderTable: React.FC<OrderTableProps> = React.memo(({
   // ✅ FIXED: Hooks dipanggil di top level component
   const { getTemplate } = useFollowUpTemplate();
   const { processTemplate } = useProcessTemplate();
+  const { formatCurrency } = useCurrency();
 
   // ✅ PERFORMANCE: Memoized callback functions to prevent unnecessary re-renders
   const handleRowClick = useCallback((order: Order, e: React.MouseEvent) => {

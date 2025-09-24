@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { X, Settings2, Trash2, AlertTriangle, Save, Edit } from 'lucide-react';
-import { formatCurrency } from '@/lib/shared';
+
 import type { Purchase, PurchaseStatus } from '../../types/purchase.types';
 
 interface BulkOperationsDialogProps {
@@ -46,7 +46,7 @@ const STATUS_OPTIONS: Array<{ value: PurchaseStatus; label: string; color: strin
  * Supports both edit and delete modes with appropriate UI and validation
  */
 const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
-  type,
+  const { formatCurrency } = useCurrency();  type,
   isOpen,
   isLoading,
   selectedCount,
@@ -61,7 +61,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   
   // Internal state for bulk edit data
   const [internalBulkEditData, setInternalBulkEditData] = useState<BulkEditData>({
-    metode_perhitungan: 'AVERAGE'
+  const { formatCurrency } = useCurrency();    metode_perhitungan: 'AVERAGE'
   });
 
   // Use external data if provided, otherwise use internal state
@@ -72,7 +72,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   useEffect(() => {
     if (isOpen && isEditMode) {
       const resetData = { metode_perhitungan: 'AVERAGE' as const };
-      if (onBulkEditDataChange) {
+  const { formatCurrency } = useCurrency();      if (onBulkEditDataChange) {
         onBulkEditDataChange(resetData);
       } else {
         setInternalBulkEditData(resetData);
@@ -82,7 +82,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Handle form submission
   const handleSubmit = async () => {
-    if (isEditMode) {
+  const { formatCurrency } = useCurrency();    if (isEditMode) {
       // Filter out empty values for edit mode
       const filteredData = Object.fromEntries(
         Object.entries(bulkEditData).filter(([_, value]) => value !== undefined && value !== '')
@@ -96,12 +96,12 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Handle input changes
   const handleInputChange = (field: keyof BulkEditData, value: any) => {
-    setBulkEditData({ ...bulkEditData, [field]: value });
+  const { formatCurrency } = useCurrency();    setBulkEditData({ ...bulkEditData, [field]: value });
   };
 
   // Calculate totals for selected items
   const calculateTotals = (items: Purchase[]) => {
-    return items.reduce(
+  const { formatCurrency } = useCurrency();    return items.reduce(
       (acc, item) => {
         acc.totalItems += item.items?.length || 0;
         acc.total_nilai += item.total_nilai || 0;

@@ -1,7 +1,7 @@
 // src/components/invoice/templates/ClassicTemplate.tsx
 import React from 'react';
 import { useUserSettings } from '@/contexts/UserSettingsContext';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForInvoice } from '../utils';
 import type { OrderData } from '../types';
 
@@ -11,7 +11,7 @@ interface ClassicTemplateProps {
 }
 
 export const ClassicTemplate: React.FC<ClassicTemplateProps> = ({ order, className = '' }) => {
-  const { settings } = useUserSettings();
+  const { formatCurrency } = useCurrency();  const { settings } = useUserSettings();
   
   return (
     <div className={`bg-white border-2 border-gray-800 max-w-4xl mx-auto ${className}`} id="classic-invoice">

@@ -20,38 +20,38 @@ import {
 } from '@/components/ui/breadcrumb';
 
 // Import utilities and context
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '../constants';
 import { useOrder } from '../context/OrderContext';
 import type { Order } from '../types';
 
 const OrdersViewPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();  const navigate = useNavigate();
   const { id: orderId } = useParams<{ id: string }>();
-
+  const { formatCurrency } = useCurrency();
   // Order Context
   const { orders, loading: ordersLoading } = useOrder();
 
   // Find the order
   const order = useMemo(() => {
-    if (!orderId) return null;
+  const { formatCurrency } = useCurrency();    if (!orderId) return null;
     return orders.find(o => o.id === orderId) || null;
   }, [orderId, orders]);
 
   // Handle navigation
   const handleBack = () => {
-    navigate('/pesanan');
+  const { formatCurrency } = useCurrency();    navigate('/pesanan');
   };
 
   const handleEdit = () => {
-    if (order?.id) {
+  const { formatCurrency } = useCurrency();    if (order?.id) {
       navigate(`/pesanan/edit/${order.id}`);
     }
   };
 
   const handleWhatsApp = () => {
-    if (!order?.teleponPelanggan) {
+  const { formatCurrency } = useCurrency();    if (!order?.teleponPelanggan) {
       toast.error('Nomor telepon tidak tersedia');
       return;
     }
@@ -59,13 +59,13 @@ const OrdersViewPage: React.FC = () => {
     try {
       // Create a basic message for follow-up
       const message = `Halo ${order.namaPelanggan}, terima kasih atas pesanan Anda #${order.nomorPesanan}. Status pesanan: ${getStatusText(order.status)}.`;
-      
+  const { formatCurrency } = useCurrency();      
       // Format phone number
       const cleanPhoneNumber = order.teleponPelanggan.replace(/\D/g, '');
       
       // Create WhatsApp URL
       const whatsappUrl = `https://wa.me/${cleanPhoneNumber}?text=${encodeURIComponent(message)}`;
-      
+  const { formatCurrency } = useCurrency();      
       // Open WhatsApp
       window.open(whatsappUrl, '_blank');
       

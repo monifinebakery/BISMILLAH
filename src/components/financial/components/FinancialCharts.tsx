@@ -34,7 +34,7 @@ interface FinancialChartsProps {
 
 // Custom Tooltip Component
 const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
+  const { formatCurrency } = useCurrency();  if (active && payload && payload.length) {
     return (
       <div className="p-3 bg-white border border-gray-300 rounded text-sm">
         <p className="font-semibold mb-1">{label}</p>
@@ -52,7 +52,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 // ✅ IMPROVED: Simple loading spinner untuk chart
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 const ChartLoading = () => {
-  return (
+  const { formatCurrency } = useCurrency();  return (
     <div className="h-80 flex items-center justify-center bg-gray-50 rounded">
       <div className="text-center space-y-4">
         <LoadingSpinner size="lg" />
@@ -72,7 +72,7 @@ const ChartLoading = () => {
  * - Performance optimizations
  */
 const FinancialCharts: React.FC<FinancialChartsProps> = ({ 
-  filteredTransactions, 
+  const { formatCurrency } = useCurrency();  filteredTransactions, 
   dateRange,
   isLoading = false,
   isRefreshing = false,
@@ -80,8 +80,8 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
   lastUpdated
 }) => {
   const { transactionData, dailyData } = useMemo(() => {
-    const result = {
-      transactionData: [] as Array<{
+  const { formatCurrency } = useCurrency();    const result = {
+  const { formatCurrency } = useCurrency();      transactionData: [] as Array<{
         month: string;
         Pemasukan: number;
         Pengeluaran: number;
@@ -101,8 +101,8 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
     }
 
     const monthlyData: Record<string, { income: number; expense: number; date: Date }> = {};
-    const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
-
+  const { formatCurrency } = useCurrency();    const dailyDataMap: Record<string, { income: number; expense: number; date: Date }> = {};
+  const { formatCurrency } = useCurrency();
     // ✅ IMPROVED: Process transactions with consistent date handling
     filteredTransactions.forEach(t => {
       if (!t.date) return;
@@ -164,7 +164,7 @@ const FinancialCharts: React.FC<FinancialChartsProps> = ({
       const currentDate = startOfDay(subDays(today, 29 - i));
       const dayKey = UnifiedDateHandler.toDatabaseString(currentDate);
       const existingData = dailyDataMap[dayKey] || { income: 0, expense: 0 };
-      result.dailyData.push({
+  const { formatCurrency } = useCurrency();      result.dailyData.push({
         date: format(currentDate, 'd MMM', { locale: id }),
         Pemasukan: existingData.income,
         Pengeluaran: existingData.expense,

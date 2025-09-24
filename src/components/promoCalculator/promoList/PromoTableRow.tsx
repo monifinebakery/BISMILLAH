@@ -4,11 +4,11 @@ import React from 'react';
 import { 
   Edit, Trash2, ToggleLeft, ToggleRight, Gift, Percent, Package 
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 
 const PromoTableRow = ({ 
-  promo, 
+  const { formatCurrency } = useCurrency();  promo, 
   isSelected, 
   onSelectChange, 
   onEdit, 
@@ -19,7 +19,7 @@ const PromoTableRow = ({
 
 
   const getPromoIcon = (type) => {
-    switch (type) {
+  const { formatCurrency } = useCurrency();    switch (type) {
       case 'bogo': return <Gift className="h-4 w-4 text-green-600" />;
       case 'discount': return <Percent className="h-4 w-4 text-blue-600" />;
       case 'bundle': return <Package className="h-4 w-4 text-purple-600" />;
@@ -28,7 +28,7 @@ const PromoTableRow = ({
   };
 
   const getPromoTypeLabel = (type) => {
-    switch (type) {
+  const { formatCurrency } = useCurrency();    switch (type) {
       case 'bogo': return 'BOGO';
       case 'discount': return 'Diskon';
       case 'bundle': return 'Bundle';
@@ -37,8 +37,8 @@ const PromoTableRow = ({
   };
 
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
+  const { formatCurrency } = useCurrency();    const statusConfig = {
+  const { formatCurrency } = useCurrency();      aktif: { bg: 'bg-green-100', text: 'text-green-800', label: 'Aktif' },
       nonaktif: { bg: 'bg-red-100', text: 'text-red-800', label: 'Non-aktif' },
       draft: { bg: 'bg-gray-100', text: 'text-gray-800', label: 'Draft' }
     };
@@ -53,16 +53,16 @@ const PromoTableRow = ({
   };
 
   const handleToggleClick = () => {
-    const newStatus = promo.status === 'aktif' ? 'nonaktif' : 'aktif';
+  const { formatCurrency } = useCurrency();    const newStatus = promo.status === 'aktif' ? 'nonaktif' : 'aktif';
     onToggleStatus(promo.id, newStatus);
   };
 
   const handleEditClick = () => {
-    onEdit(promo);
+  const { formatCurrency } = useCurrency();    onEdit(promo);
   };
 
   const handleDeleteClick = () => {
-    if (window.confirm(`Yakin ingin menghapus promo "${promo.nama_promo}"?`)) {
+  const { formatCurrency } = useCurrency();    if (window.confirm(`Yakin ingin menghapus promo "${promo.nama_promo}"?`)) {
       onDelete(promo.id);
     }
   };

@@ -2,10 +2,10 @@
 
 import React from 'react';
 import { Save, TrendingUp, DollarSign, Percent, AlertCircle } from 'lucide-react';
-import { formatCurrency } from '@/lib/shared';
+
 
 const PromoPreview = ({ type, data, onSave, isLoading }: any) => {
-  const { calculationResult } = data;
+  const { formatCurrency } = useCurrency();  const { calculationResult } = data;
 
 
 

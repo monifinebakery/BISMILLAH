@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Edit3, Save, X } from 'lucide-react';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { SafeNumericInput } from './SafeNumericInput';
 import type { PurchaseItem } from '../../types/purchase.types';
 import { parseRobustNumber } from '@/utils/robustNumberParser';
@@ -28,14 +28,14 @@ interface EditItemDialogProps {
 }
 
 export const EditItemDialog: React.FC<EditItemDialogProps> = ({
-  isOpen,
+  const { formatCurrency } = useCurrency();  isOpen,
   item,
   itemIndex,
   onClose,
   onSave,
 }) => {
   const [formData, setFormData] = useState({
-    quantity: '',
+  const { formatCurrency } = useCurrency();    quantity: '',
     unitPrice: '',
     keterangan: '',
   });
@@ -58,7 +58,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
   const subtotal = kuantitasNum * harga_satuan_num;
 
   const handleSave = () => {
-    if (!item || itemIndex === undefined) {
+  const { formatCurrency } = useCurrency();    if (!item || itemIndex === undefined) {
       toast.error('Data item tidak valid');
       return;
     }
@@ -74,7 +74,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
     }
 
     const updatedItem: Partial<PurchaseItem> = {
-      quantity: kuantitasNum,
+  const { formatCurrency } = useCurrency();      quantity: kuantitasNum,
       unitPrice: harga_satuan_num,
       subtotal: subtotal,
       keterangan: formData.keterangan.trim(),
@@ -87,7 +87,7 @@ export const EditItemDialog: React.FC<EditItemDialogProps> = ({
   };
 
   const handleCancel = () => {
-    onClose();
+  const { formatCurrency } = useCurrency();    onClose();
   };
 
   if (!isOpen || !item) return null;

@@ -26,7 +26,7 @@ interface BulkEditData {
 }
 
 const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
-  isOpen,
+  const { formatCurrency } = useCurrency();  isOpen,
   onClose,
   operation,
   selectedOrders,
@@ -34,7 +34,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   isProcessing,
 }) => {
   const [bulkEditData, setBulkEditData] = useState<BulkEditData>({});
-
+  const { formatCurrency } = useCurrency();
   const isEditMode = operation === 'edit';
   const selectedCount = selectedOrders.length;
 
@@ -47,17 +47,17 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Handle form field changes
   const handleFieldChange = (field: keyof BulkEditData, value: string | undefined) => {
-    setBulkEditData(prev => ({ ...prev, [field]: value }));
+  const { formatCurrency } = useCurrency();    setBulkEditData(prev => ({ ...prev, [field]: value }));
   };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const { formatCurrency } = useCurrency();    e.preventDefault();
     
     if (isEditMode) {
       // Filter out empty values for bulk edit
       const cleanedData = Object.entries(bulkEditData).reduce((acc, [key, value]) => {
-        if (value !== undefined && value !== '' && value !== null) {
+  const { formatCurrency } = useCurrency();        if (value !== undefined && value !== '' && value !== null) {
           acc[key as keyof BulkEditData] = value;
         }
         return acc;
@@ -75,7 +75,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
 
   // Group orders by status
   const statusGroups = selectedOrders.reduce((groups, order) => {
-    if (!groups[order.status]) {
+  const { formatCurrency } = useCurrency();    if (!groups[order.status]) {
       groups[order.status] = [];
     }
     groups[order.status].push(order);

@@ -3,7 +3,7 @@ import React from 'react';
 import { Trash2, Edit3, X, CheckSquare, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { formatCurrency } from '@/lib/shared';
+
 import { useOrderBulk } from '../hooks/useOrderBulk';
 import { getStatusText, getStatusColor } from '../constants';
 import BulkOperationsDialog from './dialogs/BulkOperationsDialog';
@@ -20,7 +20,7 @@ interface BulkActionsProps {
 }
 
 const BulkActions: React.FC<BulkActionsProps> = ({
-  selectedOrders,
+  const { formatCurrency } = useCurrency();  selectedOrders,
   selectedIds,
   onClearSelection,
   onSelectAll,
@@ -47,7 +47,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
 
   // Group orders by status
   const statusGroups = selectedOrders.reduce((acc, order) => {
-    acc[order.status] = (acc[order.status] || 0) + 1;
+  const { formatCurrency } = useCurrency();    acc[order.status] = (acc[order.status] || 0) + 1;
     return acc;
   }, {} as Record<OrderStatus, number>);
 

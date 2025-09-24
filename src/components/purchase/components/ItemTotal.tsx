@@ -1,7 +1,7 @@
 // src/components/purchase/components/ItemTotal.tsx
 
 import React from 'react';
-import { formatCurrency } from '@/lib/shared';
+
 
 interface ItemTotalProps {
   total_nilai: number;
@@ -10,7 +10,7 @@ interface ItemTotalProps {
 }
 
 export const ItemTotal: React.FC<ItemTotalProps> = ({
-  total_nilai,
+  const { formatCurrency } = useCurrency();  total_nilai,
   variant,
   isViewOnly,
 }) => {

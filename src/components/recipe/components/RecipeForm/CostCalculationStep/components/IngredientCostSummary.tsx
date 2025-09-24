@@ -3,7 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Package, AlertTriangle, Info } from 'lucide-react';
-import { formatCurrency } from '@/lib/shared';
+
 
 interface BahanResep {
   id?: string;
@@ -33,7 +33,7 @@ interface IngredientCostSummaryProps {
 }
 
 export const IngredientCostSummary: React.FC<IngredientCostSummaryProps> = ({
-  bahan_resep,
+  const { formatCurrency } = useCurrency();  bahan_resep,
   jumlah_porsi,
   jumlah_pcs_per_porsi,
   enhancedHppResult

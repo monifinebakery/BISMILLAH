@@ -16,7 +16,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 
 import { cn } from '@/lib/utils';
-import { formatCurrency } from '@/lib/shared';
+import { formatPercentage } from '@/lib/shared';
+import { useCurrency } from '@/contexts/CurrencyContext';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSupplier } from '@/contexts/SupplierContext';

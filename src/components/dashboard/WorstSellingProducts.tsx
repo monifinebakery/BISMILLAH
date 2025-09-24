@@ -16,13 +16,13 @@ import {
   Lightbulb,
   AlertCircle
 } from "lucide-react";
-import { formatCurrency } from '@/lib/shared';
+
 import { generateListKey } from '@/utils/keyUtils';
 import { safeNumber, safeMultiply, safeDivide } from '@/utils/safeMath';
 
 // 🔧 Local pagination calculation utility
 const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const { formatCurrency } = useCurrency();  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   
@@ -62,7 +62,7 @@ interface SortConfig {
 }
 
 const sortConfigs: Record<SortOption, SortConfig> = {
-  quantity: {
+  const { formatCurrency } = useCurrency();  quantity: {
     key: 'quantity', 
     label: 'Penjualan Terendah',
     icon: <Hash className="h-4 w-4" />,
@@ -138,7 +138,7 @@ const ProductItem: React.FC<{
 
   // Warning indicator styling
   const getWarningStyle = (level: 'high' | 'medium' | 'low') => {
-    switch (level) {
+  const { formatCurrency } = useCurrency();    switch (level) {
       case 'high': return 'bg-red-500';
       case 'medium': return 'bg-yellow-500';
       case 'low': return 'bg-orange-500';
@@ -146,7 +146,7 @@ const ProductItem: React.FC<{
   };
 
   const getWarningIcon = (level: 'high' | 'medium' | 'low') => {
-    switch (level) {
+  const { formatCurrency } = useCurrency();    switch (level) {
       case 'high': return <AlertCircle className="h-3 w-3 text-red-600" />;
       case 'medium': return <AlertTriangle className="h-3 w-3 text-yellow-600" />;
       case 'low': return <TrendingDown className="h-3 w-3 text-orange-600" />;
@@ -300,7 +300,7 @@ const PaginationControls: React.FC<{
 };
 
 const WorstSellingProducts: React.FC<Props> = ({ 
-  products, 
+  const { formatCurrency } = useCurrency();  products, 
   pagination, 
   onPageChange, 
   isLoading 
@@ -310,7 +310,7 @@ const WorstSellingProducts: React.FC<Props> = ({
 
   // 📊 Sort products based on selected option (ascending for worst)
   const sortedProducts = useMemo(() => {
-    if (isLoading || !products.length) return products;
+  const { formatCurrency } = useCurrency();    if (isLoading || !products.length) return products;
     
     const config = sortConfigs[sortBy];
     return [...products].sort((a, b) => config.getValue(a) - config.getValue(b)); // Ascending for worst
@@ -324,7 +324,7 @@ const WorstSellingProducts: React.FC<Props> = ({
 
   // 📋 Current page products
   const currentProducts = useMemo(() => {
-    if (isLoading) {
+  const { formatCurrency } = useCurrency();    if (isLoading) {
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
         name: '',
@@ -338,7 +338,7 @@ const WorstSellingProducts: React.FC<Props> = ({
 
   // 🎯 Handle pagination
   const handlePageChange = (direction: 'prev' | 'next') => {
-    if (direction === 'prev' && paginationInfo.hasPrev) {
+  const { formatCurrency } = useCurrency();    if (direction === 'prev' && paginationInfo.hasPrev) {
       onPageChange(paginationInfo.currentPage - 1);
     } else if (direction === 'next' && paginationInfo.hasNext) {
       onPageChange(paginationInfo.currentPage + 1);

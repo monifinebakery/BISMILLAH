@@ -3,7 +3,7 @@
 // WAC per item bahan + Overhead per pcs
 
 import { supabase } from '@/integrations/supabase/client';
-import { formatCurrency } from '@/lib/shared';
+
 import type { 
   AppSettings, 
   DualModeCalculationResult 
@@ -258,7 +258,7 @@ export const calculateEnhancedHPP = async (
     });
     
     const totalBahanCost = ingredientsWithWAC.reduce((sum, bahan) => {
-      console.log(`🔥 Adding bahan: ${bahan.nama} = ${bahan.totalHarga}`);
+  const { formatCurrency } = useCurrency();      console.log(`🔥 Adding bahan: ${bahan.nama} = ${bahan.totalHarga}`);
       return sum + bahan.totalHarga;
     }, 0);
     
@@ -372,7 +372,7 @@ export const calculateEnhancedHPP = async (
       
       // Fall back to safer calculation without extreme WAC prices
       const saferIngredients = bahanResep.map(ingredient => ({
-        ...ingredient,
+  const { formatCurrency } = useCurrency();        ...ingredient,
         // Ensure reasonable price limits
         hargaSatuan: Math.min(ingredient.hargaSatuan, 50000), // Max 50k per unit
         totalHarga: Math.min(ingredient.totalHarga, ingredient.jumlah * 50000)
@@ -416,7 +416,7 @@ export const calculateEnhancedHPP = async (
     }
 
     const result: EnhancedHPPCalculationResult = {
-      bahanPerPcs: Math.round(bahanPerPcs),
+  const { formatCurrency } = useCurrency();      bahanPerPcs: Math.round(bahanPerPcs),
       tklPerPcs: Math.round(tklPerPcs),
       overheadPerPcs: Math.round(totalOverheadForHPP), // ✅ Combined overhead + operasional (TKL termasuk di overhead)
       hppPerPcs,
@@ -454,7 +454,7 @@ export const calculateEnhancedHPP = async (
  * Automatically creates default settings if none exist
  */
 export const getCurrentAppSettings = async (): Promise<AppSettings | null> => {
-  try {
+  const { formatCurrency } = useCurrency();  try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;
 
@@ -494,9 +494,9 @@ export const getCurrentAppSettings = async (): Promise<AppSettings | null> => {
  * Create default app settings for a user
  */
 export const createDefaultAppSettings = async (userId: string): Promise<AppSettings | null> => {
-  try {
+  const { formatCurrency } = useCurrency();  try {
     const defaultSettings = {
-      user_id: userId,
+  const { formatCurrency } = useCurrency();      user_id: userId,
       target_output_monthly: 1000, // Default 1000 pcs per month
       overhead_per_pcs: 0,          // Will be calculated later
       operasional_per_pcs: 0,       // Will be calculated later
@@ -565,7 +565,7 @@ export const compareCalculationMethods = (
  * Format calculation summary for display
  */
 export const formatCalculationSummary = (result: EnhancedHPPCalculationResult): string => {
-  return `
+  const { formatCurrency } = useCurrency();  return `
 HPP Calculation Summary:
 - Bahan: ${formatCurrency(result.bahanPerPcs)}/pcs
 - Overhead: ${formatCurrency(result.overheadPerPcs)}/pcs (${result.breakdown.overheadSource})

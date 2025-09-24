@@ -37,14 +37,14 @@ interface TodayData {
 // ==============================================
 
 const DailySummaryWidget: React.FC<DailySummaryProps> = ({ 
-  transactions, 
+  const { formatCurrency } = useCurrency();  transactions, 
   className 
 }) => {
   // Data hari ini
   const todayData = useMemo((): TodayData => {
-    const today = new Date().toISOString().split('T')[0];
+  const { formatCurrency } = useCurrency();    const today = new Date().toISOString().split('T')[0];
     const todayTransactions = transactions.filter(t => {
-      if (!t.date) return false;
+  const { formatCurrency } = useCurrency();      if (!t.date) return false;
       const dateStr = t.date instanceof Date ? t.date.toISOString() : String(t.date);
       return dateStr.startsWith(today);
     });
@@ -77,7 +77,7 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
   // Using shared formatters
 
   const getSaldoStatus = () => {
-    if (todayData.saldo > 0) {
+  const { formatCurrency } = useCurrency();    if (todayData.saldo > 0) {
       return {
         color: 'green',
         message: 'Hari ini untung!',
@@ -99,7 +99,7 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
   };
 
   const getMotivationalMessage = () => {
-    const hour = new Date().getHours();
+  const { formatCurrency } = useCurrency();    const hour = new Date().getHours();
     const { saldo } = todayData;
     
     if (hour < 12) {
@@ -119,7 +119,7 @@ const DailySummaryWidget: React.FC<DailySummaryProps> = ({
 
   const saldoStatus = getSaldoStatus();
   const currentDate = new Date().toLocaleDateString('id-ID', {
-    weekday: 'long',
+  const { formatCurrency } = useCurrency();    weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'

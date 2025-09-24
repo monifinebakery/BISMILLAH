@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { ORDER_STATUSES, getStatusText, getStatusColor } from '../../constants';
 import { logger } from '@/utils/logger';
@@ -34,7 +34,7 @@ interface BulkEditDialogProps {
 }
 
 const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
-  isOpen,
+  const { formatCurrency } = useCurrency();  isOpen,
   onClose,
   onConfirm,
   selectedOrders,
@@ -44,7 +44,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   const [newStatus, setNewStatus] = useState<OrderStatus | ''>('');
 
   const handleConfirm = async () => {
-    if (!newStatus) return;
+  const { formatCurrency } = useCurrency();    if (!newStatus) return;
     
     setLoading(true);
     try {
@@ -59,7 +59,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
   };
 
   const handleClose = () => {
-    onClose();
+  const { formatCurrency } = useCurrency();    onClose();
     setNewStatus(''); // Reset on close
   };
 
@@ -68,7 +68,7 @@ const BulkEditDialog: React.FC<BulkEditDialogProps> = ({
 
   // Group orders by current status
   const statusGroups = selectedOrders.reduce((groups, order) => {
-    if (!groups[order.status]) {
+  const { formatCurrency } = useCurrency();    if (!groups[order.status]) {
       groups[order.status] = [];
     }
     groups[order.status].push(order);

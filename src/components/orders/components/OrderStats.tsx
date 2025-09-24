@@ -19,7 +19,7 @@ import {
   Minus,
   Calendar
 } from "lucide-react";
-import { formatCurrency, formatPercentage } from '@/lib/shared';
+import { formatPercentage } from '@/lib/shared';import { useCurrency } from '@/contexts/CurrencyContext';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 
 
@@ -59,7 +59,7 @@ const TrendIndicator: React.FC<{
   if (!trend) return null;
 
   const getTrendIcon = () => {
-    switch (trend.type) {
+  const { formatCurrency } = useCurrency();    switch (trend.type) {
       case 'up':
         return <TrendingUp className="h-3 w-3" />;
       case 'down':
@@ -72,7 +72,7 @@ const TrendIndicator: React.FC<{
   };
 
   const getTrendColor = () => {
-    switch (trend.type) {
+  const { formatCurrency } = useCurrency();    switch (trend.type) {
       case 'up':
         return 'text-green-600 bg-green-50 border-green-200';
       case 'down':
@@ -85,7 +85,7 @@ const TrendIndicator: React.FC<{
   };
 
   const formatTrendPercentage = (percentage: number) => {
-    const sign = trend.type === 'up' ? '+' : trend.type === 'down' ? '-' : '';
+  const { formatCurrency } = useCurrency();    const sign = trend.type === 'up' ? '+' : trend.type === 'down' ? '-' : '';
     return `${sign}${Math.abs(percentage).toFixed(1)}%`;
   };
 
@@ -126,7 +126,7 @@ const OrderStatItem: React.FC<{
 
   React.useEffect(() => {
     const checkMobile = () => {
-      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
+  const { formatCurrency } = useCurrency();      setIsMobile(window.innerWidth < 768 || 'ontouchstart' in window);
     };
     
     checkMobile();
@@ -135,7 +135,7 @@ const OrderStatItem: React.FC<{
   }, []);
 
   const handleMobileTooltipToggle = () => {
-    if (isMobile && tooltip) {
+  const { formatCurrency } = useCurrency();    if (isMobile && tooltip) {
       setShowMobileTooltip(!showMobileTooltip);
       // Auto hide after 3 seconds
       if (!showMobileTooltip) {
@@ -282,7 +282,7 @@ const OrderStatItem: React.FC<{
 };
 
 const OrderStats: React.FC<Props> = ({ stats, isLoading }) => {
-  // 📊 Stats configuration dengan brand orange dan white text untuk header gradient
+  const { formatCurrency } = useCurrency();  // 📊 Stats configuration dengan brand orange dan white text untuk header gradient
   const statsConfig = [
     {
       key: 'totalOrders',

@@ -24,13 +24,13 @@ import { UserFriendlyDate } from '@/utils/userFriendlyDate';
 
 import { PurchaseItem } from './types/purchase.types';
 import { usePurchaseForm } from './hooks/usePurchaseForm';
-import { formatCurrency } from '@/lib/shared';
+
 import { toast } from 'sonner';
 import { useSupplier } from '@/contexts/SupplierContext';
 import { usePurchase } from './hooks/usePurchase';
 // Import extracted components
 const NewItemForm = React.lazy(() => import('./components/dialogs/NewItemForm').then(module => ({ default: module.NewItemForm })));
-import SupplierComboBox from './components/SupplierComboBox';
+  const { formatCurrency } = useCurrency();import SupplierComboBox from './components/SupplierComboBox';
 import { ItemRow } from './components/ItemRow';
 import { ItemTotal } from './components/ItemTotal';
 
@@ -45,9 +45,9 @@ import {
 } from '@/components/ui/breadcrumb';
 
 const PurchaseAddEditPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();  const navigate = useNavigate();
   const { id: purchaseId } = useParams<{ id: string }>();
-  const { suppliers } = useSupplier();
+  const { formatCurrency } = useCurrency();  const { suppliers } = useSupplier();
   
   // Safely access the purchase context
   const purchaseContext = usePurchase();
@@ -128,7 +128,7 @@ const PurchaseAddEditPage: React.FC = () => {
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
-      validateForm();
+  const { formatCurrency } = useCurrency();      validateForm();
     }, 500);
 
     return () => clearTimeout(timeoutId);
@@ -138,12 +138,12 @@ const PurchaseAddEditPage: React.FC = () => {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null);
 
   const handleEditItem = useCallback((index: number) => {
-    setEditingItemIndex(index);
+  const { formatCurrency } = useCurrency();    setEditingItemIndex(index);
     toast.info('Mode edit item aktif');
   }, []);
 
   const handleSaveEditedItem = useCallback((index: number, updatedItem: Partial<PurchaseItem>) => {
-    const qty = Number(updatedItem.quantity) || 0;
+  const { formatCurrency } = useCurrency();    const qty = Number(updatedItem.quantity) || 0;
     const price = Number(updatedItem.unitPrice) || 0;
 
     if (qty <= 0 || price <= 0) {
@@ -159,7 +159,7 @@ const PurchaseAddEditPage: React.FC = () => {
   const handleCancelEditItem = useCallback(() => setEditingItemIndex(null), []);
 
   const handleCancel = useCallback(() => {
-    if (isDirty) {
+  const { formatCurrency } = useCurrency();    if (isDirty) {
       if (confirm('Ada perubahan yang belum disimpan. Yakin ingin keluar?')) {
         navigate('/purchase');
       }
@@ -169,7 +169,7 @@ const PurchaseAddEditPage: React.FC = () => {
   }, [isDirty, navigate]);
 
   const handleResetForm = useCallback(() => {
-    if (confirm('Reset semua perubahan ke kondisi awal?')) {
+  const { formatCurrency } = useCurrency();    if (confirm('Reset semua perubahan ke kondisi awal?')) {
       handleReset();
       handleCancelEditItem();
       toast.info('Form direset ke kondisi awal');
@@ -177,7 +177,7 @@ const PurchaseAddEditPage: React.FC = () => {
   }, [handleReset, handleCancelEditItem]);
 
   const onSubmit = useCallback(async (status?: string) => {
-    // Authentication is already handled by AuthGuard at router level
+  const { formatCurrency } = useCurrency();    // Authentication is already handled by AuthGuard at router level
     
     if (formData.items.length === 0) {
       toast.error('Minimal harus ada 1 item dalam pembelian');
@@ -192,7 +192,7 @@ const PurchaseAddEditPage: React.FC = () => {
 
   // Handle adding new item from form
   const handleAddNewItem = useCallback((item: PurchaseItem) => {
-    addItem(item);
+  const { formatCurrency } = useCurrency();    addItem(item);
     toast.success(`${item.nama} berhasil ditambahkan`);
   }, [addItem]);
 

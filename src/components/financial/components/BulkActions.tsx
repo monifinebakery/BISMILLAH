@@ -31,7 +31,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { useTransactionBulk, type FinancialTransaction, type BulkEditData } from '../hooks/useTransactionBulk';
 import { useIsMobile } from '@/hooks/use-mobile';
 
@@ -45,7 +45,7 @@ interface BulkActionsProps {
 }
 
 const BulkActions: React.FC<BulkActionsProps> = ({
-  selectedTransactions,
+  const { formatCurrency } = useCurrency();  selectedTransactions,
   selectedIds,
   onClearSelection,
   onSelectAll,
@@ -55,7 +55,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [editData, setEditData] = useState<BulkEditData>({
-    type: undefined,
+  const { formatCurrency } = useCurrency();    type: undefined,
     category: undefined,
     description: undefined,
   });
@@ -72,7 +72,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   } = useTransactionBulk();
 
   const handleBulkDelete = async () => {
-    try {
+  const { formatCurrency } = useCurrency();    try {
       await bulkDelete(selectedIds);
       setShowDeleteDialog(false);
       onClearSelection();
@@ -82,7 +82,7 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   };
 
   const handleBulkEdit = async () => {
-    // Validate that at least one field is being edited
+  const { formatCurrency } = useCurrency();    // Validate that at least one field is being edited
     const hasChanges = editData.type || editData.category || editData.description;
     if (!hasChanges) {
       toast.error('Pilih minimal satu field untuk diedit');
@@ -100,13 +100,13 @@ const BulkActions: React.FC<BulkActionsProps> = ({
   };
 
   const handleCloseDialogs = () => {
-    setShowDeleteDialog(false);
+  const { formatCurrency } = useCurrency();    setShowDeleteDialog(false);
     setShowEditDialog(false);
     resetProgress();
   };
 
   const totalAmount = selectedTransactions.reduce((sum, transaction) => {
-    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
+  const { formatCurrency } = useCurrency();    return sum + (transaction.type === 'income' ? transaction.amount : -transaction.amount);
   }, 0);
 
   const incomeCount = selectedTransactions.filter(t => t.type === 'income').length;

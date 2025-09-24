@@ -11,11 +11,11 @@ import {
   Plus,
   AlertTriangle
 } from 'lucide-react';
-import { formatCurrency } from '@/lib/shared';
+
 import { PurchaseHeaderProps } from '../types/purchase.types';
 
 const PurchaseHeader: React.FC<PurchaseHeaderProps> = ({
-  totalPurchases,
+  const { formatCurrency } = useCurrency();  totalPurchases,
   total_nilai,
   pendingCount,
   onAddPurchase,

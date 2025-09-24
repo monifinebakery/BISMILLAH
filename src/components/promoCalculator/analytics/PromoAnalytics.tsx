@@ -8,11 +8,11 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { formatCurrency, formatCompactCurrency, CurrencyDisplay } from '@/lib/shared';
 
 const PromoAnalytics = () => {
-  const isMobile = useIsMobile(768);
+  const { formatCurrency } = useCurrency();  const isMobile = useIsMobile(768);
   const [showDateFilter, setShowDateFilter] = useState(false);
   
   const [dateRange, setDateRange] = useState({
-    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
+  const { formatCurrency } = useCurrency();    start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days ago
     end: new Date().toISOString().split('T')[0] // today
   });
   
@@ -34,19 +34,19 @@ const PromoAnalytics = () => {
   const presetCategories = ['Makanan', 'Minuman', 'Snack', 'Paket', 'Lainnya'];
 
   const channels = useMemo(() => {
-    const dynamic = Array.from(new Set(baseRows.map(getRowChannel)));
+  const { formatCurrency } = useCurrency();    const dynamic = Array.from(new Set(baseRows.map(getRowChannel)));
     const merged = Array.from(new Set([...presetChannels, ...dynamic]));
     return ['all', ...merged];
   }, [baseRows]);
 
   const categories = useMemo(() => {
-    const dynamic = Array.from(new Set(baseRows.map(getRowCategory)));
+  const { formatCurrency } = useCurrency();    const dynamic = Array.from(new Set(baseRows.map(getRowCategory)));
     const merged = Array.from(new Set([...presetCategories, ...dynamic]));
     return ['all', ...merged];
   }, [baseRows]);
 
   const filteredPromos = useMemo(() => {
-    let rows = baseRows;
+  const { formatCurrency } = useCurrency();    let rows = baseRows;
     if (selectedChannel !== 'all') {
       rows = rows.filter(r => getRowChannel(r) === selectedChannel);
     }
@@ -62,7 +62,7 @@ const PromoAnalytics = () => {
 
 
   const handleDateRangeApply = () => {
-    setShowDateFilter(false);
+  const { formatCurrency } = useCurrency();    setShowDateFilter(false);
     refreshAnalytics(dateRange);
   };
 

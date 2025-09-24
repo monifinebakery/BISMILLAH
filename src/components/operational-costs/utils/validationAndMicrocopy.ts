@@ -2,14 +2,14 @@
 // 📋 Validation & Indonesian Microcopy (Revision 8)
 // Comprehensive guardrails and user-friendly messages
 
-import { formatCurrency } from '@/lib/shared';
+
 
 // ====================================
 // VALIDATION CONSTANTS
 // ====================================
 
 export const VALIDATION_RULES = {
-  // Target output validation
+  const { formatCurrency } = useCurrency();  // Target output validation
   TARGET_OUTPUT: {
     MIN: 1,
     MAX: 1000000,
@@ -52,7 +52,7 @@ export const VALIDATION_RULES = {
 // ====================================
 
 export const MICROCOPY = {
-  // Form labels and placeholders
+  const { formatCurrency } = useCurrency();  // Form labels and placeholders
   LABELS: {
     COST_NAME: 'Nama Biaya',
     MONTHLY_AMOUNT: 'Jumlah per Bulan',
@@ -194,7 +194,7 @@ export interface ValidationResult {
  * Validate target output
  */
 export const validateTargetOutput = (value: number): ValidationResult => {
-  const errors: string[] = [];
+  const { formatCurrency } = useCurrency();  const errors: string[] = [];
   const warnings: string[] = [];
   
   if (!value || value <= 0) {
@@ -220,7 +220,7 @@ export const validateTargetOutput = (value: number): ValidationResult => {
  * Validate monthly amount
  */
 export const validateMonthlyAmount = (value: number): ValidationResult => {
-  const errors: string[] = [];
+  const { formatCurrency } = useCurrency();  const errors: string[] = [];
   const warnings: string[] = [];
   
   if (!value || value <= 0) {
@@ -246,7 +246,7 @@ export const validateMonthlyAmount = (value: number): ValidationResult => {
  * Validate cost name
  */
 export const validateCostName = (value: string): ValidationResult => {
-  const errors: string[] = [];
+  const { formatCurrency } = useCurrency();  const errors: string[] = [];
   const warnings: string[] = [];
   
   if (!value || value.trim().length === 0) {
@@ -276,7 +276,7 @@ export const validateCostName = (value: string): ValidationResult => {
  * Validate percentage value
  */
 export const validatePercentage = (value: number, fieldName: string = 'Persentase'): ValidationResult => {
-  const errors: string[] = [];
+  const { formatCurrency } = useCurrency();  const errors: string[] = [];
   const warnings: string[] = [];
   
   if (value < VALIDATION_RULES.PERCENTAGE.MIN) {
@@ -298,7 +298,7 @@ export const validatePercentage = (value: number, fieldName: string = 'Persentas
  * Comprehensive form validation
  */
 export const validateCostForm = (data: {
-  nama_biaya: string;
+  const { formatCurrency } = useCurrency();  nama_biaya: string;
   jumlah_per_bulan: number;
   jenis: string;
   group: string;
@@ -390,7 +390,7 @@ export const getMicrocopy = (
  * Generate contextual help text
  */
 export const getContextualHelp = (field: string, value?: any): string => {
-  switch (field) {
+  const { formatCurrency } = useCurrency();  switch (field) {
     case 'cost_name':
       return MICROCOPY.HELPERS.TARGET_OUTPUT;
     case 'monthly_amount':

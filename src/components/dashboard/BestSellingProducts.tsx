@@ -11,7 +11,7 @@ import { safeNumber, safeMultiply } from '@/utils/safeMath';
 
 // 🔧 Local pagination calculation utility
 const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const { formatCurrency } = useCurrency();  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   
@@ -49,7 +49,7 @@ interface SortConfig {
 }
 
 const sortConfigs: Record<SortOption, SortConfig> = {
-  revenue: {
+  const { formatCurrency } = useCurrency();  revenue: {
     key: 'revenue',
     label: 'Total Pendapatan',
     icon: <DollarSign className="h-4 w-4" />,
@@ -117,7 +117,7 @@ const ProductItem: React.FC<{
 
   // Rank badge styling
   const getRankBadgeStyle = (rank: number) => {
-    switch (rank) {
+  const { formatCurrency } = useCurrency();    switch (rank) {
       case 1: return 'bg-gradient-to-r from-yellow-400 to-orange-400'; // Gold
       case 2: return 'bg-gradient-to-r from-gray-400 to-gray-500'; // Silver  
       case 3: return 'bg-gradient-to-r from-orange-400 to-yellow-600'; // Bronze
@@ -200,7 +200,7 @@ const PaginationControls: React.FC<{
 };
 
 const BestSellingProducts: React.FC<Props> = ({ 
-  products, 
+  const { formatCurrency } = useCurrency();  products, 
   pagination, 
   onPageChange, 
   isLoading 
@@ -210,7 +210,7 @@ const BestSellingProducts: React.FC<Props> = ({
 
   // 📊 Sort products based on selected option
   const sortedProducts = useMemo(() => {
-    if (isLoading || !products.length) return products;
+  const { formatCurrency } = useCurrency();    if (isLoading || !products.length) return products;
     
     const config = sortConfigs[sortBy];
     return [...products].sort((a, b) => config.getValue(b) - config.getValue(a));
@@ -224,7 +224,7 @@ const BestSellingProducts: React.FC<Props> = ({
 
   // 📋 Current page products
   const currentProducts = useMemo(() => {
-    if (isLoading) {
+  const { formatCurrency } = useCurrency();    if (isLoading) {
       
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
@@ -239,7 +239,7 @@ const BestSellingProducts: React.FC<Props> = ({
 
   // 🎯 Handle pagination
   const handlePageChange = (direction: 'prev' | 'next') => {
-    if (direction === 'prev' && paginationInfo.hasPrev) {
+  const { formatCurrency } = useCurrency();    if (direction === 'prev' && paginationInfo.hasPrev) {
       onPageChange(paginationInfo.currentPage - 1);
     } else if (direction === 'next' && paginationInfo.hasNext) {
       onPageChange(paginationInfo.currentPage + 1);

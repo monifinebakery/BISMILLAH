@@ -20,7 +20,7 @@ import {
 } from '@/components/ui/alert';
 import { ActionButtons } from '@/components/ui/action-buttons';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/shared';
+
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { useFollowUpTemplate, useProcessTemplate } from '@/contexts/FollowUpTemplateContext';
 import type { Order } from '../types';
@@ -33,7 +33,7 @@ interface Template {
 }
 
 const FollowUpTemplateManagerPage: React.FC = () => {
-  const navigate = useNavigate();
+  const { formatCurrency } = useCurrency();  const navigate = useNavigate();
 
   // Use FollowUpTemplateContext
   const { templates: contextTemplates, saveTemplate } = useFollowUpTemplate();
@@ -44,14 +44,14 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [templateForm, setTemplateForm] = useState({ message: '' });
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
+  const { formatCurrency } = useCurrency();  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [previewMessage, setPreviewMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   // Update templates when context changes
   useEffect(() => {
     const templateArray = Object.entries(contextTemplates).map(([status, message]) => ({
-      id: status,
+  const { formatCurrency } = useCurrency();      id: status,
       name: getStatusDisplayName(status),
       message: message,
       createdAt: new Date()
@@ -66,8 +66,8 @@ const FollowUpTemplateManagerPage: React.FC = () => {
 
   // Helper function to get display name for status
   const getStatusDisplayName = (status: string): string => {
-    const statusNames: Record<string, string> = {
-      pending: 'Konfirmasi Pesanan',
+  const { formatCurrency } = useCurrency();    const statusNames: Record<string, string> = {
+  const { formatCurrency } = useCurrency();      pending: 'Konfirmasi Pesanan',
       confirmed: 'Pesanan Dikonfirmasi',
       preparing: 'Sedang Diproses',
       ready: 'Siap Diambil/Dikirim',
@@ -81,7 +81,7 @@ const FollowUpTemplateManagerPage: React.FC = () => {
 
   // Sample order data for preview
   const sampleOrder: Order = {
-    id: 'sample-001',
+  const { formatCurrency } = useCurrency();    id: 'sample-001',
     orderNumber: 'ORD-2024-001',
     customerName: 'John Doe',
     totalAmount: 150000,
@@ -96,7 +96,7 @@ const FollowUpTemplateManagerPage: React.FC = () => {
 
   // Generate preview message
   const generatePreview = (template: Template) => {
-    if (!template) return '';
+  const { formatCurrency } = useCurrency();    if (!template) return '';
     return processTemplate(template.message, sampleOrder);
   };
 
@@ -108,13 +108,13 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   }, [selectedTemplate]);
 
   const handleEditTemplate = (template: Template) => {
-    setEditingTemplate(template);
+  const { formatCurrency } = useCurrency();    setEditingTemplate(template);
     setIsEditing(true);
     setTemplateForm({ message: template.message });
   };
 
   const handleSaveTemplate = async () => {
-    if (!editingTemplate) return;
+  const { formatCurrency } = useCurrency();    if (!editingTemplate) return;
     if (!templateForm.message.trim()) {
       toast.error('Pesan template harus diisi');
       return;
@@ -144,26 +144,26 @@ const FollowUpTemplateManagerPage: React.FC = () => {
   };
 
   const handleCancelEdit = () => {
-    setIsEditing(false);
+  const { formatCurrency } = useCurrency();    setIsEditing(false);
     setEditingTemplate(null);
     setTemplateForm({ message: '' });
   };
 
   const handleCopyMessage = () => {
-    navigator.clipboard.writeText(previewMessage);
+  const { formatCurrency } = useCurrency();    navigator.clipboard.writeText(previewMessage);
     toast.success('Pesan berhasil disalin ke clipboard');
   };
 
   const handleCopyVariable = (variable: string) => {
-    navigator.clipboard.writeText(variable);
+  const { formatCurrency } = useCurrency();    navigator.clipboard.writeText(variable);
     toast.success(`Variabel ${variable} berhasil disalin ke clipboard`);
   };
 
   const handleResetTemplate = async () => {
-    if (!selectedTemplate) return;
+  const { formatCurrency } = useCurrency();    if (!selectedTemplate) return;
     
     const defaultTemplates: Record<string, string> = {
-      pending: 'Halo {{customerName}}, terima kasih sudah memesan di toko kami!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami konfirmasi. Kami akan menghubungi Anda kembali segera.',
+  const { formatCurrency } = useCurrency();      pending: 'Halo {{customerName}}, terima kasih sudah memesan di toko kami!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami konfirmasi. Kami akan menghubungi Anda kembali segera.',
       confirmed: 'Halo {{customerName}}, pesanan Anda telah dikonfirmasi!\n\nNomor pesanan: {{orderNumber}}\nTotal: {{totalAmount}}\n\nPesanan Anda sedang kami siapkan.',
       preparing: 'Halo {{customerName}}, pesanan Anda sedang dalam proses pembuatan.\n\nNomor pesanan: {{orderNumber}}\n\nMohon ditunggu, kami akan update Anda segera.',
       ready: 'Halo {{customerName}}, pesanan Anda sudah siap!\n\nNomor pesanan: {{orderNumber}}\n\nSilakan ambil pesanan Anda atau kami akan kirim sesuai kesepakatan.',

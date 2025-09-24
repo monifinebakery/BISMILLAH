@@ -10,7 +10,7 @@ import {
   Tooltip, 
   ResponsiveContainer 
 } from 'recharts';
-import { formatCurrency } from '@/lib/shared';
+
 
 // ✅ ENHANCED: Props untuk useQuery support dengan auto-refresh
 interface CategoryChartsProps {
@@ -23,7 +23,7 @@ interface CategoryChartsProps {
 
 // Custom label component for pie chart
 const renderCustomizedLabel = ({ 
-  cx, cy, midAngle, innerRadius, outerRadius, percent 
+  const { formatCurrency } = useCurrency();  cx, cy, midAngle, innerRadius, outerRadius, percent 
 }: any) => {
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5;
   const x = cx + radius * Math.cos(-midAngle * (Math.PI / 180));
@@ -62,15 +62,15 @@ const CategoryLoading = () => (
  * - Refresh functionality
  */
 const CategoryCharts: React.FC<CategoryChartsProps> = ({ 
-  filteredTransactions, 
+  const { formatCurrency } = useCurrency();  filteredTransactions, 
   isLoading = false,
   isRefreshing = false,
   onRefresh,
   lastUpdated 
 }) => {
   const categoryData = useMemo(() => {
-    const result = {
-      incomeData: [],
+  const { formatCurrency } = useCurrency();    const result = {
+  const { formatCurrency } = useCurrency();      incomeData: [],
       expenseData: []
     };
 
@@ -79,8 +79,8 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
     }
 
     const incomeByCategory = {};
-    const expenseByCategory = {};
-
+  const { formatCurrency } = useCurrency();    const expenseByCategory = {};
+  const { formatCurrency } = useCurrency();
     // Process transactions by category
     filteredTransactions.forEach(t => {
       const categoryName = t.category || 'Lainnya';
@@ -109,7 +109,7 @@ const CategoryCharts: React.FC<CategoryChartsProps> = ({
 
   // ✅ ENHANCED: Empty state dengan better UX
   const EmptyState: React.FC<{ title: string; type: 'income' | 'expense' }> = ({ title, type }) => (
-    <Card>
+  const { formatCurrency } = useCurrency();    <Card>
       <CardHeader>
         <CardTitle className="flex items-center justify-between">
           {title}

@@ -2,7 +2,7 @@
 import React from 'react';
 import { TableRow, TableCell } from '@/components/ui/table';
 import { Checkbox } from '@/components/ui/checkbox';
-import { formatCurrency } from '@/lib/shared';
+
 import { getFormattedTotalQuantities } from '../../utils/purchaseHelpers';
 import { Purchase } from '../../types/purchase.types';
 import { StatusDropdown } from './StatusDropdown';
@@ -22,7 +22,7 @@ interface PurchaseTableRowProps {
 }
 
 export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
-  purchase,
+  const { formatCurrency } = useCurrency();  purchase,
   isSelected,
   isEditingStatus,
   onToggleSelect,
@@ -33,7 +33,7 @@ export const PurchaseTableRow: React.FC<PurchaseTableRowProps> = ({
   getSupplierName
 }) => {
   const resolvedSupplierName = React.useMemo(() => {
-    if (!getSupplierName) {
+  const { formatCurrency } = useCurrency();    if (!getSupplierName) {
       return purchase.supplier || 'Supplier Tidak Diketahui';
     }
     return getSupplierName(purchase.supplier) || 'Supplier Tidak Diketahui';

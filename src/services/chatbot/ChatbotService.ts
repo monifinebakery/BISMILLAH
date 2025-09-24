@@ -478,6 +478,11 @@ Consider context, synonyms, and natural language variations. Return only the int
       return 'report';
     }
 
+    if (msg.includes('aturan') || msg.includes('rules') || msg.includes('aturan') || msg.includes('panduan')) {
+      return 'rules';
+    }      return 'report';
+    }
+
     return 'general';      return 'report';
     }
 

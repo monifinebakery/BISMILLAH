@@ -3,19 +3,37 @@ import { OpenRouterService } from './openrouter/OpenRouterService';
 
 export class ChatbotService {
   private openRouter: OpenRouterService;
-  private history: Array<{role: 'user' | 'assistant', content: string}> = [];
-  private businessName: string = 'Bisnis Anda'; // Default fallback
+  private history: Array<{role: 'user' | 'assistant', content: string, timestamp: number, importance: number}> = [];
+  private businessName: string = 'Bisnis Anda';
   private readonly userId?: string;
   private readonly historyStorageKey: string;
   private readonly businessNameStorageKey: string;
-  
+
+  // Enhanced memory management
+  private memoryConfig = {
+    maxHistorySize: 100, // Maximum messages in memory
+    persistentHistorySize: 30, // Messages saved to localStorage
+    contextWindowSize: 8, // Messages sent to AI
+    compressionThreshold: 50, // Compress messages older than this
+    cleanupInterval: 5 * 60 * 1000, // 5 minutes cleanup interval
+    maxStorageSize: 2 * 1024 * 1024, // 2MB max localStorage usage
+  };
+
+  private lastCleanup: number = Date.now();
+
   // Chat persistence key
   // Analytics tracking
   private analytics = {
     totalConversations: 0,
     popularCommands: new Map<string, number>(),
     responseTimes: [],
-    emergencyCount: 0
+    emergencyCount: 0,
+    memoryUsage: {
+      totalMessages: 0,
+      compressedMessages: 0,
+      storageSize: 0,
+      lastCleanup: Date.now()
+    }
   };
 
   constructor(userId?: string) {
@@ -25,6 +43,43 @@ export class ChatbotService {
     this.businessNameStorageKey = `chatbot_business_name${storageSuffix}`;
     this.openRouter = new OpenRouterService();
     this.loadPersistedData();
+  }
+
+  // Helper method to create message objects with metadata
+  private createMessage(role: 'user' | 'assistant', content: string, importance: number = 1): {role: 'user' | 'assistant', content: string, timestamp: number, importance: number} {
+    return {
+      role,
+      content,
+      timestamp: Date.now(),
+      importance
+    };
+  }
+
+  // Calculate message importance based on content
+  private calculateImportance(content: string): number {
+    let importance = 1; // Base importance
+
+    // Higher importance for action-related messages
+    if (content.includes('✅') || content.includes('berhasil') || content.includes('created') || content.includes('updated')) {
+      importance += 2; // Successful actions
+    }
+
+    // High importance for errors or warnings
+    if (content.includes('❌') || content.includes('error') || content.includes('gagal') || content.includes('warning')) {
+      importance += 3;
+    }
+
+    // Medium importance for questions or requests
+    if (content.includes('?') || content.includes('tolong') || content.includes('bisa') || content.includes('gimana')) {
+      importance += 1;
+    }
+
+    // Low importance for greetings and acknowledgments
+    if (content.includes('👋') || content.includes('halo') || content.includes('iya') || content.includes('oke')) {
+      importance = Math.max(0.5, importance - 1);
+    }
+
+    return importance;
   }
 
   // Load persisted chat data
@@ -104,9 +159,13 @@ export class ChatbotService {
         try {
           const actionResponse = await this.performDatabaseAction(intent, message, userId);
           if (actionResponse && actionResponse.type !== 'error') {
-            this.history.push({ role: 'user', content: message });
-            this.history.push({ role: 'assistant', content: actionResponse.text });
+            const userImportance = this.calculateImportance(message);
+            const assistantImportance = this.calculateImportance(actionResponse.text);
+            
+            this.history.push(this.createMessage('user', message, userImportance));
+            this.history.push(this.createMessage('assistant', actionResponse.text, assistantImportance));
             this.savePersistedData();
+            this.performMemoryCleanup();
             console.log('🤖 Action completed successfully');
             return actionResponse;
           }
@@ -119,9 +178,10 @@ export class ChatbotService {
         try {
           const dbResponse = await this.queryDatabase(intent, message, userId);
           if (dbResponse && dbResponse.type !== 'error') {
-            this.history.push({ role: 'user', content: message });
-            this.history.push({ role: 'assistant', content: dbResponse.text });
+            this.history.push(this.createMessage('user', message));
+            this.history.push(this.createMessage('assistant', dbResponse.text));
             this.savePersistedData();
+            this.performMemoryCleanup();
             console.log('🤖 Database query successful');
             return dbResponse;
           }
@@ -142,13 +202,13 @@ export class ChatbotService {
       );
 
       // Add to history
-      this.history.push({ role: 'user', content: message });
+      this.history.push(this.createMessage('user', message));
 
       const startTime = Date.now();
 
       // Get enhanced AI response with action awareness
       const response = await this.openRouter.generateResponse(message, {
-        history: this.history.slice(-10), // Keep last 10 messages
+        history: this.getContextHistory(), // Smart context window
         intent: intent,
         currentPage: this.detectCurrentPage(),
         businessName: this.businessName,
@@ -168,8 +228,9 @@ export class ChatbotService {
       this.analytics.responseTimes.push(responseTime);
 
       // Add response to history
-      this.history.push({ role: 'assistant', content: response.text });
+      this.history.push(this.createMessage('assistant', response.text));
       this.savePersistedData();
+      this.performMemoryCleanup();
 
       return response;
     } catch (error) {
@@ -327,17 +388,99 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
     };
   }
 
-  // Auto-adjust rules based on analytics
-  private adjustRulesBasedOnAnalytics() {
-    const avgResponseTime = this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length;
+  // Advanced memory management with sliding window and compression
+  private performMemoryCleanup() {
+    const now = Date.now();
 
-    if (avgResponseTime > 5000) { // Slow responses
-      console.warn('⚠️ AI responses are slow. Consider using faster model.');
+    // Periodic cleanup check
+    if (now - this.lastCleanup > this.memoryConfig.cleanupInterval) {
+      console.log('🧹 Performing memory cleanup...');
+
+      // 1. Trim history to maximum size
+      if (this.history.length > this.memoryConfig.maxHistorySize) {
+        // Keep most important messages when trimming
+        this.history = this.history
+          .sort((a, b) => b.importance - a.importance) // Sort by importance
+          .slice(0, this.memoryConfig.maxHistorySize) // Keep top messages
+          .sort((a, b) => a.timestamp - b.timestamp); // Re-sort by time
+
+        console.log(`🗂️ Trimmed history to ${this.history.length} messages`);
+      }
+
+      // 2. Compress old messages
+      const compressionThreshold = now - (this.memoryConfig.compressionThreshold * 60 * 1000); // Convert to milliseconds
+      let compressedCount = 0;
+
+      this.history.forEach(msg => {
+        if (msg.timestamp < compressionThreshold && !msg.content.startsWith('[COMPRESSED]')) {
+          // Compress long messages
+          if (msg.content.length > 200) {
+            msg.content = `[COMPRESSED] ${msg.content.substring(0, 100)}...`;
+            compressedCount++;
+          }
+        }
+      });
+
+      if (compressedCount > 0) {
+        console.log(`🗜️ Compressed ${compressedCount} old messages`);
+      }
+
+      // 3. Check storage size
+      const storageSize = this.calculateStorageSize();
+      if (storageSize > this.memoryConfig.maxStorageSize) {
+        console.log(`💾 Storage size (${(storageSize / 1024 / 1024).toFixed(2)}MB) exceeds limit, reducing persistent history`);
+
+        // Reduce persistent history size
+        this.memoryConfig.persistentHistorySize = Math.max(10, this.memoryConfig.persistentHistorySize - 5);
+
+        // Force save with reduced size
+        this.savePersistedData();
+      }
+
+      // Update analytics
+      this.analytics.memoryUsage = {
+        totalMessages: this.history.length,
+        compressedMessages: compressedCount,
+        storageSize,
+        lastCleanup: now
+      };
+
+      this.lastCleanup = now;
+      console.log('✅ Memory cleanup completed');
+    }
+  }
+
+  // Calculate approximate storage size
+  private calculateStorageSize(): number {
+    try {
+      const data = JSON.stringify({
+        history: this.history.slice(-this.memoryConfig.persistentHistorySize),
+        businessName: this.businessName
+      });
+      return new Blob([data]).size;
+    } catch {
+      return 0;
+    }
+  }
+
+  // Smart context window that considers importance and recency
+  private getContextHistory(): Array<{role: 'user' | 'assistant', content: string}> {
+    if (this.history.length <= this.memoryConfig.contextWindowSize) {
+      return this.history.map(msg => ({ role: msg.role, content: msg.content }));
     }
 
-    if (this.analytics.emergencyCount > 10) { // High emergency count
-      console.warn('🚨 High emergency count detected. Review safety protocols.');
-    }
+    // Get recent messages (last 5)
+    const recentMessages = this.history.slice(-5);
+
+    // Get important messages from earlier (top 5 by importance)
+    const earlierMessages = this.history.slice(0, -5)
+      .sort((a, b) => b.importance - a.importance)
+      .slice(0, 5)
+      .sort((a, b) => a.timestamp - b.timestamp); // Re-sort by time
+
+    // Combine and return as simple format for AI
+    return [...earlierMessages, ...recentMessages]
+      .map(msg => ({ role: msg.role, content: msg.content }));
   }
 
   // Enhanced system prompt for natural conversation with action awareness

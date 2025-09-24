@@ -184,7 +184,17 @@ async function handleOrderSearch(supabase: any, userId: string, message: string)
 async function handleInventoryQuery(supabase: any, userId: string, message: string) {
   try {
     console.log('🤖 Handling inventory query for user:', userId, 'message:', message);
-    
+
+    // Validate user authentication and data access
+    if (!userId || userId === 'anonymous' || userId === 'test-user-id') {
+      console.log('❌ User not properly authenticated');
+      return {
+        type: 'error',
+        text: '❌ Untuk mengakses data bahan baku, silakan login terlebih dahulu ke aplikasi.',
+        data: []
+      };
+    }
+
     // Extract material name from message
     const materialName = extractMaterialName(message);
 
@@ -248,13 +258,19 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     }
 
     if (!inventory || inventory.length === 0) {
-      return {
-        type: 'inventory',
-        text: validatedMaterialName
-          ? `📦 Tidak ditemukan bahan "${validatedMaterialName}" di warehouse.`
-          : '📦 Tidak ada data bahan baku di warehouse.',
-        data: []
-      };
+      if (validatedMaterialName) {
+        return {
+          type: 'inventory',
+          text: `📦 Tidak ditemukan bahan "${validatedMaterialName}" di warehouse Anda. Bahan dengan nama tersebut belum terdaftar.`,
+          data: []
+        };
+      } else {
+        return {
+          type: 'inventory',
+          text: `📦 Belum ada data bahan baku di warehouse Anda.\n\n💡 Untuk mulai menggunakan fitur ini, silakan tambahkan bahan baku terlebih dahulu melalui menu Warehouse di aplikasi.\n\nContoh bahan yang bisa ditambahkan:\n• Tepung Terigu\n• Gula Pasir\n• Telur Ayam\n• Margarin\n• Susu Bubuk\n• Ragi Instan\n\nSetelah menambahkan bahan, Anda bisa bertanya: "cek stok bahan baku"`,
+          data: []
+        };
+      }
     }
 
     // Filter low stock items

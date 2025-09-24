@@ -1,14 +1,15 @@
+import { supabase } from '@/integrations/supabase/client';
 import { OpenRouterService } from './openrouter/OpenRouterService';
 
 export class ChatbotService {
   private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string}> = [];
   private businessName: string = 'Bisnis Anda'; // Default fallback
+  private readonly userId?: string;
+  private readonly historyStorageKey: string;
+  private readonly businessNameStorageKey: string;
   
   // Chat persistence key
-  private readonly CHAT_HISTORY_KEY = 'chatbot_history';
-  private readonly BUSINESS_NAME_KEY = 'chatbot_business_name';
-  
   // Analytics tracking
   private analytics = {
     totalConversations: 0,
@@ -17,7 +18,11 @@ export class ChatbotService {
     emergencyCount: 0
   };
 
-  constructor() {
+  constructor(userId?: string) {
+    this.userId = userId;
+    const storageSuffix = userId ? `_${userId}` : '_anonymous';
+    this.historyStorageKey = `chatbot_history${storageSuffix}`;
+    this.businessNameStorageKey = `chatbot_business_name${storageSuffix}`;
     this.openRouter = new OpenRouterService();
     this.loadPersistedData();
   }
@@ -26,7 +31,7 @@ export class ChatbotService {
   private loadPersistedData() {
     try {
       // Load chat history
-      const savedHistory = localStorage.getItem(this.CHAT_HISTORY_KEY);
+      const savedHistory = localStorage.getItem(this.historyStorageKey);
       if (savedHistory) {
         const parsedHistory = JSON.parse(savedHistory);
         if (Array.isArray(parsedHistory)) {
@@ -35,7 +40,7 @@ export class ChatbotService {
       }
 
       // Load business name
-      const savedBusinessName = localStorage.getItem(this.BUSINESS_NAME_KEY);
+      const savedBusinessName = localStorage.getItem(this.businessNameStorageKey);
       if (savedBusinessName) {
         this.businessName = savedBusinessName;
       }
@@ -57,10 +62,10 @@ export class ChatbotService {
     try {
       // Save chat history (keep only last 50 messages to avoid storage bloat)
       const recentHistory = this.history.slice(-50);
-      localStorage.setItem(this.CHAT_HISTORY_KEY, JSON.stringify(recentHistory));
+      localStorage.setItem(this.historyStorageKey, JSON.stringify(recentHistory));
       
       // Save business name
-      localStorage.setItem(this.BUSINESS_NAME_KEY, this.businessName);
+      localStorage.setItem(this.businessNameStorageKey, this.businessName);
       
       console.log('🤖 Saved chat data:', { messages: recentHistory.length });
     } catch (error) {
@@ -249,23 +254,20 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
 
   private async queryDatabase(intent: string, message: string, userId: string): Promise<any> {
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration missing');
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        return {
+          text: 'Untuk mengakses data asli, silakan login terlebih dahulu.',
+          type: 'error'
+        };
       }
-
-      // Use Supabase client to make authenticated request to Edge Function
-      // Import dynamically to avoid bundle issues
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
 
       // Call the Edge Function - Supabase will automatically include auth headers
       const { data, error } = await supabase.functions.invoke('chatbot-query', {
         body: {
           intent,
           message,
+          userId,
           context: {
             currentPage: this.detectCurrentPage(),
             businessName: this.businessName
@@ -294,8 +296,8 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
   // Clear all persisted data
   clearPersistedData() {
     try {
-      localStorage.removeItem(this.CHAT_HISTORY_KEY);
-      localStorage.removeItem(this.BUSINESS_NAME_KEY);
+      localStorage.removeItem(this.historyStorageKey);
+      localStorage.removeItem(this.businessNameStorageKey);
       console.log('🤖 All persisted chat data cleared');
     } catch (error) {
       console.warn('🤖 Failed to clear persisted data:', error);
@@ -333,16 +335,13 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
 
   private async performDatabaseAction(intent: string, message: string, userId: string): Promise<any> {
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration missing');
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session) {
+        return {
+          text: 'Silakan login untuk menjalankan aksi pada data Anda.',
+          type: 'error'
+        };
       }
-
-      // Use Supabase client to make authenticated request to Edge Function
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
 
       // Call the Edge Function for actions
       const { data, error } = await supabase.functions.invoke('chatbot-action', {

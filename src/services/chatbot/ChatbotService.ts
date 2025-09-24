@@ -478,33 +478,10 @@ Consider context, synonyms, and natural language variations. Return only the int
       return 'report';
     }
 
-    if (msg.includes('tambah pesanan') || msg.includes('buat pesanan') || msg.includes('create order') || msg.includes('beli')) {
-      return 'orderCreate';
+    return 'general';      return 'report';
     }
 
-    if (msg.includes('hapus pesanan') || msg.includes('delete order') || msg.includes('cancel order')) {
-      return 'orderDelete';
-    }
-
-    if (msg.includes('update stok') || msg.includes('ubah stok') || msg.includes('change stock')) {
-      return 'inventoryUpdate';
-    }
-
-    if (msg.includes('tambah resep') || msg.includes('buat resep') || msg.includes('create recipe')) {
-      return 'recipeCreate';
-    }
-
-    if (msg.includes('tambah promo') || msg.includes('buat promo') || msg.includes('create promo')) {
-      return 'promoCreate';
-    }
-
-    if (msg.includes('tambah pembelian') || msg.includes('beli bahan') || msg.includes('purchase')) {
-      return 'purchase';
-    }      return 'report';
-    }
-
-    return 'general';
-  }  }
+    return 'general';  }  }
     const intents = {
       greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
       orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan', 'daftar pesanan'],

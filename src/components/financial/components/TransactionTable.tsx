@@ -287,6 +287,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   onSelectAll,
   isAllSelected = false,
 }: TransactionTableProps) => {
+  const { formatCurrency } = useCurrency();
   const isMobile = useIsMobile();
   const { user } = useAuth();
   const { suppliers } = useSupplier();
@@ -414,7 +415,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
                     isAllSelected={isAllSelected}
                     onSelectAll={onSelectAll}
                     onSelectionChange={onSelectionChange}
-                    onEditTransaction={onEditTransaction}
+                    onEditTransaction={onAddTransaction ? (transaction) => onAddTransaction() : undefined}
                     onDeleteTransaction={handleDeleteTransaction}
                     isDeleting={isDeleting}
                     getDisplayDescription={getDisplayDescription}
@@ -436,7 +437,7 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
                       isSelected={selectedIds.includes(transaction.id)}
                       isSelectionMode={isSelectionMode}
                       onSelectionChange={onSelectionChange}
-                      onEdit={() => onEditTransaction?.(transaction)}
+                      onEdit={() => onAddTransaction?.()}
                       onDelete={() => handleDeleteTransaction(transaction)}
                       isDeleting={isDeleting}
                     />
@@ -510,6 +511,6 @@ const TransactionTableCore: React.FC<TransactionTableProps> = ({
   );
 };
 
-const TransactionTable = createSmartMemo(TransactionTableComponent, ['transactions', 'dateRange'], 'TransactionTable');
+const TransactionTable = createSmartMemo(TransactionTableCore, ['transactions', 'dateRange'], 'TransactionTable');
 
 export default TransactionTable;

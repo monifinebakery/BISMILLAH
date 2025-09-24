@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Recipe, NewRecipe } from "@/components/recipe/types";
+import { normalizeBahanResep } from '@/components/recipe/services/recipeUtils';
 import { toast } from "sonner";
 import { Info } from 'lucide-react';
 
@@ -67,11 +68,13 @@ const EnhancedRecipeFormRefactored = ({ initialData, onSave, onCancel }: Enhance
         kategoriResep: r.kategoriResep ?? r.kategori_resep ?? '',
         deskripsi: r.deskripsi ?? '',
         fotoUrl: r.fotoUrl ?? r.foto_url ?? '',
-        bahanResep: Array.isArray(r.bahanResep)
-          ? [...r.bahanResep]
-          : Array.isArray(r.bahan_resep)
-            ? [...r.bahan_resep]
-            : [],
+        bahanResep: normalizeBahanResep(
+          Array.isArray(r.bahanResep)
+            ? r.bahanResep
+            : Array.isArray(r.bahan_resep)
+              ? r.bahan_resep
+              : []
+        ),
         biayaTenagaKerja: r.biayaTenagaKerja ?? r.biaya_tenaga_kerja ?? 0,
         biayaOverhead: r.biayaOverhead ?? r.biaya_overhead ?? 0,
         marginKeuntunganPersen: r.marginKeuntunganPersen ?? r.margin_keuntungan_persen ?? 30,

@@ -28,7 +28,7 @@ const CostCalculationStep = React.lazy(() =>
     })
 );
 // Utils and types
-import { validateRecipeData, calculateHPP } from '../../services/recipeUtils';
+import { validateRecipeData, calculateHPP, normalizeBahanResep } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
 import {
@@ -187,11 +187,13 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
           kategoriResep: r.kategoriResep ?? r.kategori_resep ?? '',
           deskripsi: r.deskripsi ?? '',
           fotoUrl: r.fotoUrl ?? r.foto_url ?? '',
-          bahanResep: Array.isArray(r.bahanResep)
-            ? [...r.bahanResep]
+        bahanResep: normalizeBahanResep(
+          Array.isArray(r.bahanResep)
+            ? r.bahanResep
             : Array.isArray(r.bahan_resep)
-              ? [...r.bahan_resep]
-              : [],
+              ? r.bahan_resep
+              : []
+        ),
           biayaTenagaKerja: r.biayaTenagaKerja ?? r.biaya_tenaga_kerja ?? 0,
           biayaOverhead: r.biayaOverhead ?? r.biaya_overhead ?? 0,
           marginKeuntunganPersen: r.marginKeuntunganPersen ?? r.margin_keuntungan_persen ?? 0,

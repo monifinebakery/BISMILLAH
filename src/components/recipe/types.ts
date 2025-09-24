@@ -8,6 +8,10 @@ export interface BahanResep {
   harga_satuan: number;
   total_harga: number;
   warehouse_id?: string; // Tambahkan ini
+  // Bidang camelCase dipertahankan untuk kompatibilitas dengan form lama
+  hargaSatuan?: number;
+  totalHarga?: number;
+  warehouseId?: string;
 }
 
 // Database format (snake_case)

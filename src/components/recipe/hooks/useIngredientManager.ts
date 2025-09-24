@@ -63,13 +63,20 @@ export const useIngredientManager = ({
       return;
     }
 
+    const hargaSatuan = Number(selectedBahan.hargaSatuan) || 0;
+    const totalHarga = hargaSatuan * newIngredient.jumlah;
+
     const ingredientToAdd: BahanResep = {
       id: selectedBahan.id,
       nama: selectedBahan.nama,
       jumlah: newIngredient.jumlah,
       satuan: selectedBahan.satuan,
-      hargaSatuan: selectedBahan.hargaSatuan,
-      totalHarga: selectedBahan.hargaSatuan * newIngredient.jumlah,
+      harga_satuan: hargaSatuan,
+      hargaSatuan,
+      total_harga: totalHarga,
+      totalHarga,
+      warehouse_id: selectedBahan.id,
+      warehouseId: selectedBahan.id,
     };
 
     setFormData(prev => ({
@@ -108,10 +115,16 @@ export const useIngredientManager = ({
       ...prev,
       bahanResep: prev.bahanResep.map(item => {
         if (item.id === ingredientId) {
+          const currentPrice = Number(item.harga_satuan ?? item.hargaSatuan) || 0;
+          const newTotal = currentPrice * newQuantity;
+
           return {
             ...item,
             jumlah: newQuantity,
-            totalHarga: item.hargaSatuan * newQuantity
+            harga_satuan: currentPrice,
+            hargaSatuan: currentPrice,
+            total_harga: newTotal,
+            totalHarga: newTotal
           };
         }
         return item;
@@ -123,13 +136,20 @@ export const useIngredientManager = ({
     let hasChanges = false;
     const updatedIngredients = formData.bahanResep.map(ingredient => {
       const currentBahan = bahanBaku.find(b => b.id === ingredient.id);
-      if (currentBahan && currentBahan.hargaSatuan !== ingredient.hargaSatuan) {
-        hasChanges = true;
-        return {
-          ...ingredient,
-          hargaSatuan: currentBahan.hargaSatuan,
-          totalHarga: ingredient.jumlah * currentBahan.hargaSatuan,
-        };
+      if (currentBahan) {
+        const hargaSatuanTerbaru = Number(currentBahan.hargaSatuan) || 0;
+        const hargaSatuanLama = Number(ingredient.harga_satuan ?? ingredient.hargaSatuan) || 0;
+
+        if (hargaSatuanTerbaru !== hargaSatuanLama) {
+          hasChanges = true;
+          return {
+            ...ingredient,
+            harga_satuan: hargaSatuanTerbaru,
+            hargaSatuan: hargaSatuanTerbaru,
+            total_harga: ingredient.jumlah * hargaSatuanTerbaru,
+            totalHarga: ingredient.jumlah * hargaSatuanTerbaru,
+          };
+        }
       }
       return ingredient;
     });

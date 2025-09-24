@@ -70,7 +70,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     description: 'Produk dengan unit terjual paling sedikit',
     getValue: (product) => safeNumber(product.quantity),
     formatValue: (value) => `${safeNumber(value).toLocaleString('id-ID')} unit`,
-    getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue)),
+    getSecondaryInfo: (product) => `Rp ${safeNumber(product.revenue).toLocaleString('id-ID')}`,
     getWarningLevel: (value) => value < 5 ? 'high' : value < 20 ? 'medium' : 'low'
   },
   revenue: {
@@ -79,7 +79,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <DollarSign className="h-4 w-4" />,
     description: 'Produk dengan total pendapatan paling rendah',
     getValue: (product) => safeNumber(product.revenue),
-    formatValue: (value) => formatCurrency(value),
+    formatValue: (value) => `Rp ${value.toLocaleString('id-ID')}`,
     getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`,
     getWarningLevel: (value) => value < 100000 ? 'high' : value < 500000 ? 'medium' : 'low'
   },
@@ -89,7 +89,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <TrendingDown className="h-4 w-4" />,
     description: 'Produk dengan profit bersih paling rendah',
     getValue: (product) => safeNumber(product.profit),
-    formatValue: (value) => formatCurrency(value),
+    formatValue: (value) => `Rp ${value.toLocaleString('id-ID')}`,
     getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`,
     getWarningLevel: (value) => value < 50000 ? 'high' : value < 200000 ? 'medium' : 'low'
   },
@@ -109,7 +109,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
       return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
     formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
-    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`,
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • Rp ${safeNumber(product.revenue).toLocaleString('id-ID')}`,
     getWarningLevel: (value) => value < 10 ? 'high' : value < 30 ? 'medium' : 'low'
   }
 };
@@ -139,7 +139,7 @@ const ProductItem: React.FC<{
 
   // Warning indicator styling
   const getWarningStyle = (level: 'high' | 'medium' | 'low') => {
-  const { formatCurrency } = useCurrency();    switch (level) {
+    switch (level) {
       case 'high': return 'bg-red-500';
       case 'medium': return 'bg-yellow-500';
       case 'low': return 'bg-orange-500';
@@ -147,7 +147,7 @@ const ProductItem: React.FC<{
   };
 
   const getWarningIcon = (level: 'high' | 'medium' | 'low') => {
-  const { formatCurrency } = useCurrency();    switch (level) {
+    switch (level) {
       case 'high': return <AlertCircle className="h-3 w-3 text-red-600" />;
       case 'medium': return <AlertTriangle className="h-3 w-3 text-yellow-600" />;
       case 'low': return <TrendingDown className="h-3 w-3 text-orange-600" />;
@@ -312,7 +312,6 @@ const WorstSellingProducts: React.FC<Props> = ({
   // 📊 Sort products based on selected option (ascending for worst)
   const sortedProducts = useMemo(() => {
     if (isLoading || !products.length) return products;
-  const { formatCurrency } = useCurrency();    if (isLoading || !products.length) return products;
     
     const config = sortConfigs[sortBy];
     return [...products].sort((a, b) => config.getValue(a) - config.getValue(b)); // Ascending for worst
@@ -326,7 +325,7 @@ const WorstSellingProducts: React.FC<Props> = ({
 
   // 📋 Current page products
   const currentProducts = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (isLoading) {
+    if (isLoading) {
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
         name: '',
@@ -340,7 +339,7 @@ const WorstSellingProducts: React.FC<Props> = ({
 
   // 🎯 Handle pagination
   const handlePageChange = (direction: 'prev' | 'next') => {
-  const { formatCurrency } = useCurrency();    if (direction === 'prev' && paginationInfo.hasPrev) {
+    if (direction === 'prev' && paginationInfo.hasPrev) {
       onPageChange(paginationInfo.currentPage - 1);
     } else if (direction === 'next' && paginationInfo.hasNext) {
       onPageChange(paginationInfo.currentPage + 1);

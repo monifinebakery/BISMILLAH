@@ -146,7 +146,7 @@ export class ChatbotService {
       const normalizedMessage = this.normalizeMessage(message);
       const intent = this.detectIntent(normalizedMessage);
 
-      console.log('🤖 Processing message:', { intent, userId, normalizedMessage });
+      console.log('🤖 Processing message:', { intent, userId, normalizedMessage, serviceUserId: this.userId });
 
       // Check if this intent requires database query (read operations)
       const readIntents = ['orderSearch', 'inventory', 'report', 'cost'];
@@ -221,7 +221,7 @@ export class ChatbotService {
           canSearchOrders: !!userId,
           canGenerateReports: !!userId
         },
-        systemPrompt: this.getEnhancedSystemPrompt()
+        systemPrompt: this.getEnhancedSystemPrompt(userId) // Pass userId to system prompt
       });
 
       const responseTime = Date.now() - startTime;
@@ -484,8 +484,8 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
   }
 
   // Enhanced system prompt for natural conversation with action awareness
-  private getEnhancedSystemPrompt(): string {
-    const isLoggedIn = !!this.userId;
+  private getEnhancedSystemPrompt(currentUserId?: string): string {
+    const isLoggedIn = !!currentUserId; // Use current userId instead of this.userId
 
     return `You are a helpful AI assistant for ${this.businessName}, a bakery management system.
 

@@ -191,7 +191,17 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     // Query bahan_baku table using validated schema fields
     let query = supabase
       .from('bahan_baku')
-      .select('id, nama, stok, satuan, minimum, harga_satuan, harga_rata_rata, kategori, supplier')
+      .select(`
+        id,
+        nama,
+        stok,
+        satuan,
+        minimum,
+        harga_satuan,
+        harga_rata_rata,
+        kategori,
+        supplier_relasi:suppliers ( id, nama )
+      `)
       .eq('user_id', userId);
 
     if (materialName) {
@@ -230,7 +240,8 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       const priceInfo = priceSource != null ? `\n• Harga per unit: ${formatCurrency(priceSource)}` : '';
       const minInfo = item.minimum ? `\n• Stok minimum: ${item.minimum} ${item.satuan}` : '';
       const categoryInfo = item.kategori ? `\n• Kategori: ${item.kategori}` : '';
-      const supplierInfo = item.supplier ? `\n• Supplier: ${item.supplier}` : '';
+      const supplierName = item.supplier_relasi?.nama || null;
+      const supplierInfo = supplierName ? `\n• Supplier: ${supplierName}` : '';
 
       inventoryList = stockInfo + priceInfo + minInfo + categoryInfo + supplierInfo;
     } else {
@@ -239,7 +250,9 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
         const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
         const priceSource = item.harga_satuan ?? item.harga_rata_rata;
         const priceInfo = priceSource != null ? ` - ${formatCurrency(priceSource)}` : '';
-        return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})${priceInfo}`;
+        const supplierName = item.supplier_relasi?.nama || null;
+        const supplierInfo = supplierName ? ` (${supplierName})` : '';
+        return `• ${item.nama}: ${item.stok} ${item.satuan} (${status})${priceInfo}${supplierInfo}`;
       }).join('\n');
     }
 

@@ -159,14 +159,26 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
     // Extract order info from message
     const orderInfo = extractOrderInfo(message);
     if (!orderInfo.customerName || !orderInfo.totalAmount) {
+      console.log('🤖 Missing required info. Customer:', orderInfo.customerName, 'Amount:', orderInfo.totalAmount);
       return {
         type: 'error',
-        text: '❌ Informasi pesanan tidak lengkap. Format: "tambah pesanan untuk [nama customer] senilai [jumlah]"'
+        text: '❌ Informasi pesanan tidak lengkap. Format yang benar:\n• "tambah pesanan untuk [nama customer] senilai [jumlah]"\n• "buat pesanan [produk] untuk [nama] [jumlah]"\n\nContoh: "tambah pesanan donat untuk Bu Rika senilai 5000"'
       };
     }
 
-    // Generate order number
-    const orderNumber = `ORD-${Date.now().toString().slice(-6)}`;
+    // Generate order number with date
+    const now = new Date();
+    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, ''); // YYYYMMDD
+    const timeStr = now.toISOString().slice(11, 19).replace(/:/g, ''); // HHMMSS
+    const orderNumber = `ORD-${dateStr}-${timeStr.slice(-4)}`; // ORD-20250924-2100
+
+    console.log('🤖 Creating order with data:', {
+      userId,
+      orderNumber,
+      customerName: orderInfo.customerName,
+      totalAmount: orderInfo.totalAmount,
+      product: orderInfo.product
+    });
 
     // Create order record
     const { data: order, error } = await supabase
@@ -176,7 +188,8 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
         nomor_pesanan: orderNumber,
         nama_pelanggan: orderInfo.customerName,
         total_pesanan: orderInfo.totalAmount,
-        status: 'draft' // Changed from 'pending' to 'draft' to match schema
+        status: 'draft',
+        catatan: orderInfo.product ? `Produk: ${orderInfo.product}` : null
       })
       .select()
       .single();
@@ -190,14 +203,14 @@ async function handleOrderCreate(supabase: any, userId: string, message: string)
 
     return {
       type: 'success',
-      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n\nPesanan akan segera diproses.`
+      text: `✅ Pesanan berhasil dibuat!\n\n📋 Nomor Pesanan: ${order.nomor_pesanan}\n👤 Customer: ${order.nama_pelanggan}\n🛒 Produk: ${orderInfo.product || 'Produk bakery'}\n💰 Total: ${formatCurrency(order.total_pesanan)}\n📊 Status: ${getStatusText(order.status)}\n📅 Dibuat: ${now.toLocaleDateString('id-ID')} ${now.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}\n\nPesanan akan segera diproses.`
     };
 
   } catch (error) {
     console.error('Order create error:', error);
     return {
       type: 'error',
-      text: '❌ Gagal membuat pesanan baru.'
+      text: '❌ Gagal membuat pesanan baru. Pastikan format pesan sudah benar.'
     };
   }
 }
@@ -429,14 +442,53 @@ function extractPurchaseInfo(message: string): { supplier?: string; totalValue?:
   };
 }
 
-function extractOrderInfo(message: string): { customerName?: string; totalAmount?: number } {
-  const customerMatch = message.match(/(?:untuk|customer|pelanggan)\s+([a-zA-Z\s]+)/i);
-  const amountMatch = message.match(/(?:senilai|nilai|total|harga)\s+Rp?\s?([\d,]+)/i);
+function extractOrderInfo(message: string): { customerName?: string; totalAmount?: number; product?: string } {
+  console.log('🤖 Extracting order info from:', message);
 
-  return {
-    customerName: customerMatch ? customerMatch[1].trim() : undefined,
-    totalAmount: amountMatch ? parseInt(amountMatch[1].replace(/,/g, '')) : undefined
+  // More flexible customer name extraction
+  const customerPatterns = [
+    /(?:untuk|customer|pelanggan|nama)\s+([a-zA-Z\s]+)/i,
+    /(?:pesanan|order)\s+([a-zA-Z\s]+?)(?:\s+senilai|\s+harga|\s+donat|\s+roti|\s+kue)/i,
+    /([A-Z][a-z]+\s+[A-Z][a-z]+)/  // Name pattern like "Bu Rika"
+  ];
+
+  let customerName;
+  for (const pattern of customerPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      customerName = match[1].trim();
+      break;
+    }
+  }
+
+  // More flexible amount extraction
+  const amountPatterns = [
+    /(?:senilai|nilai|total|harga|rp)\s+([\d,]+)/i,
+    /([\d,]+)(?:\s+ribu|\s+rb)?(?:\s+rupiah)?/i,
+    /rp?\s?([\d,]+)/i
+  ];
+
+  let totalAmount;
+  for (const pattern of amountPatterns) {
+    const match = message.match(pattern);
+    if (match) {
+      totalAmount = parseInt(match[1].replace(/,/g, ''));
+      break;
+    }
+  }
+
+  // Extract product information
+  const productMatch = message.match(/(?:pesanan|order|beli)\s+([a-zA-Z\s]+?)(?:\s+untuk|\s+senilai|\s+harga|$)/i);
+  const product = productMatch ? productMatch[1].trim() : 'Produk bakery';
+
+  const result = {
+    customerName,
+    totalAmount,
+    product
   };
+
+  console.log('🤖 Extracted order info:', result);
+  return result;
 }
 
 function extractOrderDeleteInfo(message: string): { orderId?: string; customerName?: string } {

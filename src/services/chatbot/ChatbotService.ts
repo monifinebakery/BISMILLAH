@@ -197,10 +197,10 @@ export class ChatbotService {
   private detectIntent(message: string): string {
     const intents = {
       greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
-      orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan'],
+      orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan', 'daftar pesanan'],
       inventory: ['stok', 'inventory', 'stock', 'update stok', 'cek stok', 'inventory'],
       purchase: ['tambah pembelian', 'beli bahan', 'purchase', 'add purchase', 'buat pembelian'],
-      orderCreate: ['tambah pesanan', 'buat pesanan', 'create order', 'add order'],
+      orderCreate: ['tambah pesanan', 'buat pesanan', 'create order', 'add order', 'pesan', 'order', 'beli donat', 'beli roti', 'beli kue'],
       orderDelete: ['hapus pesanan', 'delete order', 'remove order', 'cancel order'],
       inventoryUpdate: ['update stok', 'ubah stok', 'change stock', 'modify inventory'],
       recipeCreate: ['tambah resep', 'buat resep', 'add recipe', 'create recipe'],
@@ -210,6 +210,18 @@ export class ChatbotService {
       cost: ['biaya', 'cost', 'operational', 'tambah biaya', 'add cost'],
       help: ['help', 'bantuan', 'tolong', 'cara', 'how to']
     };
+
+    // Special handling for order creation - more flexible detection
+    const orderCreateKeywords = ['tambah pesanan', 'buat pesanan', 'create order', 'add order', 'pesan', 'order baru'];
+    if (orderCreateKeywords.some(keyword => message.toLowerCase().includes(keyword))) {
+      return 'orderCreate';
+    }
+
+    // Check for product ordering patterns
+    const productOrderPattern = /(?:beli|pesan)\s+(?:donat|roti|kue|produk|cake)/i;
+    if (productOrderPattern.test(message) && (message.includes('untuk') || message.includes('senilai') || /\d+/.test(message))) {
+      return 'orderCreate';
+    }
 
     for (const [intent, keywords] of Object.entries(intents)) {
       if (keywords.some(keyword => message.includes(keyword))) {

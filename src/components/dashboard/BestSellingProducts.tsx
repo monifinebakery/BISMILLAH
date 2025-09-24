@@ -11,7 +11,7 @@ import { safeNumber, safeMultiply } from '@/utils/safeMath';
 
 // 🔧 Local pagination calculation utility
 const calculatePagination = (currentPage: number, totalItems: number, itemsPerPage: number) => {
-  const { formatCurrency } = useCurrency();  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   
@@ -117,7 +117,7 @@ const ProductItem: React.FC<{
 
   // Rank badge styling
   const getRankBadgeStyle = (rank: number) => {
-  const { formatCurrency } = useCurrency();    switch (rank) {
+    switch (rank) {
       case 1: return 'bg-gradient-to-r from-yellow-400 to-orange-400'; // Gold
       case 2: return 'bg-gradient-to-r from-gray-400 to-gray-500'; // Silver  
       case 3: return 'bg-gradient-to-r from-orange-400 to-yellow-600'; // Bronze
@@ -224,7 +224,7 @@ const BestSellingProducts: React.FC<Props> = ({
 
   // 📋 Current page products
   const currentProducts = useMemo(() => {
-  const { formatCurrency } = useCurrency();    if (isLoading) {
+    if (isLoading) {
       
       return Array(itemsPerPage).fill(null).map((_, index) => ({
         id: `skeleton-${index}`,
@@ -239,7 +239,7 @@ const BestSellingProducts: React.FC<Props> = ({
 
   // 🎯 Handle pagination
   const handlePageChange = (direction: 'prev' | 'next') => {
-  const { formatCurrency } = useCurrency();    if (direction === 'prev' && paginationInfo.hasPrev) {
+    if (direction === 'prev' && paginationInfo.hasPrev) {
       onPageChange(paginationInfo.currentPage - 1);
     } else if (direction === 'next' && paginationInfo.hasNext) {
       onPageChange(paginationInfo.currentPage + 1);

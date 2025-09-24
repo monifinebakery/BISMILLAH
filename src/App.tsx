@@ -175,7 +175,7 @@ const App = () => {
             {/* <OfflineIndicator /> */}
             
             {/* Floating Chatbot - Disabled in production */}
-            {import.meta.env.DEV && <FloatingChatbot />}
+            {(import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === "preview") && <FloatingChatbot />}
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

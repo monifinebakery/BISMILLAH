@@ -269,9 +269,12 @@ const MobileTransactionRow: React.FC<{
   );
 };
 
-const TransactionTableComponent = ({
+const TransactionTableCore: React.FC<TransactionTableProps> = ({
+  onEdit,
+  onDelete,
+  onStatusChange,
+  validateStatusChange,
   dateRange,
-  onEditTransaction,
   onAddTransaction,
   onDeleteTransaction,
   className,

@@ -165,6 +165,7 @@ const MobileOrderRow: React.FC<{
   onViewDetail,
   onStatusChange
 }) => {
+  const { formatCurrency } = useCurrency();
   const [isExpanded, setIsExpanded] = useState(false);
   const [showMobileActions, setShowMobileActions] = useState(false);
 

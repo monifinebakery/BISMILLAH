@@ -188,7 +188,28 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     // Extract material name from message
     const materialName = extractMaterialName(message);
 
-    // Query bahan_baku table using validated schema fields
+    // If material name found, validate if it exists in database
+    // If not found, treat as "show all materials"
+    let validatedMaterialName: string | null = null;
+    if (materialName) {
+      console.log('🤖 Checking if material exists:', materialName);
+      const { data: materialCheck, error: checkError } = await supabase
+        .from('bahan_baku')
+        .select('nama')
+        .eq('user_id', userId)
+        .ilike('nama', `%${materialName}%`)
+        .limit(1);
+
+      if (!checkError && materialCheck && materialCheck.length > 0) {
+        validatedMaterialName = materialName;
+        console.log('✅ Material found in database:', materialCheck[0].nama);
+      } else {
+        console.log('⚠️ Material not found, showing all materials instead');
+        validatedMaterialName = null; // Show all materials
+      }
+    }
+
+    // Query bahan_baku table using validated schema fields with fresh data
     let query = supabase
       .from('bahan_baku')
       .select(`
@@ -200,12 +221,13 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
         harga_satuan,
         harga_rata_rata,
         kategori,
-        supplier_relasi:suppliers ( id, nama )
+        supplier_relasi:suppliers ( id, nama ),
+        updated_at
       `)
       .eq('user_id', userId);
 
-    if (materialName) {
-      query = query.ilike('nama', `%${materialName}%`);
+    if (validatedMaterialName) {
+      query = query.ilike('nama', `%${validatedMaterialName}%`);
     }
 
     console.log('🤖 Executing inventory query...');
@@ -228,8 +250,8 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     if (!inventory || inventory.length === 0) {
       return {
         type: 'inventory',
-        text: materialName
-          ? `📦 Tidak ditemukan bahan "${materialName}" di warehouse.`
+        text: validatedMaterialName
+          ? `📦 Tidak ditemukan bahan "${validatedMaterialName}" di warehouse.`
           : '📦 Tidak ada data bahan baku di warehouse.',
         data: []
       };
@@ -239,14 +261,14 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     const lowStock = inventory.filter((item: any) => item.stok <= (item.minimum || 0));
 
     let inventoryList;
-    if (materialName) {
+    if (validatedMaterialName) {
       // Show specific material details
       const item = inventory[0];
       const status = item.stok <= (item.minimum || 0) ? '⚠️ PERLU RESTOCK' : '✅ OK';
-      const stockInfo = `• ${item.nama}: ${item.stok} ${item.satuan} (${status})`;
+      const stockInfo = `• ${item.nama}: ${formatStockValue(item.stok)} ${item.satuan} (${status})`;
       const priceSource = item.harga_satuan ?? item.harga_rata_rata;
       const priceInfo = priceSource != null ? `\n• Harga per unit: ${formatCurrency(priceSource)}` : '';
-      const minInfo = item.minimum ? `\n• Stok minimum: ${item.minimum} ${item.satuan}` : '';
+      const minInfo = item.minimum ? `\n• Stok minimum: ${formatStockValue(item.minimum)} ${item.satuan}` : '';
       const categoryInfo = item.kategori ? `\n• Kategori: ${item.kategori}` : '';
       const supplierName = item.supplier_relasi?.nama || null;
       const supplierInfo = supplierName ? `\n• Supplier: ${supplierName}` : '';
@@ -698,19 +720,13 @@ function extractMaterialName(message: string): string | null {
     /inventory\s+(\w+)/i
   ];
 
-  // Exclude common words that are not specific material names
-  const excludeWords = [
-    'baku', 'mentah', 'basah', 'kering', 'semua', 'all', 'list',
-    'apa', 'yang', 'dong', 'deh', 'ya', 'nah', 'kok', 'nih',
-    'hampir', 'abis', 'habis', 'kurang', 'sedikit', 'stok', 'cek', 'lihat'
-  ];
-
+  // Let NLP handle all word processing - no exclusion needed
   for (const pattern of patterns) {
     const match = message.match(pattern);
     if (match && match[1]) {
       const materialName = match[1].toLowerCase().trim();
-      // Skip if it's a common word or too generic
-      if (!excludeWords.includes(materialName) && materialName.length > 1) {
+      // Return any word found - let NLP decide if it's a valid material name
+      if (materialName.length > 0) {
         return match[1];
       }
     }
@@ -765,6 +781,21 @@ function getStatusText(status: string): string {
   return statusMap[status] || status;
 }
 
+function formatCurrency(amount: number): string {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+}
+
+function formatStockValue(value: number): string {
+  if (Number.isInteger(value)) {
+    return value.toString();
+  }
+  return value.toFixed(2).replace('.', ',');
+}
+
 // Data consistency validation function
 function validateDatabaseQueryAccuracy(data: any[], queryType: string, userId: string): { isAccurate: boolean, issues: string[] } {
   const issues: string[] = [];
@@ -795,12 +826,4 @@ function validateDatabaseQueryAccuracy(data: any[], queryType: string, userId: s
   }
 
   return { isAccurate, issues };
-}
-
-function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount);
 }

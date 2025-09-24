@@ -406,7 +406,7 @@ async function handlePromoCreate(supabase: any, userId: string, message: string)
       .from('promos')
       .insert({
         user_id: userId,
-        nama: promoInfo.name,
+        nama_promo: promoInfo.name, // Changed from 'nama' to 'nama_promo' to match schema
         diskon_persen: promoInfo.discountPercent,
         diskon_rupiah: promoInfo.discountAmount,
         tanggal_mulai: promoInfo.startDate || new Date().toISOString(),
@@ -429,7 +429,7 @@ async function handlePromoCreate(supabase: any, userId: string, message: string)
 
     return {
       type: 'success',
-      text: `✅ Promo berhasil dibuat!\n\n🎉 Nama Promo: ${promo.nama}\n💰 Diskon: ${discountText}\n📅 Mulai: ${new Date(promo.tanggal_mulai).toLocaleDateString('id-ID')}\n📅 Selesai: ${new Date(promo.tanggal_selesai).toLocaleDateString('id-ID')}\n📊 Status: ${getPromoStatusText(promo.status)}\n\nPromo telah aktif dan siap digunakan.`
+      text: `✅ Promo berhasil dibuat!\n\n🎉 Nama Promo: ${promo.nama_promo}\n💰 Diskon: ${discountText}\n📅 Mulai: ${new Date(promo.tanggal_mulai).toLocaleDateString('id-ID')}\n📅 Selesai: ${new Date(promo.tanggal_selesai).toLocaleDateString('id-ID')}\n📊 Status: ${getPromoStatusText(promo.status)}\n\nPromo telah aktif dan siap digunakan.`
     };
 
   } catch (error) {

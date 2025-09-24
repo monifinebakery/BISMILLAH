@@ -228,7 +228,9 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // ------------------- Stats (memo) -------------------
   const stats = useMemo(() => {
     const totalValue = (purchases as Purchase[]).reduce((sum: number, p: Purchase) => sum + Number(((p as any).totalNilai ?? (p as any).total_nilai ?? 0)), 0);
+    const total = (purchases as Purchase[]).length;
     const statusCounts = (purchases as Purchase[]).reduce((acc: Record<string, number>, p: Purchase) => {
+      acc[p.status] = (acc[p.status] || 0) + 1;
       return acc;
     }, {});
     return {
@@ -539,6 +541,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       
       // Enhanced item validation for better error reporting
       const invalid = p.items.filter((it: any) => {
+        const issues: string[] = [];
         if (!it.bahanBakuId) issues.push('ID bahan baku');
         if (!it.nama || !it.nama.trim()) issues.push('nama');
         // Use standardized field name 'quantity' (mapped from DB 'jumlah')
@@ -599,11 +602,11 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // Prasyarat data (buat tombol "Tambah")
   const validatePrerequisites = useCallback(() => {
-    if (!hasSuppliers) {
+    if (!suppliers || suppliers.length === 0) {
       toast.warning('Belum ada data supplier. Kamu bisa menambahkannya nanti.');
     }
     return true;
-  }, [suppliers?.length]);
+  }, [suppliers]);
 
   const refreshPurchases = useCallback(async () => {
     await queryClient.invalidateQueries({ 

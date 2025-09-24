@@ -217,10 +217,9 @@ Silakan ketik pertanyaan Anda!`;
 
         {/* Messages */}
         <CardContent className="flex-1 p-0 overflow-hidden">
-          <div className="flex h-full flex-col">
-            <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0">
-              <div className="space-y-4">
-                {messages.map((message) => (
+          <div className="h-full overflow-y-auto px-4 py-4">
+            <div className="space-y-4">
+              {messages.map((message) => (
                   <div
                     key={message.id}
                     className={`flex gap-3 ${
@@ -268,9 +267,8 @@ Silakan ketik pertanyaan Anda!`;
                       </div>
                     </div>
                   </div>
-                ))}
-                <div ref={messagesEndRef} />
-              </div>
+              ))}
+              <div ref={messagesEndRef} />
             </div>
           </div>
         </CardContent>

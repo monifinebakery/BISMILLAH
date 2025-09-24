@@ -47,6 +47,7 @@ export class ChatbotService {
           }
         } catch (error) {
           console.warn('Database query failed, falling back to AI:', error);
+          // Continue to AI fallback
         }
       }
 
@@ -161,33 +162,27 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
         throw new Error('Supabase configuration missing');
       }
 
-      // Get auth token - this assumes user is authenticated
-      const token = localStorage.getItem('sb-access-token');
-      if (!token) {
-        throw new Error('User not authenticated');
-      }
+      // Use Supabase client to make authenticated request to Edge Function
+      // Import dynamically to avoid bundle issues
+      const { createClient } = await import('@supabase/supabase-js');
+      const supabase = createClient(supabaseUrl, supabaseKey);
 
-      const response = await fetch(`${supabaseUrl}/functions/v1/chatbot-query`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      // Call the Edge Function - Supabase will automatically include auth headers
+      const { data, error } = await supabase.functions.invoke('chatbot-query', {
+        body: {
           intent,
           message,
           context: {
             currentPage: this.detectCurrentPage(),
             businessName: this.businessName
           }
-        })
+        }
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      if (error) {
+        throw error;
       }
 
-      const data = await response.json();
       return data;
 
     } catch (error) {

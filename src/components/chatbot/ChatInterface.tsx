@@ -93,7 +93,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
     updateMessage(loadingId, { isLoading: true });
 
     try {
-      const response = await chatbotService.processMessage(userMessage);
+      const response = await chatbotService.processMessage(userMessage, user?.id);
 
       // Remove loading message and add actual response
       setMessages(prev => prev.filter(msg => msg.id !== loadingId));

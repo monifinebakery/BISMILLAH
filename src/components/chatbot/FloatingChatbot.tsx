@@ -24,7 +24,7 @@ export const FloatingChatbot: React.FC = () => {
             h-14 w-14 rounded-full shadow-lg transition-all duration-300 hover:scale-110
             ${isOpen
               ? 'bg-red-500 hover:bg-red-600 rotate-180'
-              : 'bg-blue-500 hover:bg-blue-600'
+              : 'bg-orange-500 hover:bg-orange-600'
             }
           `}
           title={isOpen ? 'Tutup chat' : 'Buka chat assistant'}
@@ -39,7 +39,7 @@ export const FloatingChatbot: React.FC = () => {
         {/* Status indicator */}
         {!isOpen && (
           <div className="absolute -top-2 -right-2">
-            <Badge variant="secondary" className="h-6 w-6 p-0 flex items-center justify-center bg-green-500 border-2 border-white">
+            <Badge variant="secondary" className="h-6 w-6 p-0 flex items-center justify-center bg-orange-500 border-2 border-white">
               <Bot className="h-3 w-3 text-white" />
             </Badge>
           </div>

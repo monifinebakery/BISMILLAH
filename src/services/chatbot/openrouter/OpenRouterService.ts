@@ -6,10 +6,29 @@ export class OpenRouterService {
 
   constructor(apiKey?: string) {
     this.apiKey = apiKey || import.meta.env.VITE_OPENROUTER_API_KEY;
+    
+    // Environment detection
+    const isDev = import.meta.env.DEV;
+    const isProd = import.meta.env.PROD;
+    
+    console.log('🌍 Environment:', {
+      isDev,
+      isProd,
+      mode: import.meta.env.MODE,
+      hasApiKey: !!this.apiKey
+    });
   }
 
   async generateResponse(message: string, context: any = {}): Promise<any> {
     try {
+      // Debug logging
+      console.log('🤖 Chatbot API Key:', this.apiKey ? 'Present' : 'Missing');
+      console.log('🤖 Processing message:', message);
+
+      if (!this.apiKey) {
+        throw new Error('OpenRouter API key not found');
+      }
+
       const messages = [
         {
           role: 'system',
@@ -21,11 +40,15 @@ export class OpenRouterService {
         }
       ];
 
+      console.log('🤖 Sending request to OpenRouter...');
+
       const response = await fetch(`${this.baseUrl}/chat/completions`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${this.apiKey}`,
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'HTTP-Referer': 'https://monifine.my.id',
+          'X-Title': 'BISMILLAH Bakery'
         },
         body: JSON.stringify({
           model: 'x-ai/grok-4-fast:free',
@@ -35,22 +58,58 @@ export class OpenRouterService {
         })
       });
 
+      console.log('🤖 Response status:', response.status);
+
       if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
+        const errorText = await response.text();
+        console.error('🤖 API Error:', errorText);
+        throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
 
       const data = await response.json();
+      console.log('🤖 Response received:', data);
+
+      if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+        throw new Error('Invalid response format from OpenRouter');
+      }
+
       return {
         text: data.choices[0].message.content,
         type: 'text'
       };
     } catch (error) {
-      console.error('OpenRouter error:', error);
+      console.error('🤖 OpenRouter error:', error);
+      
+      // Fallback response berdasarkan intent
+      const fallbackResponse = this.getFallbackResponse(message);
+      
       return {
-        text: 'Maaf, terjadi kesalahan sistem. Silakan coba lagi.',
-        type: 'error'
+        text: fallbackResponse,
+        type: 'fallback'
       };
     }
+  }
+
+  private getFallbackResponse(message: string): string {
+    const lowerMessage = message.toLowerCase();
+    
+    if (lowerMessage.includes('halo') || lowerMessage.includes('hai')) {
+      return '👋 Halo! Maaf, sistem AI sedang mengalami gangguan. Saya akan membantu dengan kemampuan terbatas. Ada yang bisa dibantu?';
+    }
+    
+    if (lowerMessage.includes('pesanan')) {
+      return '📋 Maaf, fitur pencarian pesanan sedang tidak tersedia. Silakan cek langsung di menu Orders atau hubungi admin.';
+    }
+    
+    if (lowerMessage.includes('stok')) {
+      return '📦 Maaf, fitur update stok sedang tidak tersedia. Silakan cek langsung di menu Inventory atau hubungi admin.';
+    }
+    
+    if (lowerMessage.includes('darurat') || lowerMessage.includes('kebakaran')) {
+      return '🚨 DARURAT TERDETEKSI!\n\n📞 Hubungi segera: +62812-3456-7890\n🏥 Pastikan keselamatan Anda!';
+    }
+    
+    return '🤖 Maaf, sistem AI sedang mengalami gangguan. Silakan coba lagi nanti atau hubungi admin untuk bantuan.';
   }
 
   private buildSystemPrompt(context: any = {}): string {

@@ -128,9 +128,9 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
   return (
     <div className="fixed bottom-4 right-4 z-50">
-      <Card className="w-96 h-[600px] shadow-lg border-2">
+      <Card className="w-[450px] h-[700px] shadow-xl border-2 border-orange-200">
         {/* Header */}
-        <CardHeader className="pb-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-lg">
+        <CardHeader className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
@@ -164,7 +164,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
         {/* Messages */}
         <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-80 p-4">
+          <ScrollArea className="h-96 p-4">
             <div className="space-y-4">
               {messages.map((message) => (
                 <div
@@ -177,7 +177,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
                   <Avatar className={`h-8 w-8 ${message.sender === 'user' ? 'order-2' : 'order-1'}`}>
                     <AvatarFallback className={
                       message.sender === 'user'
-                        ? 'bg-blue-500 text-white'
+                        ? 'bg-orange-500 text-white'
                         : 'bg-gray-500 text-white'
                     }>
                       {message.sender === 'user' ? <User className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
@@ -188,7 +188,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
                   <div
                     className={`max-w-[80%] rounded-lg px-3 py-2 ${
                       message.sender === 'user'
-                        ? 'bg-blue-500 text-white order-1'
+                        ? 'bg-orange-500 text-white order-1'
                         : 'bg-gray-100 text-gray-800'
                     }`}
                   >
@@ -205,7 +205,7 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
                     {/* Timestamp */}
                     <div className={`text-xs mt-1 ${
-                      message.sender === 'user' ? 'text-blue-100' : 'text-gray-500'
+                      message.sender === 'user' ? 'text-orange-100' : 'text-gray-500'
                     }`}>
                       {message.timestamp.toLocaleTimeString('id-ID', {
                         hour: '2-digit',

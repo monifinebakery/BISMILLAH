@@ -113,7 +113,7 @@ export class OpenRouterService {
   }
 
   private buildSystemPrompt(context: any = {}): string {
-    const businessInfo = context.businessInfo || 'BISMILLAH Bakery Management System';
+    const businessInfo = context.businessName || 'Bisnis Anda';
     const userRole = context.userRole || 'user';
     const currentPage = context.currentPage || 'Dashboard';
     const history = context.history || [];
@@ -184,7 +184,7 @@ FORMAT RESPONSE:
 CONTOH INTERAKSI:
 
 User: "halo"
-Assistant: "👋 Halo! Saya adalah asisten AI untuk BISMILLAH Bakery. Ada yang bisa saya bantu hari ini?"
+Assistant: "👋 Halo! Saya adalah asisten AI untuk ${businessInfo}. Ada yang bisa saya bantu hari ini?"
 
 User: "cari pesanan bu rina"
 Assistant: "🔍 Mencari pesanan atas nama Bu Rina...
@@ -217,7 +217,7 @@ Assistant: "📊 Laporan Penjualan Bulan ${new Date().toLocaleDateString('id-ID'
 
 💰 Total Penjualan: Rp 2.500.000
 📈 Growth: +15% dari bulan lalu
-.ravel Best Seller: Roti Tawar (50 pcs)
+🥖 Best Seller: Roti Tawar (50 pcs)
 ⚠️ Low Stock: Tepung, Gula
 
 📋 Detail lengkap tersedia di menu Reports.`;

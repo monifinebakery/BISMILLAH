@@ -1,8 +1,10 @@
 import { OpenRouterService } from './openrouter/OpenRouterService';
+import { UserSettings, useUserSettings } from '@/contexts/UserSettingsContext';
 
 export class ChatbotService {
   private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string}> = [];
+  private businessName: string = 'Bisnis Anda'; // Default fallback
   
   // Analytics tracking
   private analytics = {
@@ -14,6 +16,12 @@ export class ChatbotService {
 
   constructor() {
     this.openRouter = new OpenRouterService();
+  }
+
+  // Set business name for personalization
+  setBusinessName(name: string) {
+    this.businessName = name || 'Bisnis Anda';
+    console.log('🤖 Chatbot business name set to:', this.businessName);
   }
 
   async processMessage(message: string): Promise<any> {
@@ -49,7 +57,8 @@ export class ChatbotService {
       const response = await this.openRouter.generateResponse(message, {
         history: this.history.slice(-10), // Keep last 10 messages
         intent: intent,
-        currentPage: this.detectCurrentPage()
+        currentPage: this.detectCurrentPage(),
+        businessName: this.businessName // Pass business name for personalization
       });
 
       const responseTime = Date.now() - startTime;
@@ -162,10 +171,27 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
   }
 }
 
-// Singleton instance
-let chatbotInstance: ChatbotService | null = null;
+// Singleton instances per user
+const chatbotInstances = new Map<string, ChatbotService>();
 
-export const getChatbotService = (): ChatbotService => {
+export const getChatbotService = (userId?: string): ChatbotService => {
+  if (!userId) {
+    // Fallback for anonymous users
+    if (!chatbotInstances.has('anonymous')) {
+      chatbotInstances.set('anonymous', new ChatbotService());
+    }
+    return chatbotInstances.get('anonymous')!;
+  }
+
+  if (!chatbotInstances.has(userId)) {
+    chatbotInstances.set(userId, new ChatbotService());
+  }
+  return chatbotInstances.get(userId)!;
+};
+
+// Legacy method for backward compatibility (but should use getChatbotService(userId))
+let chatbotInstance: ChatbotService | null = null;
+export const getChatbotServiceLegacy = (): ChatbotService => {
   if (!chatbotInstance) {
     chatbotInstance = new ChatbotService();
   }

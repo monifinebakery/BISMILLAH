@@ -1,11 +1,10 @@
 import { OpenRouterService } from './openrouter/OpenRouterService';
-import { UserSettings, useUserSettings } from '@/contexts/UserSettingsContext';
 
 export class ChatbotService {
   private openRouter: OpenRouterService;
   private history: Array<{role: 'user' | 'assistant', content: string}> = [];
   private businessName: string = 'Bisnis Anda'; // Default fallback
-  
+
   // Analytics tracking
   private analytics = {
     totalConversations: 0,
@@ -24,7 +23,7 @@ export class ChatbotService {
     console.log('🤖 Chatbot business name set to:', this.businessName);
   }
 
-  async processMessage(message: string): Promise<any> {
+  async processMessage(message: string, userId?: string): Promise<any> {
     try {
       // Validate input
       if (!message.trim()) {
@@ -34,11 +33,27 @@ export class ChatbotService {
       // Pre-processing
       const normalizedMessage = this.normalizeMessage(message);
       const intent = this.detectIntent(normalizedMessage);
-      
+
+      // Check if this intent requires database query
+      const dataIntents = ['orderSearch', 'inventory', 'report', 'cost'];
+      if (dataIntents.includes(intent) && userId) {
+        try {
+          const dbResponse = await this.queryDatabase(intent, message, userId);
+          if (dbResponse && dbResponse.type !== 'error') {
+            // Add to history
+            this.history.push({ role: 'user', content: message });
+            this.history.push({ role: 'assistant', content: dbResponse.text });
+            return dbResponse;
+          }
+        } catch (error) {
+          console.warn('Database query failed, falling back to AI:', error);
+        }
+      }
+
       // Track analytics
       this.analytics.totalConversations++;
       this.analytics.popularCommands.set(
-        intent, 
+        intent,
         (this.analytics.popularCommands.get(intent) || 0) + 1
       );
 
@@ -52,7 +67,7 @@ export class ChatbotService {
       this.history.push({ role: 'user', content: message });
 
       const startTime = Date.now();
-      
+
       // Get response from Grok
       const response = await this.openRouter.generateResponse(message, {
         history: this.history.slice(-10), // Keep last 10 messages
@@ -95,13 +110,13 @@ export class ChatbotService {
       cost: ['biaya', 'cost', 'operational', 'tambah biaya', 'add cost'],
       help: ['help', 'bantuan', 'tolong', 'cara', 'how to']
     };
-    
+
     for (const [intent, keywords] of Object.entries(intents)) {
       if (keywords.some(keyword => message.includes(keyword))) {
         return intent;
       }
     }
-    
+
     return 'general';
   }
 
@@ -116,7 +131,7 @@ export class ChatbotService {
       'darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown',
       'bahaya', 'accident', 'bantuan segera', 'tolong segera', 'critical'
     ];
-    
+
     return emergencyWords.some(word => message.includes(word));
   }
 
@@ -137,6 +152,50 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
     };
   }
 
+  private async queryDatabase(intent: string, message: string, userId: string): Promise<any> {
+    try {
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
+      if (!supabaseUrl || !supabaseKey) {
+        throw new Error('Supabase configuration missing');
+      }
+
+      // Get auth token - this assumes user is authenticated
+      const token = localStorage.getItem('sb-access-token');
+      if (!token) {
+        throw new Error('User not authenticated');
+      }
+
+      const response = await fetch(`${supabaseUrl}/functions/v1/chatbot-query`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          intent,
+          message,
+          context: {
+            currentPage: this.detectCurrentPage(),
+            businessName: this.businessName
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return data;
+
+    } catch (error) {
+      console.error('Database query error:', error);
+      throw error;
+    }
+  }
+
   clearHistory() {
     this.history = [];
   }
@@ -148,8 +207,8 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
   getAnalytics() {
     return {
       ...this.analytics,
-      averageResponseTime: this.analytics.responseTimes.length > 0 
-        ? this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length 
+      averageResponseTime: this.analytics.responseTimes.length > 0
+        ? this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length
         : 0,
       topCommands: Array.from(this.analytics.popularCommands.entries())
         .sort((a, b) => b[1] - a[1])
@@ -160,11 +219,11 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
   // Auto-adjust rules based on analytics
   private adjustRulesBasedOnAnalytics() {
     const avgResponseTime = this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length;
-    
+
     if (avgResponseTime > 5000) { // Slow responses
       console.warn('⚠️ AI responses are slow. Consider using faster model.');
     }
-    
+
     if (this.analytics.emergencyCount > 10) { // High emergency count
       console.warn('🚨 High emergency count detected. Review safety protocols.');
     }

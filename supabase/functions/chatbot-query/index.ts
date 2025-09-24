@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { requireAuth } from "../_shared/middleware.ts";
+// import { requireAuth } from "../_shared/middleware.ts";
 
 interface ChatbotQueryRequest {
   intent: string;
@@ -144,18 +144,7 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🤖 Chatbot Edge Function called');
-    
-    // Require authentication
-    const authResult = await requireAuth(req);
-    if (authResult instanceof Response) {
-      console.log('🤖 Authentication failed');
-      return authResult;
-    }
-    const { user } = authResult;
-    console.log('🤖 Authenticated user:', user.id);
-
-    // Create Supabase client with user's context
+    // Create Supabase client with authorization header
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
       Deno.env.get("SUPABASE_ANON_KEY") ?? "",
@@ -167,6 +156,23 @@ serve(async (req) => {
         }
       }
     );
+
+    // Check authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError || !user) {
+      console.log('🤖 Authentication failed:', authError?.message);
+      return new Response(JSON.stringify({
+        error: 'Unauthorized',
+        type: 'error'
+      }), {
+        status: 401,
+        headers: {
+          ...corsHeaders,
+          "Content-Type": "application/json"
+        }
+      });
+    }
+    console.log('🤖 Authenticated user:', user.id);
 
     const { intent, message, context }: ChatbotQueryRequest = await req.json();
     console.log('🤖 Received request:', { intent, message, context });
@@ -205,9 +211,7 @@ serve(async (req) => {
         break;
       default:
         result = { type: 'general', text: 'Maaf, saya tidak mengerti permintaan tersebut.' };
-    }
-
-    return new Response(JSON.stringify(result), {
+    }    return new Response(JSON.stringify(result), {
       status: 200,
       headers: {
         ...corsHeaders,

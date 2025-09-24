@@ -212,8 +212,8 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       return {
         type: 'inventory',
         text: materialName
-          ? `📦 Tidak ditemukan bahan "${materialName}" di inventory.`
-          : '📦 Tidak ada data bahan baku di inventory.',
+          ? `📦 Tidak ditemukan bahan "${materialName}" di warehouse.`
+          : '📦 Tidak ada data bahan baku di warehouse.',
         data: []
       };
     }
@@ -240,7 +240,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
       }).join('\n');
     }
 
-    let text = `📦 ${materialName ? 'Detail Bahan' : 'Status Inventory Bahan Baku'}:\n\n${inventoryList}`;
+    let text = `📦 ${materialName ? 'Detail Bahan' : 'Status Warehouse Bahan Baku'}:\n\n${inventoryList}`;
 
     if (lowStock.length > 0 && !materialName) {
       text += `\n\n⚠️ ${lowStock.length} bahan perlu direstock segera!`;
@@ -256,7 +256,7 @@ async function handleInventoryQuery(supabase: any, userId: string, message: stri
     console.error('Inventory query error:', error);
     return {
       type: 'error',
-      text: 'Maaf, terjadi kesalahan saat mengakses data inventory.'
+      text: 'Maaf, terjadi kesalahan saat mengakses data warehouse.'
     };
   }
 }
@@ -616,6 +616,9 @@ function extractMaterialName(message: string): string | null {
   const patterns = [
     /stok\s+(\w+)/i,
     /cek\s+(\w+)/i,
+    /warehouse\s+(\w+)/i,
+    /gudang\s+(\w+)/i,
+    /bahan\s+(\w+)/i,
     /inventory\s+(\w+)/i
   ];
 

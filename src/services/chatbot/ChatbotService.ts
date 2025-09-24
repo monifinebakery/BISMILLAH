@@ -111,7 +111,7 @@ export class ChatbotService {
     const intents = {
       greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
       orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan'],
-      inventory: ['stok', 'inventory', 'stock', 'update stok', 'cek stok', 'inventory'],
+      inventory: ['stok', 'warehouse', 'gudang', 'bahan baku', 'cek stok', 'inventory'],
       report: ['laporan', 'report', 'sales', 'penjualan', 'keuangan', 'profit'],
       emergency: ['darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown'],
       cost: ['biaya', 'cost', 'operational', 'tambah biaya', 'add cost'],

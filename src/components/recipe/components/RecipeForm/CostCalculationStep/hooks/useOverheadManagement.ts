@@ -58,8 +58,8 @@ export const useOverheadManagement = ({
       return response.data;
     },
     enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: 15 * 60 * 1000, // 15 minutes - less aggressive
+    refetchOnWindowFocus: false, // Disable aggressive refetch
   });
 
   // Auto-calculate overhead when ingredients change

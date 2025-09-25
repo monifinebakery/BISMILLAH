@@ -8,14 +8,14 @@ export const useRecipesQuery = (userId?: string) => {
     queryKey: recipeQueryKeys.list(),
     queryFn: () => recipeApi.getRecipes(),
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
+    gcTime: 20 * 60 * 1000, // 20 minutes - longer cache retention
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduced retries for performance
     },
-    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: attemptIndex => Math.min(1000 * 2 ** attemptIndex, 15000),
   });
 };

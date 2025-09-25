@@ -219,14 +219,14 @@ export const AssetProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     queryKey: assetQueryKeys.list(user?.id),
     queryFn: () => fetchAssets(user!.id),
     enabled: !!user?.id,
-    staleTime: 3 * 60 * 1000, // 3 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduced retries for better performance
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   // ✅ Mutations for CRUD operations

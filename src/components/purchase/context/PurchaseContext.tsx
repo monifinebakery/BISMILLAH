@@ -182,8 +182,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     queryKey: purchaseQueryKeys.list(user?.id),
     queryFn: () => fetchPurchases(user!.id),
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minute cache for better performance
-    gcTime: 10 * 60 * 1000, // Keep in cache for 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - much less aggressive
+    gcTime: 30 * 60 * 1000, // 30 minutes cache
     retry: (count, err: any) => {
       const code = err?.code ?? err?.status;
       // Don't retry client errors (4xx)

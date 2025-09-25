@@ -169,47 +169,6 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     }
   }, [user, isReady, isLoading, navigate, readOtpTimestamp, stopOtpWaiting, refreshUser]);
 
-    // ✅ MOBILE-OPTIMIZED: Reasonable timeout with retry-based strategy
-    if (isLoading && !isReady && !user) {
-      const mobileCapabilities = detectMobileCapabilities();
-      const safariDetection = detectSafariIOS();
-      
-      // ✅ NEW STRATEGY: Reasonable timeout, let auth system handle retries
-      let timeoutDuration = 12000; // Base 12s timeout
-      
-      if (safariDetection.isSafariIOS) {
-        // Safari iOS gets longer but reasonable timeout
-        timeoutDuration = getSafariTimeout(15000); // Up to 22-30s (reduced from 48s)
-        console.log('📱 AuthGuard: Safari iOS detected, using extended timeout:', timeoutDuration + 'ms');
-      } else if (mobileCapabilities.isMobile) {
-        // Other mobile browsers get moderate increase
-        timeoutDuration = getMobileOptimizedTimeout(15000, 'auth'); // Around 15-20s
-        console.log('📱 AuthGuard: Mobile device detected, using mobile timeout:', timeoutDuration + 'ms');
-      }
-      
-      const timeoutId = setTimeout(() => {
-        console.warn('🚨 AuthGuard: Session verification timeout (' + timeoutDuration + 'ms), redirecting to auth');
-        if (location.pathname !== '/auth') {
-          navigate('/auth', { replace: true });
-        }
-      }, timeoutDuration);
-      
-      return () => {
-        clearTimeout(timeoutId);
-        if (otpWaitTimeoutRef.current) {
-          clearTimeout(otpWaitTimeoutRef.current);
-          otpWaitTimeoutRef.current = null;
-        }
-      };
-    }
-    return () => {
-      if (otpWaitTimeoutRef.current) {
-        clearTimeout(otpWaitTimeoutRef.current);
-        otpWaitTimeoutRef.current = null;
-      }
-    };
-  }, [user, isReady, isLoading, navigate, readOtpTimestamp, stopOtpWaiting, refreshUser]);
-
   // ✅ ENHANCED DEBUG: Log all state changes
   useEffect(() => {
     const debugInfo = {

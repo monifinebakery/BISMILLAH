@@ -25,7 +25,7 @@ import type { BahanResep } from '../../../../types';
 import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import { RECIPE_UNITS } from '../../../../types';
 import { formatPercentage } from '../../../../services/recipeUtils';
-import { useCurrencyFormatter } from '@/hooks/useCurrencyFormatter';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 // Remove old convertIngredientUnit import
 
 interface IngredientTableProps {
@@ -51,7 +51,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
   isLoading = false,
   className = ""
 }) => {
-  const { formatCurrency } = useCurrencyFormatter();
+  const { formatCurrency, currentCurrency } = useSafeCurrency();
   return (
     <Card className={className}>
       <CardHeader>
@@ -163,7 +163,7 @@ export const IngredientTable: React.FC<IngredientTableProps> = ({
                     <TableCell className="min-w-[120px]">
                       <div className="relative">
                         <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs z-10">
-                          Rp
+                          {currentCurrency.symbol}
                         </span>
                         <Input
                           type="number"

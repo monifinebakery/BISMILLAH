@@ -306,27 +306,29 @@ export function calculateTotalOverhead(
 
 /**
  * Utility untuk format overhead breakdown untuk display
+ * @param breakdown - Overhead breakdown data
+ * @param currencySymbol - Currency symbol to use (default: 'Rp' for backward compatibility)
  */
-export function formatOverheadBreakdown(breakdown: OverheadBreakdown): string {
+export function formatOverheadBreakdown(breakdown: OverheadBreakdown, currencySymbol: string = 'Rp'): string {
   const lines = [
     '=== BREAKDOWN OVERHEAD ===',
     '',
     'FIXED COSTS:',
-    `  Sewa/Rent: Rp ${breakdown.fixedCosts.rent.toLocaleString()}`,
-    `  Utilities: Rp ${breakdown.fixedCosts.utilities.toLocaleString()}`,
-    `  Asuransi: Rp ${breakdown.fixedCosts.insurance.toLocaleString()}`,
-    `  Penyusutan: Rp ${breakdown.fixedCosts.depreciation.toLocaleString()}`,
-    `  Lainnya: Rp ${breakdown.fixedCosts.other.toLocaleString()}`,
-    `  Total Fixed: Rp ${breakdown.fixedCosts.total.toLocaleString()}`,
+    `  Sewa/Rent: ${currencySymbol} ${breakdown.fixedCosts.rent.toLocaleString()}`,
+    `  Utilities: ${currencySymbol} ${breakdown.fixedCosts.utilities.toLocaleString()}`,
+    `  Asuransi: ${currencySymbol} ${breakdown.fixedCosts.insurance.toLocaleString()}`,
+    `  Penyusutan: ${currencySymbol} ${breakdown.fixedCosts.depreciation.toLocaleString()}`,
+    `  Lainnya: ${currencySymbol} ${breakdown.fixedCosts.other.toLocaleString()}`,
+    `  Total Fixed: ${currencySymbol} ${breakdown.fixedCosts.total.toLocaleString()}`,
     '',
     'VARIABLE COSTS:',
-    `  Tenaga Kerja: Rp ${breakdown.variableCosts.labor.toLocaleString()}`,
-    `  Maintenance: Rp ${breakdown.variableCosts.maintenance.toLocaleString()}`,
-    `  Marketing: Rp ${breakdown.variableCosts.marketing.toLocaleString()}`,
-    `  Lainnya: Rp ${breakdown.variableCosts.other.toLocaleString()}`,
-    `  Total Variable: Rp ${breakdown.variableCosts.total.toLocaleString()}`,
+    `  Tenaga Kerja: ${currencySymbol} ${breakdown.variableCosts.labor.toLocaleString()}`,
+    `  Maintenance: ${currencySymbol} ${breakdown.variableCosts.maintenance.toLocaleString()}`,
+    `  Marketing: ${currencySymbol} ${breakdown.variableCosts.marketing.toLocaleString()}`,
+    `  Lainnya: ${currencySymbol} ${breakdown.variableCosts.other.toLocaleString()}`,
+    `  Total Variable: ${currencySymbol} ${breakdown.variableCosts.total.toLocaleString()}`,
     '',
-    `TOTAL OVERHEAD: Rp ${breakdown.totalOverhead.toLocaleString()}`
+    `TOTAL OVERHEAD: ${currencySymbol} ${breakdown.totalOverhead.toLocaleString()}`
   ];
 
   return lines.join('\n');

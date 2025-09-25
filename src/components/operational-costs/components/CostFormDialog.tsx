@@ -47,7 +47,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
   cost = null,
   isLoading = false
 }) => {
-  const { formatCurrency } = useSafeCurrency();
+  const { formatCurrency, currentCurrency } = useSafeCurrency();
   const [formData, setFormData] = useState<CostFormData>({
      nama_biaya: '',
     jumlah_per_bulan: 0,
@@ -350,7 +350,7 @@ export const CostFormDialog: React.FC<CostFormDialogProps> = ({
             error={errors.jumlah_per_bulan}
             disabled={isSubmitting}
             required
-            prefix="Rp"
+            prefix={currentCurrency.symbol}
             helpText="Masukkan jumlah biaya yang dikeluarkan per bulan"
           />
 

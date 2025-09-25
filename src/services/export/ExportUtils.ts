@@ -4,6 +4,7 @@
 import { formatCurrency } from '@/lib/shared/formatters';
 import { formatDateForDisplay } from '@/utils/unifiedDateUtils';
 import { getStatusText } from '@/components/orders/constants';
+import { CURRENCIES } from '@/contexts/CurrencyContext';
 // Local binding for recipe sheet (needed for inclusion in ExportUtils object)
 import { exportRecipesToCSV as sheetRecipesCSV } from '@/components/recipe/services/recipeUtils';
 
@@ -13,10 +14,10 @@ const csv = (rows: Row[]): string =>
   rows.map(r => r.map(c => `"${String(c ?? '').replace(/"/g, '""')}"`).join(',')).join('\n');
 
 // 1) Warehouse - Gudang Bahan Baku (bahan_baku)
-export const sheetWarehouseCSV = (items: any[] = []): string => {
+export const sheetWarehouseCSV = (items: any[] = [], currencySymbol: string = 'Rp'): string => {
   const headers = [
     'Nama', 'Kategori', 'Satuan', 'Stok', 'Minimum',
-    'Harga Satuan (Rp)', 'Harga Rata-rata (Rp)', 'Supplier', 'Kadaluwarsa', 'Dibuat'
+    `Harga Satuan (${currencySymbol})`, `Harga Rata-rata (${currencySymbol})`, 'Supplier', 'Kadaluwarsa', 'Dibuat'
   ];
   const rows: Row[] = [headers];
   for (const x of items) {
@@ -55,9 +56,9 @@ export const sheetSuppliersCSV = (items: any[] = []): string => {
 };
 
 // 3) Pembelian (purchases)
-export const sheetPurchasesCSV = (items: any[] = []): string => {
+export const sheetPurchasesCSV = (items: any[] = [], currencySymbol: string = 'Rp'): string => {
   const headers = [
-    'Tanggal', 'Supplier', 'Total Nilai (Rp)', 'Status', 'Jumlah Item', 'Catatan', 'Dibuat'
+    'Tanggal', 'Supplier', `Total Nilai (${currencySymbol})`, 'Status', 'Jumlah Item', 'Catatan', 'Dibuat'
   ];
   const rows: Row[] = [headers];
   for (const p of items) {
@@ -122,7 +123,7 @@ export const sheetOrdersCSV = (orders: any[] = []): string => {
 export { exportRecipesToCSV as sheetRecipesCSV } from '@/components/recipe/services/recipeUtils';
 
 // 5b) Hitung HPP - Detailed breakdown (ingredients + cost steps per recipe)
-export const sheetHPPBreakdownCSV = (recipes: any[] = [], suppliers: any[] = []): string => {
+export const sheetHPPBreakdownCSV = (recipes: any[] = [], suppliers: any[] = [], currencySymbol: string = 'Rp'): string => {
   const headers = [
     'Nama Resep',
     'Jumlah Porsi',
@@ -130,15 +131,15 @@ export const sheetHPPBreakdownCSV = (recipes: any[] = [], suppliers: any[] = [])
     'Nama', // Bahan name or cost item name
     'Qty',
     'Satuan',
-    'Harga Satuan (Rp)',
-    'Total (Rp)',
+    `Harga Satuan (${currencySymbol})`,
+    `Total (${currencySymbol})`,
     'Supplier',
     'Keterangan',
-    'HPP per Porsi (Rp)',
-    'HPP per Pcs (Rp)',
+    `HPP per Porsi (${currencySymbol})`,
+    `HPP per Pcs (${currencySymbol})`,
     'Jumlah Pcs per Porsi',
-    'Harga Jual per Porsi (Rp)',
-    'Harga Jual per Pcs (Rp)',
+    `Harga Jual per Porsi (${currencySymbol})`,
+    `Harga Jual per Pcs (${currencySymbol})`,
     'Margin (%)',
   ];
 
@@ -248,9 +249,9 @@ export const sheetHPPBreakdownCSV = (recipes: any[] = [], suppliers: any[] = [])
 };
 
 // 6) Biaya Operasional
-export const sheetOperationalCostsCSV = (items: any[] = []): string => {
+export const sheetOperationalCostsCSV = (items: any[] = [], currencySymbol: string = 'Rp'): string => {
   const headers = [
-    'Nama Biaya', 'Jenis', 'Jumlah per Bulan (Rp)', 'Status', 'Kelompok', 'Kategori', 'Efektif', 'Dibuat'
+    'Nama Biaya', 'Jenis', `Jumlah per Bulan (${currencySymbol})`, 'Status', 'Kelompok', 'Kategori', 'Efektif', 'Dibuat'
   ];
   const rows: Row[] = [headers];
   for (const c of items) {
@@ -269,8 +270,8 @@ export const sheetOperationalCostsCSV = (items: any[] = []): string => {
 };
 
 // 7) Laporan Keuangan (financial_transactions)
-export const sheetFinancialTransactionsCSV = (items: any[] = []): string => {
-  const headers = ['Tanggal', 'Tipe', 'Kategori', 'Jumlah (Rp)', 'Deskripsi', 'Terkait ID'];
+export const sheetFinancialTransactionsCSV = (items: any[] = [], currencySymbol: string = 'Rp'): string => {
+  const headers = ['Tanggal', 'Tipe', 'Kategori', `Jumlah (${currencySymbol})`, 'Deskripsi', 'Terkait ID'];
   const rows: Row[] = [headers];
   for (const t of items) {
     rows.push([
@@ -286,8 +287,8 @@ export const sheetFinancialTransactionsCSV = (items: any[] = []): string => {
 };
 
 // 8) Analisis Profit — terima data agregat fleksibel (array of objects)
-export const sheetProfitAnalysisCSV = (items: any[] = []): string => {
-  const headers = ['Periode', 'Pendapatan (Rp)', 'COGS (Rp)', 'OPEX (Rp)', 'Laba Kotor (Rp)', 'Laba Bersih (Rp)'];
+export const sheetProfitAnalysisCSV = (items: any[] = [], currencySymbol: string = 'Rp'): string => {
+  const headers = ['Periode', `Pendapatan (${currencySymbol})`, `COGS (${currencySymbol})`, `OPEX (${currencySymbol})`, `Laba Kotor (${currencySymbol})`, `Laba Bersih (${currencySymbol})`];
   const rows: Row[] = [headers];
   for (const r of items) {
     rows.push([
@@ -303,9 +304,9 @@ export const sheetProfitAnalysisCSV = (items: any[] = []): string => {
 };
 
 // 9) Manajemen Aset (assets)
-export const sheetAssetsCSV = (items: any[] = []): string => {
+export const sheetAssetsCSV = (items: any[] = [], currencySymbol: string = 'Rp'): string => {
   const headers = [
-    'Nama Aset', 'Kategori', 'Kondisi', 'Lokasi', 'Nilai Awal (Rp)', 'Nilai Sekarang (Rp)', 'Depresiasi (Rp)', 'Tanggal Beli', 'Dibuat'
+    'Nama Aset', 'Kategori', 'Kondisi', 'Lokasi', `Nilai Awal (${currencySymbol})`, `Nilai Sekarang (${currencySymbol})`, `Depresiasi (${currencySymbol})`, 'Tanggal Beli', 'Dibuat'
   ];
   const rows: Row[] = [headers];
   for (const a of items) {

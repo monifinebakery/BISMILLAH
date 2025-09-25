@@ -19,7 +19,7 @@ export const formatCurrency = (
   } = {}
 ): string => {
   if (typeof value !== 'number' || isNaN(value)) {
-    return 'Rp 0';
+    return 'Rp 0'; // Legacy IDR default - prefer using useSafeCurrency in components
   }
 
   const {
@@ -58,7 +58,7 @@ export const formatCompactCurrency = (
         return options.withCurrency !== false ? `${currency.symbol} 0` : '0';
       }
     }
-    return options.withCurrency !== false ? 'Rp 0' : '0';
+    return options.withCurrency !== false ? 'Rp 0' : '0'; // Legacy IDR default
   }
 
   const {

@@ -4,13 +4,14 @@
 // ==================== CURRENCY FORMATTING ====================
 
 /**
- * Memformat angka menjadi mata uang Rupiah (misal: 15000 -> "Rp 15.000").
+ * DEPRECATED: Use useSafeCurrency hook instead for proper currency support.
+ * Legacy function for backward compatibility - defaults to IDR.
  * @param value Angka yang akan diformat.
- * @returns String dalam format mata uang Rupiah.
+ * @returns String dalam format mata uang IDR (legacy).
  */
 export const formatCurrency = (value: number | null | undefined): string => {
   if (typeof value !== 'number' || isNaN(value)) {
-    return 'Rp 0'; // Menangani input yang tidak valid
+    return 'Rp 0'; // Legacy IDR format for backward compatibility
   }
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',
@@ -211,9 +212,9 @@ export const formatStatusColor = (status: string): string => {
 export const parseCurrency = (currencyString: string): number => {
   if (!currencyString) return 0;
   
-  // Remove currency symbols and whitespace
+  // Remove various currency symbols and whitespace (supports multiple currencies)
   const cleaned = currencyString
-    .replace(/[Rp\s.,]/g, '')
+    .replace(/[Rp$€£¥₩₹₽₺zł\s.,]/g, '')
     .replace(/[^\d]/g, '');
   
   const parsed = parseInt(cleaned, 10);
@@ -370,7 +371,7 @@ export const formatOrderStatus = (status: string): string => {
 
 export const formatLargeNumber = (num: number | null | undefined, digits: number = 1): string => {
   if (typeof num !== 'number' || isNaN(num)) {
-    return 'Rp 0';
+    return 'Rp 0'; // Legacy IDR format - should use useSafeCurrency in components
   }
   const si = [
     { value: 1, symbol: "" },
@@ -390,7 +391,7 @@ export const formatLargeNumber = (num: number | null | undefined, digits: number
       return formatCurrency(num);
   }
   const abbreviatedNum = (num / si[i].value).toFixed(digits).replace(rx, "$1");
-  return `Rp ${abbreviatedNum}${si[i].symbol}`;
+  return `Rp ${abbreviatedNum}${si[i].symbol}`; // Legacy IDR format - should use useSafeCurrency in components
 };
 
 export const sanitizeInput = (input: string): string => {

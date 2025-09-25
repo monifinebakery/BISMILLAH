@@ -19,6 +19,7 @@ import type { BahanBakuFrontend } from '@/components/warehouse/types';
 import type { IngredientConversionResult } from '../hooks/useIngredientConversion';
 import { RECIPE_UNITS } from '../../../../types';
 import { IngredientSelector } from './IngredientSelector';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface IngredientFormFieldsProps {
   newIngredient: Partial<BahanResep>;
@@ -47,6 +48,8 @@ export const IngredientFormFields: React.FC<IngredientFormFieldsProps> = ({
   isDisabled = false,
   children,
 }) => {
+  const { currentCurrency } = useSafeCurrency();
+  
   return (
     <Card className="border-green-200 bg-green-50">
       <CardHeader className="pb-4">
@@ -109,7 +112,7 @@ export const IngredientFormFields: React.FC<IngredientFormFieldsProps> = ({
               <Label className="text-sm font-medium">Harga Satuan *</Label>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm z-10">
-                  Rp
+                  {currentCurrency.symbol}
                 </span>
                 <Input
                   type="number"

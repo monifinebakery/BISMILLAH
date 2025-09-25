@@ -119,12 +119,12 @@ export const getIngredientsWAC = async (
       // Priority 1: Use WAC if it exists and is positive
       if (bahan.harga_rata_rata && Number(bahan.harga_rata_rata) > 0) {
         effectivePrice = Number(bahan.harga_rata_rata);
-        console.log(`✅ [WAC] Using WAC for ${bahan.nama}: Rp ${effectivePrice}`);
+        console.log(`✅ [WAC] Using WAC for ${bahan.nama}: ${effectivePrice}`);
       } 
       // Priority 2: Fallback to current price if WAC is not available
       else if (bahan.harga_satuan && Number(bahan.harga_satuan) > 0) {
         effectivePrice = Number(bahan.harga_satuan);
-        console.log(`🔄 [WAC] Using current price for ${bahan.nama}: Rp ${effectivePrice} (WAC not available)`);
+        console.log(`🔄 [WAC] Using current price for ${bahan.nama}: ${effectivePrice} (WAC not available)`);
       } 
       // Priority 3: Skip if no valid price
       else {
@@ -198,7 +198,7 @@ export const updateIngredientsWithWAC = async (
       
       // Additional sanity check: WAC price shouldn't be more than 1 million per unit
       if (wacPrice > 1000000) {
-        console.warn(`⚠️ [WAC] WAC price too high for ${ingredient.nama}: Rp ${wacPrice.toLocaleString()}, using original price`);
+        console.warn(`⚠️ [WAC] WAC price too high for ${ingredient.nama}: ${wacPrice.toLocaleString()}, using original price`);
         return ingredient;
       }
       
@@ -356,7 +356,7 @@ export const calculateEnhancedHPP = async (
     // Final HPP calculation completed
     
     // Additional validation check before creating result
-    if (bahanPerPcs > 100000) { // If bahan cost per pcs is more than Rp 100k, something is wrong
+    if (bahanPerPcs > 100000) { // If bahan cost per pcs is more than 100k (currency units), something is wrong
       console.error('🚨 [VALIDATION ERROR] BahanPerPcs is too high:', {
         bahanPerPcs,
         totalBahanCost,

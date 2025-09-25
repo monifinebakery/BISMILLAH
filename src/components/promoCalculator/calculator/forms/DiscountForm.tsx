@@ -3,8 +3,10 @@ import React, { useState, useMemo } from 'react';
 import { Percent, Search, ChevronDown, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { helpers } from '@/components/promoCalculator/utils';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
+  const { formatCurrency, currentCurrency } = useSafeCurrency();
   const [formData, setFormData] = useState({
     namaPromo: '',
     resep: '',
@@ -62,14 +64,6 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
 
   const getRecipeById = (id) => Array.isArray(recipes) ? recipes.find(r => r?.id === id) : null;
   const selectedRecipe = getRecipeById(formData.resep);
-
-  const formatCurrency = (value) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0
-    }).format(value || 0);
-  };
 
   const getRecipeProperty = (recipe, property) => {
     if (!recipe) return property === 'name' ? 'Unknown Recipe' : 0;
@@ -220,7 +214,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
             className={selectClassName}
           >
             <option value="persentase">Persentase (%)</option>
-            <option value="nominal">Nominal (Rp)</option>
+            <option value="nominal">Nominal ({currentCurrency.symbol})</option>
           </select>
         </div>
       </div>
@@ -245,7 +239,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
               required
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
-              {formData.tipeDiskon === 'persentase' ? '%' : 'Rp'}
+              {formData.tipeDiskon === 'persentase' ? '%' : currentCurrency.symbol}
             </div>
           </div>
         </div>
@@ -266,7 +260,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
                 className={inputWithIconClassName}
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
-                Rp
+                {currentCurrency.symbol}
               </div>
             </div>
           </div>
@@ -287,7 +281,7 @@ const DiscountForm = ({ onSubmit, isLoading, recipes = [] }: any) => {
               className={inputWithIconClassName}
             />
             <div className="absolute inset-y-0 right-0 flex items-center pr-3 text-gray-500">
-              Rp
+              {currentCurrency.symbol}
             </div>
           </div>
         </div>

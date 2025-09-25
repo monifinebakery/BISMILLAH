@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 
 import { useAutoSyncRecipe } from '../hooks/useAutoSyncRecipe';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import type { EnhancedHPPCalculationResult } from '../utils/enhancedHppCalculations';
 
 interface AutoSyncRecipeDisplayProps {
@@ -46,6 +47,7 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
   onResultChange,
   className = ''
 }) => {
+  const { currentCurrency } = useSafeCurrency();
   const {
     result,
     isCalculating,
@@ -179,7 +181,7 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
                   <span className="text-sm font-medium text-blue-800">Bahan Baku</span>
                 </div>
                 <p className="text-2xl font-bold text-blue-900">
-                  Rp {result.bahanPerPcs.toLocaleString('id-ID')}
+                  {currentCurrency.symbol} {result.bahanPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-blue-600">/pcs</span>
                 </p>
                 <div className="text-xs text-blue-600 mt-2">
@@ -193,13 +195,13 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
                   <span className="text-sm font-medium text-purple-800">Biaya Operasional</span>
                 </div>
                 <p className="text-2xl font-bold text-purple-900">
-                  Rp {result.overheadPerPcs.toLocaleString('id-ID')}
+                  {currentCurrency.symbol} {result.overheadPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-purple-600">/pcs</span>
                 </p>
                 {result.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 mt-2">
-                    <div>🏭 Overhead: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
-                    <div>📋 Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
+                    <div>🏭 Overhead: {currentCurrency.symbol} {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>📋 Operasional: {currentCurrency.symbol} {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
                   </div>
                 )}
               </div>
@@ -216,10 +218,10 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
                     HPP per Pcs
                   </h4>
                   <p className="text-3xl font-bold text-green-900 mb-1">
-                    Rp {result.hppPerPcs.toLocaleString('id-ID')}
+                    {currentCurrency.symbol} {result.hppPerPcs.toLocaleString('id-ID')}
                   </p>
                   <p className="text-sm text-green-600">
-                    Total HPP: Rp {result.totalHPP.toLocaleString('id-ID')}
+                    Total HPP: {currentCurrency.symbol} {result.totalHPP.toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
@@ -231,10 +233,10 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
                     Harga Jual per Pcs
                   </h4>
                   <p className="text-3xl font-bold text-emerald-900 mb-1">
-                    Rp {result.hargaJualPerPcs.toLocaleString('id-ID')}
+                    {currentCurrency.symbol} {result.hargaJualPerPcs.toLocaleString('id-ID')}
                   </p>
                   <p className="text-sm text-emerald-600">
-                    Profit: Rp {(result.hargaJualPerPcs - result.hppPerPcs).toLocaleString('id-ID')}
+                    Profit: {currentCurrency.symbol} {(result.hargaJualPerPcs - result.hppPerPcs).toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
@@ -262,9 +264,9 @@ const AutoSyncRecipeDisplay: React.FC<AutoSyncRecipeDisplayProps> = ({
                     🔍 Debug Info (Dev Only)
                   </summary>
                   <div className="mt-2 text-xs text-gray-600 space-y-1">
-                    <div><strong>Overhead Only:</strong> Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}/pcs</div>
-                    <div><strong>Operasional Only:</strong> Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}/pcs</div>
-                    <div><strong>Combined Total:</strong> Rp {result.breakdown.overheadBreakdown.combined.toLocaleString('id-ID')}/pcs</div>
+                    <div><strong>Overhead Only:</strong> {currentCurrency.symbol} {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}/pcs</div>
+                    <div><strong>Operasional Only:</strong> {currentCurrency.symbol} {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}/pcs</div>
+                    <div><strong>Combined Total:</strong> {currentCurrency.symbol} {result.breakdown.overheadBreakdown.combined.toLocaleString('id-ID')}/pcs</div>
                     <div><strong>Method:</strong> {result.calculationMethod}</div>
                     <div><strong>Source:</strong> {result.breakdown.overheadSource}</div>
                     <div className="text-xs text-gray-500 mt-2">

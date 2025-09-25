@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Calculator, Users, Package } from 'lucide-react';
 import { NewRecipe } from '../types';
-import { formatCurrency } from '@/utils/formatUtils';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface CalculationResults {
   totalHPP: number;
@@ -30,6 +30,8 @@ export const CostCalculationSection: React.FC<CostCalculationSectionProps> = ({
   calculationResults,
   onInputChange,
 }) => {
+  const { formatCurrency, currentCurrency } = useSafeCurrency();
+  
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Additional Costs */}
@@ -42,7 +44,7 @@ export const CostCalculationSection: React.FC<CostCalculationSectionProps> = ({
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja (Rp) - Sudah termasuk dalam overhead</Label>
+            <Label htmlFor="biayaTenagaKerja">Biaya Tenaga Kerja ({currentCurrency.symbol}) - Sudah termasuk dalam overhead</Label>
             <Input
               id="biayaTenagaKerja"
               type="number"
@@ -56,7 +58,7 @@ export const CostCalculationSection: React.FC<CostCalculationSectionProps> = ({
           </div>
           
           <div>
-            <Label htmlFor="biayaOverhead">Biaya Overhead (Rp)</Label>
+            <Label htmlFor="biayaOverhead">Biaya Overhead ({currentCurrency.symbol})</Label>
             <Input
               id="biayaOverhead"
               type="number"

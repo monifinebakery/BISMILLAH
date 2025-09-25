@@ -1,12 +1,12 @@
 /**
- * Memformat angka menjadi mata uang Rupiah (misal: 15000 -> "Rp 15.000").
+ * Memformat angka menjadi mata uang (misal: 15000 -> "$15,000" atau "Rp 15.000").
  * @deprecated Gunakan useCurrency hook dari CurrencyContext untuk formatting yang responsive terhadap pilihan mata uang user.
  * @param value Angka yang akan diformat.
- * @returns String dalam format mata uang Rupiah.
+ * @returns String dalam format mata uang default (IDR).
  */
 export const formatCurrency = (value: number | null | undefined): string => {
   if (typeof value !== 'number' || isNaN(value)) {
-    return 'Rp 0'; // Menangani input yang tidak valid
+    return 'Rp 0'; // Default to IDR for backward compatibility
   }
   return new Intl.NumberFormat('id-ID', {
     style: 'currency',

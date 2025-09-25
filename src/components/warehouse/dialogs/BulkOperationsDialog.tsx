@@ -11,7 +11,7 @@ import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 import type { BahanBakuFrontend } from '../types';
 import { toNumber } from '../utils/typeUtils';
-
+import { logger } from '@/utils/logger';
 interface BulkOperationsDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -57,7 +57,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   availableSuppliers,
 }) => {
   const [bulkEditData, setBulkEditData] = useState<BulkEditData>({});
-  const { formatCurrency } = useSafeCurrency();
+  const { formatCurrency, currentCurrency } = useSafeCurrency();
   const [showCategoryDropdown, setShowCategoryDropdown] = useState(false);
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
 
@@ -355,7 +355,7 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                   </label>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                      Rp
+                      {currentCurrency.symbol}
                     </span>
                     <Input
                       type="number"

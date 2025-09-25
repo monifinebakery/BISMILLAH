@@ -10,6 +10,7 @@ import { useQuery } from '@tanstack/react-query';
 import { warehouseApi } from '../services/warehouseApi';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { logger } from '@/utils/logger';
 import { toNumber } from '../utils/typeUtils';
@@ -187,6 +188,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
 
   // Query untuk daftar suppliers (nama saja untuk dropdown)
   const { user } = useAuth();
+  const { currentCurrency } = useSafeCurrency();
   const { data: queriedSuppliers = [], isLoading: suppliersLoading, refetch: refetchSuppliers } = useQuery({
     queryKey: ['dialog-suppliers', user?.id],
     queryFn: () => fetchDialogData('suppliers', user?.id),
@@ -542,7 +544,7 @@ const AddEditDialog: React.FC<AddEditDialogProps> = ({
                         Harga per {formData.satuan || 'satuan'} *
                       </label>
                       <div className="relative">
-                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                        <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">{currentCurrency.symbol}</span>
                         <Input
                           type="number"
                           value={formData.harga}

@@ -37,7 +37,7 @@ const toNumber = (v: string | number | '' | undefined | null): number => {
 export const NewItemForm: React.FC<NewItemFormProps> = ({
   onAddItem
 }) => {
-  const { formatCurrency } = useSafeCurrency();
+  const { formatCurrency, currentCurrency } = useSafeCurrency();
   const [formData, setFormData] = useState<FormData>({
      nama: '',
     satuan: '',
@@ -81,7 +81,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
       toast.success(
         `📊 Harga satuan otomatis: ${formatCurrency(computedUnitPrice)}`,
         {
-          description: `Dihitung dari Rp ${total.toLocaleString('id-ID')} ÷ ${qty} = ${formatCurrency(computedUnitPrice)}`
+          description: `Dihitung dari ${currentCurrency.symbol} ${total.toLocaleString('id-ID')} ÷ ${qty} = ${formatCurrency(computedUnitPrice)}`
         }
       );
     }
@@ -213,7 +213,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
           <div className="space-y-2">
             <Label className="text-sm font-medium text-gray-700">Total Bayar *</Label>
             <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">{currentCurrency.symbol}</span>
               <SafeNumericInput
                 ref={payRef}
                 value={formData.totalBayar}
@@ -231,7 +231,7 @@ export const NewItemForm: React.FC<NewItemFormProps> = ({
                       Harga Satuan Otomatis: {formatCurrency(computedUnitPrice)}
                     </p>
                     <p className="text-xs text-blue-600">
-                      Dihitung dari: Rp {toNumber(formData.totalBayar).toLocaleString('id-ID')} ÷ {toNumber(formData.kuantitas)} {formData.satuan || 'unit'}
+                      Dihitung dari: {currentCurrency.symbol} {toNumber(formData.totalBayar).toLocaleString('id-ID')} ÷ {toNumber(formData.kuantitas)} {formData.satuan || 'unit'}
                     </p>
                   </div>
                 </div>

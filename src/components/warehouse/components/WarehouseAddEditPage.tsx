@@ -39,6 +39,7 @@ import {
 import type { BahanBakuFrontend, BahanBakuFormData } from '../types';
 import { useWarehouseContext } from '../context/WarehouseContext';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { warehouseUtils } from '../services/warehouseUtils';
 import { logger } from '@/utils/logger';
 import { toNumber } from '../utils/typeUtils';
@@ -103,6 +104,7 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
 
   // Contexts
   const { user } = useAuth();
+  const { currentCurrency } = useSafeCurrency();
   const { 
     bahanBaku, 
     addBahanBaku, 
@@ -586,7 +588,7 @@ const WarehouseAddEditPage: React.FC<WarehouseAddEditPageProps> = () => {
                       Harga per {formData.satuan || 'satuan'} *
                     </Label>
                     <div className="relative">
-                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">Rp</span>
+                      <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">{currentCurrency.symbol}</span>
                       <Input
                         id="harga"
                         type="number"

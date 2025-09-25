@@ -14,8 +14,6 @@ interface MetricCardProps {
 
 import { useSharedFormatters } from '@/hooks/useSharedFormatters';
 
-import { useSharedFormatters } from '@/hooks/useSharedFormatters';
-
 interface MetricCardPropsWithContext extends MetricCardProps {
   formatCurrency: (amount: number) => string;
 }
@@ -103,36 +101,36 @@ const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
 
   const metrics = [
     {
-      title: "Total Aset",
-      value: revenue > 0 ? revenue : "1",
-      subtitle: undefined,
-      icon: Package,
-      iconBg: "bg-orange-100",
-      iconColor: "text-orange-600"
-    },
-    {
-      title: "Nilai Awal", 
-      value: Math.max(netProfit, 2323),
-      subtitle: undefined,
+      title: "Omset",
+      value: revenue,
+      subtitle: `Pendapatan bisnis`,
       icon: DollarSign,
-      iconBg: "bg-orange-100", 
-      iconColor: "text-orange-600"
+      iconBg: "bg-green-100",
+      iconColor: "text-green-600"
     },
     {
-      title: "Nilai Sekarang",
-      value: Math.max(cogs, 23),
-      subtitle: undefined,
+      title: "Untung Bersih", 
+      value: netProfit,
+      subtitle: formatPercentage(netMargin) + " dari omset",
       icon: TrendingUp,
-      iconBg: "bg-orange-100",
-      iconColor: "text-orange-600" 
+      iconBg: netProfit >= 0 ? "bg-green-100" : "bg-red-100", 
+      iconColor: netProfit >= 0 ? "text-green-600" : "text-red-600"
     },
     {
-      title: "Total Depresiasi",
-      value: Math.max(opex, 23), 
-      subtitle: undefined,
+      title: "Modal Bahan",
+      value: cogs,
+      subtitle: formatPercentage(ratio(cogs, revenue)) + " dari omset",
+      icon: Package,
+      iconBg: "bg-blue-100",
+      iconColor: "text-blue-600" 
+    },
+    {
+      title: "Biaya Operasional",
+      value: opex, 
+      subtitle: formatPercentage(ratio(opex, revenue)) + " dari omset",
       icon: Calculator,
-      iconBg: "bg-red-100",
-      iconColor: "text-red-600"
+      iconBg: "bg-yellow-100",
+      iconColor: "text-yellow-600"
     }
   ];
 

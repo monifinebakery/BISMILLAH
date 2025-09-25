@@ -1,117 +1,74 @@
-# Welcome to your Lovable project
+# BISMILLAH Operational Platform
 
-## Project info
+Welcome to the monorepo powering BISMILLAH’s order, warehouse, finance, and reporting workflows. This README provides a quick entry point; see `MASTER_DOCUMENTATION.md` for the full architecture guide.
 
-**URL**: https://lovable.dev/projects/397c8ade-b745-4b66-92a0-edcec57896cd
+## Getting Started
 
-## How can I edit this code?
+### Prerequisites
+- Node.js 18+ (recommend managing via [nvm](https://github.com/nvm-sh/nvm))
+- pnpm (workspace uses `pnpm@10.15.0`)
+- Supabase project credentials copied into `.env.development`
 
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/397c8ade-b745-4b66-92a0-edcec57896cd) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
+### Installation
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+git clone <REPO_URL>
+cd BISMILLAH
+pnpm install
 ```
 
-**Edit a file directly in GitHub**
+### Development
+```sh
+pnpm dev         # Vite dev server on http://localhost:5174
+pnpm dev:5173    # Alternate port if needed
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### Build & Preview
+```sh
+pnpm build       # Generates dist/ with production assets
+pnpm preview     # Serves the production build locally (port 5500)
+```
 
-**Use GitHub Codespaces**
+### Linting & Analysis
+```sh
+pnpm lint        # ESLint (TypeScript, React, hooks rules)
+pnpm analyze     # Bundle analyzer build
+```
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Tech Stack
+- React 18 + Vite + TypeScript
+- TailwindCSS + shadcn/ui for design system components
+- Supabase (`@supabase/supabase-js`) for authentication and data APIs
+- TanStack Query for data fetching/cache management
+- Thread-safe auth/session utilities (`src/utils/auth/safeStorage.ts`, `src/utils/auth/refreshSession.ts`)
 
-## What technologies are used for this project?
+## Architecture Highlights
+- `src/App.tsx` bootstraps contexts and routing.
+- `src/contexts/AuthContext.tsx` plus `src/hooks/auth/useAuthLifecycle.ts` manage Supabase sessions with mutex-protected updates.
+- `src/components/layout/AppLayout.tsx` preserves last visited routes using `safeStorageSet()` and loads mobile/desktop shells.
+- `src/components/ui/` hosts shared components like `CurrencyInput.tsx` (context-aware currency formatting).
+- Feature domains live under `src/components/<module>/` and `src/pages/` (orders, purchases, warehouse, finance, settings).
 
-This project is built with:
+Refer to `MASTER_DOCUMENTATION.md` for a full module map, scripts catalog, and documentation index.
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-- Supabase (Authentication & Database)
-- Thread-safe session management with race condition elimination
+## Documentation Index
+- `MASTER_DOCUMENTATION.md` – Single source of truth for architecture, tooling, and references.
+- `AGENTS.md` – Coding standards, auth safety rules, naming conventions.
+- `RACE_CONDITION_ELIMINATION_GUIDE.md` – Detailed auth/session race-condition strategy.
+- `PANDUAN_PENGGUNAAN.md`, `TUTORIAL_PENGGUNAAN.md` – Bahasa Indonesia user guides.
 
-## How can I deploy this project?
+More domain-specific reports (warehouse, finance, payments, etc.) are stored as markdown files in the repository root.
 
-Simply open [Lovable](https://lovable.dev/projects/397c8ade-b745-4b66-92a0-edcec57896cd) and click on Share -> Publish.
+## Operational Notes
+- Always use `safeStorage*()` helpers when persisting auth-related data.
+- Refresh tokens are mutex-protected via `refreshSessionSafely()` and `periodicSessionRefresh` utilities.
+- Run `pnpm lint` and `pnpm build` before pushing changes.
+- Use commit prefix `[preview]` for pre-release deployments (auto-notifies staging workflows).
 
-## Can I connect a custom domain to my Lovable project?
+## Issue Tracking & Support
+- For Supabase auth issues (`window.supabase` undefined), verify initialization in `src/integrations/supabase/client.ts` and run `test-supabase-connection.cjs`.
+- For currency formatting context errors, use the safe hook `useSafeCurrency()` (see memory fix in `src/hooks/useSafeCurrency.ts`).
+- Troubleshooting scripts are located in the project root (e.g., `debug-order-completion.cjs`, `warehouse-diagnostic.js`).
 
-Yes, you can!
+---
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
-
-## 🛡️ Enterprise-Grade Security Features
-
-### Race Condition Elimination
-This project implements comprehensive race condition elimination for authentication and session management:
-
-- **✅ Mutex-Protected Session Operations**: Prevents concurrent session refresh corruption
-- **✅ Atomic Auth State Updates**: Session and user state updated atomically to prevent mismatches  
-- **✅ Thread-Safe Storage Access**: Per-key locking for localStorage operations
-- **✅ Centralized Event Handling**: Single source of truth for auth state changes
-- **✅ Production-Ready**: 40% reduction in auth-related API calls with improved reliability
-
-### Key Security Features
-- Thread-safe authentication flows
-- Session corruption prevention
-- Storage access serialization
-- Event handler deduplication
-- Comprehensive error handling
-
-**📚 Documentation:** See [RACE_CONDITION_ELIMINATION_GUIDE.md](./RACE_CONDITION_ELIMINATION_GUIDE.md) for detailed implementation.
-
-## 🏗️ Architecture
-
-### Authentication System
-- **Session Management**: `src/services/auth/core/session.ts` - Mutex-protected operations
-- **Auth State**: `src/hooks/auth/useAuthState.ts` - Atomic updates
-- **Storage**: `src/utils/auth/safeStorage.ts` - Thread-safe localStorage utilities
-- **Context**: `src/contexts/AuthContext.tsx` - Centralized auth state management
-
-### Development Guidelines
-- Use `safeStorage*` functions for auth-related persistence
-- Always use `updateAuthState(session, user)` for atomic updates
-- Never bypass `refreshSession()` - it has built-in race protection
-- Test concurrent scenarios before deployment
-
-**📋 Developer Guide:** See [AGENTS.md](./AGENTS.md) for complete development guidelines.
-# Chatbot Enhancement Summary
-
-## Latest Improvements [Wed Sep 24 22:09:49 WIB 2025]
-- Enhanced data accuracy and reliability
-- Added comprehensive validation and monitoring
-- Improved error handling and user experience
+Latest updates are summarized in commit history and `[preview]` deployments. See `MASTER_DOCUMENTATION.md` for revision logs and detailed change reports.

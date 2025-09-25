@@ -77,16 +77,39 @@ export const useAuthLifecycle = ({
 
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (!document.hidden) {
+      // Simpan pathname saat tab ditinggalkan (hidden=true), bukan saat diaktifkan
+      if (document.hidden) {
         safeStorageSet(LAST_PATH_KEY, window.location.pathname).catch(() => {
           logger.warn('AuthContext: Failed to persist last path');
         });
+      } else {
+        // Saat tab diaktifkan kembali, cek apakah session masih valid
+        // dan refresh jika perlu
+        logger.debug('AuthContext: Tab activated, checking session validity...');
+        setTimeout(() => {
+          // Panggil refreshUser untuk memeriksa dan memperbarui session jika perlu
+          refreshUser().catch(error => {
+            logger.warn('AuthContext: Failed to refresh user on tab activation', error);
+          });
+        }, 100); // Beri sedikit delay agar DOM sudah siap
       }
     };
 
+    // Juga simpan path saat pengguna berpindah halaman
+    const handlePopState = () => {
+      safeStorageSet(LAST_PATH_KEY, window.location.pathname).catch(() => {
+        logger.warn('AuthContext: Failed to persist last path on route change');
+      });
+    };
+
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, []);
+    window.addEventListener('popstate', handlePopState);
+    
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('popstate', handlePopState);
+    };
+  }, [refreshUser]);
 
   // ❌ DISABLED: Navigation handled by AuthGuard to prevent race conditions
   // const debouncedNavigate = useMemo(
@@ -214,14 +237,48 @@ export const useAuthLifecycle = ({
 
       // ✅ FIXED: Let AuthGuard handle navigation to prevent race conditions
       if (validUser) {
+        // Hanya kembalikan ke path sebelumnya jika user sebelumnya sedang aktif di halaman lain
+        // Tapi session expired dan perlu login ulang (bukan login pertama kali)
         const storedPath = safeStorageGet(LAST_PATH_KEY);
         if (storedPath && storedPath !== window.location.pathname && storedPath !== '/auth') {
-          logger.info('AuthContext: Restoring last path after successful auth', { storedPath });
-          safeStorageRemove(LAST_PATH_KEY).catch(() => {
-            logger.warn('AuthContext: Failed to clear last path');
+          // Cek apakah ini hasil dari session yang expired dan refresh
+          // Jika timestamp session sebelumnya jauh lebih lama dari sekarang, kemungkinan session expired
+          const now = Date.now();
+          const sessionTimestampKey = 'app:last-session-timestamp';
+          const lastSessionTimestamp = parseInt(safeStorageGet(sessionTimestampKey) || '0');
+          
+          // Jika waktu sejak session terakhir > 30 menit, kita anggap session expired
+          const THIRTY_MINUTES = 30 * 60 * 1000;
+          const shouldRestorePath = (now - lastSessionTimestamp) > THIRTY_MINUTES;
+          
+          if (shouldRestorePath) {
+            logger.info('AuthContext: Restoring last path after session timeout', { 
+              storedPath, 
+              timeSinceLastSession: (now - lastSessionTimestamp) / 1000 / 60 + ' minutes' 
+            });
+            stableNavigate(storedPath, { replace: true });
+          } else {
+            logger.debug('AuthContext: Not restoring path - user session still fresh');
+          }
+          
+          // Update timestamp session terbaru
+          safeStorageSet(sessionTimestampKey, now.toString()).catch(() => {
+            logger.warn('AuthContext: Failed to persist session timestamp');
           });
-          stableNavigate(storedPath, { replace: true });
-          return;
+          
+          // Hapus path setelah digunakan atau setelah jangka waktu tertentu
+          setTimeout(() => {
+            safeStorageRemove(LAST_PATH_KEY).catch(() => {
+              logger.warn('AuthContext: Failed to clear last path after timeout');
+            });
+          }, 5000); // Clear after 5 seconds to prevent stale path
+        } else {
+          // Update timestamp session terbaru 
+          const now = Date.now();
+          const sessionTimestampKey = 'app:last-session-timestamp';
+          safeStorageSet(sessionTimestampKey, now.toString()).catch(() => {
+            logger.warn('AuthContext: Failed to persist session timestamp');
+          });
         }
 
         if (window.location.pathname === '/auth') {

@@ -1,4 +1,16 @@
 // src/utils/auth/sessionValidation.ts - Session Validation Utilities
+// 
+// SESSION VALIDATION POLICY: SUPABASE AS SOLE AUTHORITY
+// =====================================================
+// All session validation must be performed against data provided by Supabase.
+// This module provides utilities to validate session integrity but does not
+// store or manage session data independently.
+//
+// Key principles:
+// 1. Sessions are only valid if provided and validated by Supabase
+// 2. Local session copies are UI caches, not sources of truth
+// 3. All validation checks expiration, user validity, and token integrity
+// 4. Grace periods prevent premature session invalidation
 import type { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 

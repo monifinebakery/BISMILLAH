@@ -1,9 +1,15 @@
 // src/hooks/auth/useAuthState.ts - Basic Auth State Management
+// NOTE: This hook manages UI state only. 
+// The single source of truth for auth remains with Supabase.
+// All validation and updates should originate from Supabase.
 import { useState, useCallback, useRef, useMemo } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { logger } from '@/utils/logger';
 
 export const useAuthState = () => {
+  // NOTE: These states are UI caches, NOT the source of truth
+  // The single source of truth for auth state remains with Supabase
+  // Never update these directly without validating against Supabase first
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -11,6 +17,7 @@ export const useAuthState = () => {
   const lastUserIdRef = useRef<string | null>(null);
 
   // ✅ FIX: Use refs to track current values without triggering effects
+  // These refs are UI caches for immediate access, NOT storage
   const sessionRef = useRef(session);
   const userRef = useRef(user);
 

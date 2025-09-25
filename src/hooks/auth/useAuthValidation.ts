@@ -13,6 +13,7 @@ import {
   debugAuthState, 
   refreshSessionSafely 
 } from '@/lib/authUtils';
+import { getFreshSession } from '@/utils/auth/getFreshSession';
 
 type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
 
@@ -29,41 +30,26 @@ export const useAuthValidation = ({
   const refreshUser = useCallback(async () => {
     try {
       logger.context("AuthContext", "Manual user refresh triggered");
-      const adaptiveTimeout = getAdaptiveTimeout(12000);
-
-      const { data: sessionResult, error: timeoutError } =
-        await safeWithTimeout(() => supabase.auth.getSession(), {
-          timeoutMs: adaptiveTimeout,
-          timeoutMessage: "AuthContext refresh timeout",
-        });
-
-      if (timeoutError) {
-        logger.error("AuthContext refresh timeout/error", timeoutError);
-
+      
+      // Get fresh session directly from Supabase as single source of truth
+      const freshSession = await getFreshSession();
+      
+      if (!freshSession) {
+        logger.warn("AuthContext: No session available from Supabase");
+        
+        // Try refresh as last resort
         const refreshedSession = await refreshSessionSafely();
         if (!refreshedSession) {
           logger.warn("AuthContext: Both getSession and refreshSession failed");
+          updateSession(null);
+          updateUser(null);
           return;
         }
-
+        
         const { session: validSession, user: validUser } =
           validateSession(refreshedSession);
         updateSession(validSession);
         updateUser(validUser);
-        return;
-      }
-
-      if (!sessionResult) {
-        return;
-      }
-
-      const {
-        data: { session: freshSession },
-        error,
-      } = sessionResult as GetSessionResult;
-
-      if (error) {
-        logger.error("AuthContext refresh error", error);
         return;
       }
 

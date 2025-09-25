@@ -1,4 +1,24 @@
 // src/App.tsx - UPDATED & INTEGRATED
+// 
+// APPLICATION ARCHITECTURE: AUTH AS SINGLE SOURCE OF TRUTH
+// ========================================================
+// This application follows a strict single source of truth policy for authentication:
+// 
+// AUTH DATA FLOW:
+// 1. Supabase (Primary Authority) -> Browser cookies/storage managed by Supabase SDK
+// 2. React Context (UI Cache) -> AuthContext for immediate UI updates
+// 3. React Query (Data Cache) -> For optimized data fetching
+// 
+// NEVER:
+// - Store session/token data independently in localStorage/sessionStorage
+// - Trust local caches without validating against Supabase first
+// - Manipulate session data directly without Supabase SDK
+// 
+// ALWAYS:
+// - Validate sessions through official Supabase SDK methods
+// - Refresh sessions via Supabase refresh mechanism
+// - Treat local state as UI cache, not source of truth
+
 import React, { Suspense, useEffect, useCallback } from 'react';
 import { QueryClientProvider, HydrationBoundary } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";

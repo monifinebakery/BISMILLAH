@@ -1,4 +1,17 @@
 // src/utils/auth/refreshSession.ts
+// 
+// SESSION REFRESH POLICY: ONLY THROUGH SUPABASE SDK
+// ================================================
+// All session refresh operations must go through Supabase SDK methods.
+// This module provides utilities to safely refresh sessions but never
+// stores session data independently - always relies on Supabase as
+// the single source of truth.
+//
+// Key responsibilities:
+// 1. Refresh sessions only through official Supabase SDK methods
+// 2. Handle refresh failures gracefully with proper error propagation
+// 3. Prevent race conditions during concurrent refresh attempts
+// 4. Never cache or store refreshed sessions locally - rely on Supabase
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
@@ -38,6 +51,7 @@ async function performRefreshSession(): Promise<boolean> {
         userId: session.user?.id,
         expiresAt: session.expires_at
       });
+      // NOTE: Session is managed by Supabase, not stored locally
       return true;
     } else {
       logger.debug('⚠️ [SILENT REFRESH] No session returned from refresh');

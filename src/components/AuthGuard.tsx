@@ -13,7 +13,7 @@ interface AuthGuardProps {
 }
 
 const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
-  const { user, isLoading, isReady } = useAuth();
+  const { user, isLoading, isReady, refreshUser } = useAuth(); // ✅ Tambah refreshUser
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -155,6 +155,19 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     } else {
       stopOtpWaiting();
     }
+
+    // ✅ NEW: Trigger session refresh when AuthGuard detects potential stale session
+    if (!user && !isLoading && isReady) {
+      // Small delay to allow for natural transition, then refresh if needed
+      const refreshTimer = setTimeout(() => {
+        refreshUser().catch(error => {
+          console.warn('AuthGuard: Failed to refresh user session', error);
+        });
+      }, 300);
+      
+      return () => clearTimeout(refreshTimer);
+    }
+  }, [user, isReady, isLoading, navigate, location.pathname, readOtpTimestamp, stopOtpWaiting, refreshUser]);
 
     // ✅ MOBILE-OPTIMIZED: Reasonable timeout with retry-based strategy
     if (isLoading && !isReady && !user) {

@@ -1,4 +1,24 @@
 // src/contexts/auth/useAuthManager.ts - Modular Auth Manager
+// 
+// ARCHITECTURE PRINCIPLE: SINGLE SOURCE OF TRUTH FOR AUTH STATE
+// ============================================================
+// All authentication state originates from Supabase as the authoritative source.
+// This manager only maintains local UI state synchronized with Supabase.
+// 
+// Session/token storage hierarchy:
+// 1. Supabase (Primary source) -> Browser cookies/storage managed by Supabase SDK
+// 2. React Context (UI cache) -> useAuthState for immediate UI updates
+// 3. React Query cache -> For data fetching optimizations
+//
+// NEVER:
+// - Store session/token data in multiple places independently
+// - Use local storage as source of truth for auth state
+// - Update UI without validating against Supabase first
+//
+// ALWAYS:
+// - Validate session against Supabase before trusting it
+// - Refresh session through Supabase SDK, not local manipulation
+// - Treat local state as UI cache, not source of truth
 import { useMemo, useEffect } from 'react';
 import { queryClient } from '@/config/queryClient';
 import { clearPersistedQueryState } from '@/utils/queryPersistence';

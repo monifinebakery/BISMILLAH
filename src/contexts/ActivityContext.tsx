@@ -265,12 +265,19 @@ const useRealtimeSubscription = (userId?: string) => {
   // ✅ Debounced version with 1 second minimum interval
   const debouncedInvalidate = useMemo(() => {
     let lastCall = 0;
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined;
     
-    return () => {
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+    };
+    
+    const debouncedFn = () => {
       const now = Date.now();
       
-      clearTimeout(timeoutId);
+      cleanup();
       
       if (now - lastCall > 1000) {
         // Execute immediately if enough time has passed
@@ -281,9 +288,15 @@ const useRealtimeSubscription = (userId?: string) => {
         timeoutId = setTimeout(() => {
           lastCall = Date.now();
           invalidateQueries();
+          timeoutId = undefined;
         }, 1000);
       }
     };
+    
+    // Attach cleanup function to the debounced function
+    (debouncedFn as any).cleanup = cleanup;
+    
+    return debouncedFn;
   }, [invalidateQueries]);
 
   useEffect(() => {

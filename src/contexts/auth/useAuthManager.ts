@@ -118,28 +118,28 @@ export const useAuthManager = (): AuthContextValue => {
       }
     };
 
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
     // ✅ FIX: Only clear caches for significant user changes (iPad/Safari optimization)
     // Don't clear caches for temporary tab switches or minor auth state changes
     if (prevId && currentId && prevId !== currentId) {
       // Significant user change - clear caches after delay
-      const timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         void clearCaches();
       }, 3000); // ✅ FIX: Increased to 3s to prevent iPad/Safari tab switching cache clearing
-      
-      return () => clearTimeout(timeoutId);
     } else if (!currentId && prevId) {
       // User logged out - clear caches immediately  
-      const timeoutId = setTimeout(() => {
+      timeoutId = setTimeout(() => {
         void clearCaches();
       }, 500); // Quick clear for logout
-      
-      return () => clearTimeout(timeoutId);
     }
     
-    // No cache clearing needed for same user or minor state changes
-
     // Return cleanup function to prevent memory leaks
-    return () => clearTimeout(timeoutId);
+    return () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
   }, [user?.id]);
 
   // Development debug tools

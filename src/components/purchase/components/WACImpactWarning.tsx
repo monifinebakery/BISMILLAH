@@ -59,7 +59,7 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
       return;
     }
 
-const calculateImpact = async () => {
+    const calculateImpact = async () => {
       if (!onCalculateImpact) return;
       
       setIsCalculating(true);
@@ -96,7 +96,7 @@ const calculateImpact = async () => {
     impactData[0] || {} as WACImpactData
   );
 
-const getImpactSeverity = () => {
+  const getImpactSeverity = () => {
     if (Math.abs(totalProfitImpact) > IMPACT_THRESHOLD_HIGH) return 'high';
     if (Math.abs(totalProfitImpact) > IMPACT_THRESHOLD_MEDIUM) return 'medium';
     return 'low';
@@ -104,7 +104,7 @@ const getImpactSeverity = () => {
 
   const severity = getImpactSeverity();
 
-const getAlertStyle = () => {
+  const getAlertStyle = () => {
     switch (severity) {
       case 'high':
         return 'border-red-200 bg-red-50';
@@ -115,7 +115,7 @@ const getAlertStyle = () => {
     }
   };
 
-const getIconColor = () => {
+  const getIconColor = () => {
     switch (severity) {
       case 'high':
         return 'text-red-500';

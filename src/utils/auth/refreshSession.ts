@@ -38,10 +38,29 @@ export async function silentRefreshSession(): Promise<boolean> {
 
 async function performRefreshSession(): Promise<boolean> {
   try {
+    // First check if there's a current session to refresh
+    const { data: { session: currentSession }, error: getSessionError } = await supabase.auth.getSession();
+    
+    if (getSessionError) {
+      logger.debug('⚠️ [SILENT REFRESH] Error getting current session:', getSessionError);
+      return false;
+    }
+    
+    if (!currentSession) {
+      logger.debug('⚠️ [SILENT REFRESH] No current session to refresh');
+      return false;
+    }
+    
+    // Only attempt refresh if we have a session
     const { data: { session }, error } = await supabase.auth.refreshSession();
     
     if (error) {
-      logger.debug('⚠️ [SILENT REFRESH] Failed to refresh session:', error);
+      // Handle specific AuthSessionMissingError
+      if (error.message?.includes('Auth session missing') || error.name === 'AuthSessionMissingError') {
+        logger.debug('⚠️ [SILENT REFRESH] No session available to refresh (AuthSessionMissingError)');
+      } else {
+        logger.debug('⚠️ [SILENT REFRESH] Failed to refresh session:', error);
+      }
       return false;
     }
     

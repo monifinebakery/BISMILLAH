@@ -233,24 +233,24 @@ export const useAuthLifecycle = ({
           }
         );
 
-        // Try to refresh session before signing out
+        // Try to refresh session before signing out - use safe refresh with session existence check
         try {
           logger.info("AuthContext: Attempting session refresh before signout");
-          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+          const refreshedSession = await refreshSessionSafely();
 
-          if (!refreshError && refreshData?.session) {
-            const { session: refreshedSession, user: refreshedUser } = validateSession(refreshData.session);
-            if (refreshedSession && refreshedUser) {
+          if (refreshedSession) {
+            const { session: validatedSession, user: validatedUser } = validateSession(refreshedSession);
+            if (validatedSession && validatedUser) {
               logger.success("AuthContext: Session refresh successful, continuing with refreshed session", {
-                userId: refreshedUser.id,
-                userEmail: refreshedUser.email,
+                userId: validatedUser.id,
+                userEmail: validatedUser.email,
               });
-              updateAuthState(refreshedSession, refreshedUser);
+              updateAuthState(validatedSession, validatedUser);
               return;
             }
           }
 
-          logger.warn("AuthContext: Session refresh failed or returned invalid session", refreshError);
+          logger.warn("AuthContext: Session refresh failed or returned invalid session");
         } catch (refreshError) {
           logger.error("AuthContext: Session refresh attempt failed", refreshError);
         }

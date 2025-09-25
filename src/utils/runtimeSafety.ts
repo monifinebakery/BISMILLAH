@@ -260,15 +260,19 @@ export function safeDebounce<T extends (...args: any[]) => any>(
   fn: T,
   delay: number
 ): (...args: Parameters<T>) => void {
-  let timeoutId: NodeJS.Timeout;
+  let timeoutId: NodeJS.Timeout | undefined;
   
   return (...args: Parameters<T>) => {
-    clearTimeout(timeoutId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+    }
     timeoutId = setTimeout(() => {
       try {
         fn(...args);
+        timeoutId = undefined;
       } catch (error) {
         logger.error('Debounced function error:', error);
+        timeoutId = undefined;
       }
     }, delay);
   };
@@ -333,14 +337,14 @@ export async function safeFetch(
   for (let i = 0; i < retries; i++) {
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), timeout);
+      const abortTimeoutId = setTimeout(() => controller.abort(), timeout);
       
       const response = await fetch(url, {
         ...fetchOptions,
         signal: controller.signal
       });
       
-      clearTimeout(timeoutId);
+      clearTimeout(abortTimeoutId);
       
       if (response.ok) {
         return response;

@@ -39,6 +39,10 @@ import {
   storeSessionForTablets,
   optimizeSupabaseForTablets
 } from '@/utils/auth/tabletSessionManager';
+import {
+  debugMobileSession,
+  checkMobileSessionHealth
+} from '@/utils/mobileOptimizations';
 
 type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
 
@@ -705,6 +709,35 @@ export const useAuthLifecycle = ({
     } catch (optimizeError) {
       logger.warn('AuthContext: Failed to initialize tablet optimizations', optimizeError);
     }
+    
+    // ✅ NEW: Mobile session health check and debugging
+    void (async () => {
+      try {
+        if (import.meta.env.DEV) {
+          debugMobileSession();
+        }
+        
+        const healthCheck = await checkMobileSessionHealth();
+        if (!healthCheck.healthy) {
+          logger.warn('AuthContext: Mobile session health issues detected', {
+            issues: healthCheck.issues,
+            recommendations: healthCheck.recommendations
+          });
+          
+          // Show user-friendly warning for critical issues
+          const criticalIssues = healthCheck.issues.filter(issue => 
+            issue.includes('localStorage not available') || 
+            issue.includes('Very slow network')
+          );
+          
+          if (criticalIssues.length > 0) {
+            logger.info('AuthContext: Critical mobile issues detected - user may experience login difficulties');
+          }
+        }
+      } catch (mobileCheckError) {
+        logger.debug('AuthContext: Mobile health check failed (non-critical)', mobileCheckError);
+      }
+    })();
 
     return () => {
       mountedRef.current = false;

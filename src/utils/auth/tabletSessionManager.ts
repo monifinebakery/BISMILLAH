@@ -1,24 +1,45 @@
-// src/utils/auth/iPadSessionManager.ts
-// iPad/Safari specific session management utilities
-// Handles Safari's aggressive tab management and session storage issues
+// src/utils/auth/tabletSessionManager.ts
+// Universal Tablet session management utilities (iPad, Android tablets, Surface, etc)
+// Handles Safari and other mobile browsers' aggressive tab management and session storage issues
 
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * Detect if device is iPad/Tablet
+ * Detect if device is any tablet (iPad, Android tablets, Surface, Samsung Galaxy Tab, etc)
  */
 export const detectTabletDevice = () => {
   const userAgent = navigator.userAgent;
   const isIPad = /iPad/.test(userAgent);
-  const isTablet = /Tablet|iPad|Android/.test(userAgent);
+  
+  // Enhanced tablet detection for various devices
+  const isAndroidTablet = /Android/.test(userAgent) && !/Mobile/.test(userAgent);
+  const isSurfaceTablet = /Windows NT/.test(userAgent) && /Touch/.test(userAgent);
+  const isGenericTablet = /Tablet/.test(userAgent);
+  const isTablet = isIPad || isAndroidTablet || isSurfaceTablet || isGenericTablet;
+  
+  // Detect mobile browsers that might have session issues
   const isSafari = /Safari/.test(userAgent) && !/Chrome|CriOS|FxiOS|EdgiOS/.test(userAgent);
+  const isChromeMobile = /Chrome/.test(userAgent) && /Mobile|Tablet/.test(userAgent);
+  const isFirefoxMobile = /Firefox/.test(userAgent) && /Mobile|Tablet/.test(userAgent);
+  const isMobileBrowser = isSafari || isChromeMobile || isFirefoxMobile;
   
   return {
     isIPad,
+    isAndroidTablet,
+    isSurfaceTablet,
+    isGenericTablet,
     isTablet,
-    isSafariTablet: (isIPad || isTablet) && isSafari,
-    userAgent
+    isSafari,
+    isMobileBrowser,
+    // Any tablet with mobile browser that might have session persistence issues
+    isProblematicTablet: isTablet && isMobileBrowser,
+    userAgent,
+    // Device details for debugging
+    deviceInfo: {
+      type: isIPad ? 'iPad' : isAndroidTablet ? 'Android Tablet' : isSurfaceTablet ? 'Surface' : isGenericTablet ? 'Generic Tablet' : 'Unknown',
+      browser: isSafari ? 'Safari' : isChromeMobile ? 'Chrome Mobile' : isFirefoxMobile ? 'Firefox Mobile' : 'Other'
+    }
   };
 };
 
@@ -30,13 +51,13 @@ export const storeSessionForTablets = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     
     if (!session) {
-      logger.debug('iPad Session: No session to store');
+      logger.debug('Tablet Session: No session to store');
       return false;
     }
     
     const tabletDetection = detectTabletDevice();
     
-    if (tabletDetection.isSafariTablet) {
+    if (tabletDetection.isProblematicTablet) {
       // For Safari on iPad/tablets, store session data redundantly
       const sessionData = {
         access_token: session.access_token,
@@ -52,21 +73,23 @@ export const storeSessionForTablets = async () => {
         localStorage.setItem('sb-tablet-session-backup', JSON.stringify(sessionData));
         sessionStorage.setItem('sb-tablet-session-temp', JSON.stringify(sessionData));
         
-        logger.debug('iPad Session: Session backup stored for tablet device', {
+        logger.debug('Tablet Session: Session backup stored for tablet device', {
           userId: session.user?.id,
-          expiresAt: session.expires_at
+          expiresAt: session.expires_at,
+          deviceType: tabletDetection.deviceInfo.type,
+          browser: tabletDetection.deviceInfo.browser
         });
         
         return true;
       } catch (storageError) {
-        logger.warn('iPad Session: Failed to store session backup', storageError);
+        logger.warn('Tablet Session: Failed to store session backup', storageError);
         return false;
       }
     }
     
     return true;
   } catch (error) {
-    logger.error('iPad Session: Error storing session for tablets', error);
+    logger.error('Tablet Session: Error storing session for tablets', error);
     return false;
   }
 };
@@ -78,7 +101,7 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
   try {
     const tabletDetection = detectTabletDevice();
     
-    if (!tabletDetection.isSafariTablet) {
+    if (!tabletDetection.isProblematicTablet) {
       return { isValid: true, shouldRefresh: false };
     }
     
@@ -86,12 +109,12 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
     const { data: { session }, error } = await supabase.auth.getSession();
     
     if (error) {
-      logger.warn('iPad Session: Error getting session', error);
+      logger.warn('Tablet Session: Error getting session', error);
       return { isValid: false, shouldRefresh: true };
     }
     
     if (!session) {
-      logger.debug('iPad Session: No session found');
+      logger.debug('Tablet Session: No session found');
       
       // Try to restore from backup for Safari
       try {
@@ -103,20 +126,20 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
           const MAX_BACKUP_AGE = 24 * 60 * 60 * 1000; // 24 hours
           
           if (timeElapsed < MAX_BACKUP_AGE && sessionData.expires_at && sessionData.expires_at > Math.floor(Date.now() / 1000)) {
-            logger.info('iPad Session: Found valid session backup, attempting restore', {
+            logger.info('Tablet Session: Found valid session backup, attempting restore', {
               userId: sessionData.user_id,
               ageMinutes: Math.round(timeElapsed / 1000 / 60)
             });
             
             return { isValid: false, shouldRefresh: true };
           } else {
-            logger.debug('iPad Session: Session backup expired, clearing');
+            logger.debug('Tablet Session: Session backup expired, clearing');
             localStorage.removeItem('sb-tablet-session-backup');
             sessionStorage.removeItem('sb-tablet-session-temp');
           }
         }
       } catch (backupError) {
-        logger.warn('iPad Session: Error checking session backup', backupError);
+        logger.warn('Tablet Session: Error checking session backup', backupError);
       }
       
       return { isValid: false, shouldRefresh: false };
@@ -128,7 +151,7 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
     const REFRESH_THRESHOLD = 5 * 60; // 5 minutes
     
     if (timeUntilExpiry < 0) {
-      logger.warn('iPad Session: Session expired', {
+      logger.warn('Tablet Session: Session expired', {
         expiresAt: session.expires_at,
         currentTime: now
       });
@@ -136,7 +159,7 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
     }
     
     if (timeUntilExpiry < REFRESH_THRESHOLD) {
-      logger.debug('iPad Session: Session expiring soon, should refresh', {
+      logger.debug('Tablet Session: Session expiring soon, should refresh', {
         timeUntilExpiryMinutes: Math.round(timeUntilExpiry / 60)
       });
       return { isValid: true, shouldRefresh: true };
@@ -145,7 +168,7 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
     // Store current session as backup
     await storeSessionForTablets();
     
-    logger.debug('iPad Session: Session valid', {
+    logger.debug('Tablet Session: Session valid', {
       userId: session.user?.id,
       timeUntilExpiryMinutes: Math.round(timeUntilExpiry / 60)
     });
@@ -153,7 +176,7 @@ export const validateTabletSession = async (): Promise<{ isValid: boolean; shoul
     return { isValid: true, shouldRefresh: false };
     
   } catch (error) {
-    logger.error('iPad Session: Error validating tablet session', error);
+    logger.error('Tablet Session: Error validating tablet session', error);
     return { isValid: false, shouldRefresh: true };
   }
 };
@@ -165,9 +188,9 @@ export const cleanupTabletSession = () => {
   try {
     localStorage.removeItem('sb-tablet-session-backup');
     sessionStorage.removeItem('sb-tablet-session-temp');
-    logger.debug('iPad Session: Cleaned up tablet session storage');
+    logger.debug('Tablet Session: Cleaned up tablet session storage');
   } catch (error) {
-    logger.warn('iPad Session: Failed to cleanup tablet session storage', error);
+    logger.warn('Tablet Session: Failed to cleanup tablet session storage', error);
   }
 };
 
@@ -177,8 +200,8 @@ export const cleanupTabletSession = () => {
 export const optimizeSupabaseForTablets = () => {
   const tabletDetection = detectTabletDevice();
   
-  if (tabletDetection.isSafariTablet) {
-    logger.info('iPad Session: Optimizing for Safari tablet device', tabletDetection);
+  if (tabletDetection.isProblematicTablet) {
+    logger.info('Tablet Session: Optimizing for problematic tablet device', tabletDetection);
     
     // Store session backup when auth state changes
     supabase.auth.onAuthStateChange(async (event, session) => {

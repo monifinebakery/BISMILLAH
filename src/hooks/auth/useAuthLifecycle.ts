@@ -38,7 +38,7 @@ import {
   validateTabletSession,
   storeSessionForTablets,
   optimizeSupabaseForTablets
-} from '@/utils/auth/iPadSessionManager';
+} from '@/utils/auth/tabletSessionManager';
 
 type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
 
@@ -103,28 +103,28 @@ export const useAuthLifecycle = ({
           });
           
           setTimeout(async () => {
-            // ✅ FIX: Use iPad-optimized session validation for tablets
-            const tabletDetection = detectTabletDevice();
-            
-            if (tabletDetection.isSafariTablet) {
+          // ✅ FIX: Use tablet-optimized session validation for tablets
+          const tabletDetection = detectTabletDevice();
+          
+          if (tabletDetection.isProblematicTablet) {
               const { isValid, shouldRefresh } = await validateTabletSession();
               
               if (!isValid) {
-                logger.warn('iPad Session: Session invalid, user needs to re-authenticate');
+              logger.warn('Tablet Session: Session invalid, user needs to re-authenticate');
                 // Let AuthGuard handle redirect to auth page
                 updateAuthState(null, null);
                 return;
               }
               
               if (shouldRefresh) {
-                logger.debug('iPad Session: Session needs refresh');
+                logger.debug('Tablet Session: Session needs refresh');
                 refreshUser().catch(error => {
-                  logger.warn('AuthContext: Failed to refresh user on iPad tab activation', error);
+                  logger.warn('AuthContext: Failed to refresh user on tablet tab activation', error);
                 });
                 return;
               }
               
-              logger.debug('iPad Session: Session valid, no refresh needed');
+              logger.debug('Tablet Session: Session valid, no refresh needed');
               return;
             }
             
@@ -132,7 +132,7 @@ export const useAuthLifecycle = ({
             refreshUser().catch(error => {
               logger.warn('AuthContext: Failed to refresh user on tab activation', error);
             });
-          }, 300); // ✅ FIX: Increased delay for iPad performance
+          }, 300); // ✅ FIX: Increased delay for tablet performance
         } else {
           logger.debug('AuthContext: Tab reactivated quickly, skipping session refresh', {
             hiddenTimeSeconds: Math.round(tabHiddenTime / 1000)

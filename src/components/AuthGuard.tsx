@@ -109,9 +109,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (!user && !isLoading && isReady) {
       const otpTimestamp = readOtpTimestamp();
       const now = Date.now();
-      const OTP_DISPLAY_TIMEOUT_MS = 30000; // ✅ FIX: Increased from 12s to 30s for better UX
-      const OTP_STALE_THRESHOLD_MS = 45000; // ✅ FIX: Increased from 15s to 45s
-      const MIN_WAIT_WINDOW_MS = 10000; // ✅ FIX: Increased from 3s to 10s
+      const OTP_DISPLAY_TIMEOUT_MS = 60000; // ✅ FIX: Increased to 60s (1 minute) for slower connections
+      const OTP_STALE_THRESHOLD_MS = 90000; // ✅ FIX: Increased to 90s (1.5 minutes) for slower connections
+      const MIN_WAIT_WINDOW_MS = 20000; // ✅ FIX: Increased to 20s for better reliability
 
       if (otpTimestamp > 0) {
         const elapsed = now - otpTimestamp;
@@ -157,14 +157,27 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       stopOtpWaiting();
     }
 
-    // ✅ NEW: Trigger session refresh when AuthGuard detects potential stale session
+    // ✅ ENHANCED: Better session refresh with retry logic when AuthGuard detects potential stale session
     if (!user && !isLoading && isReady) {
-      // Small delay to allow for natural transition, then refresh if needed
-      const refreshTimer = setTimeout(() => {
-        refreshUser().catch(error => {
-          console.warn('AuthGuard: Failed to refresh user session', error);
-        });
-      }, 300);
+      // Increased delay to allow more time for auth state to settle
+      const refreshTimer = setTimeout(async () => {
+        try {
+          console.log('AuthGuard: Attempting to refresh potentially stale session...');
+          await refreshUser();
+          console.log('AuthGuard: Session refresh completed');
+        } catch (error) {
+          console.warn('AuthGuard: Failed to refresh user session, will retry once more', error);
+          // One more attempt after a delay for slow connections
+          setTimeout(async () => {
+            try {
+              await refreshUser();
+              console.log('AuthGuard: Second session refresh attempt completed');
+            } catch (retryError) {
+              console.error('AuthGuard: Both session refresh attempts failed', retryError);
+            }
+          }, 2000);
+        }
+      }, 800); // ✅ FIX: Increased from 300ms to 800ms for better auth state settling
       
       return () => clearTimeout(refreshTimer);
     }
@@ -276,7 +289,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   if (!user) {
     const otpTimestamp = otpTimestampRef.current || readOtpTimestamp();
     const now = otpTick;
-    const OTP_DISPLAY_TIMEOUT_MS = 30000; // ✅ FIX: Match with timeout above for consistency
+    const OTP_DISPLAY_TIMEOUT_MS = 60000; // ✅ FIX: Match with timeout above for consistency
     const waitingForOtp = isWaitingForOtpSession || (otpTimestamp > 0 && (now - otpTimestamp) < OTP_DISPLAY_TIMEOUT_MS);
     const elapsedSeconds = otpTimestamp > 0 ? Math.max(0, Math.floor((now - otpTimestamp) / 1000)) : 0;
 

@@ -143,7 +143,7 @@ export const useAuthLifecycle = ({
       const sameUser =
         !!session?.user?.id && session.user.id === lastEventRef.current.userId;
       const sameEvent = event === lastEventRef.current.event;
-      const tooSoon = nowTs - lastEventRef.current.ts < 1000; // Increased from 300ms to 1000ms
+      const tooSoon = nowTs - lastEventRef.current.ts < 500; // ✅ FIX: Reduced to 500ms for more responsive auth state updates
       
       // Don't dedupe SIGNED_IN and SIGNED_OUT events as they're critical
       if (sameUser && sameEvent && tooSoon && event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') {
@@ -474,8 +474,8 @@ export const useAuthLifecycle = ({
           }
         }
 
-        const MAX_SESSION_ATTEMPTS = 1; // Reduced from 2 to 1 for faster loading
-        const BASE_RETRY_DELAY_MS = 800; // Reduced from 1500ms to 800ms
+        const MAX_SESSION_ATTEMPTS = 3; // ✅ FIX: Increased from 1 to 3 for better reliability
+        const BASE_RETRY_DELAY_MS = 1200; // ✅ FIX: Increased from 800ms to 1200ms
 
         const fetchSessionWithRetry = async (): Promise<{
           result: GetSessionResult | null;
@@ -489,7 +489,7 @@ export const useAuthLifecycle = ({
             attempt < MAX_SESSION_ATTEMPTS && mountedRef.current;
             attempt++
           ) {
-            const adaptiveTimeout = getAdaptiveTimeout(5000); // Reduced from 15s to 5s
+            const adaptiveTimeout = getAdaptiveTimeout(15000); // ✅ FIX: Increased back to 15s for mobile reliability
             const { data, error } = await safeWithTimeout(
               () => supabase.auth.getSession(),
               {
@@ -537,7 +537,7 @@ export const useAuthLifecycle = ({
               );
             }
 
-            const backoff = Math.min(2000, BASE_RETRY_DELAY_MS * (attempt + 1)); // Reduced max from 5s to 2s
+            const backoff = Math.min(5000, BASE_RETRY_DELAY_MS * (attempt + 1)); // ✅ FIX: Increased max back to 5s
             await new Promise((resolve) => setTimeout(resolve, backoff));
           }
 

@@ -99,7 +99,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
     navigate(targetPath, { replace: true });
     return true;
-  }, [navigate, location.pathname, user]);
+  }, [navigate, user]);
 
   // ✅ FORCE RE-RENDER on auth state changes with timeout prevention
   useEffect(() => {
@@ -167,7 +167,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       
       return () => clearTimeout(refreshTimer);
     }
-  }, [user, isReady, isLoading, navigate, location.pathname, readOtpTimestamp, stopOtpWaiting, refreshUser]);
+  }, [user, isReady, isLoading, navigate, readOtpTimestamp, stopOtpWaiting, refreshUser]);
 
     // ✅ MOBILE-OPTIMIZED: Reasonable timeout with retry-based strategy
     if (isLoading && !isReady && !user) {
@@ -208,7 +208,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         otpWaitTimeoutRef.current = null;
       }
     };
-  }, [user, isReady, isLoading, navigate, location.pathname, readOtpTimestamp, stopOtpWaiting]);
+  }, [user, isReady, isLoading, navigate, location.pathname, readOtpTimestamp, stopOtpWaiting, refreshUser]);
 
   // ✅ ENHANCED DEBUG: Log all state changes
   useEffect(() => {
@@ -243,7 +243,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         }
       }
     }
-  }, [user, isLoading, isReady, location.pathname, renderCount]);
+  }, [user, isLoading, isReady, renderCount]);
 
   // ✅ ANTI-FLICKER: Simple initialization tracking
   useEffect(() => {

@@ -53,20 +53,42 @@ export const validateSession = (session: Session | null) => {
     return { session: null, user: null };
   }
 
-  if (session.expires_at && session.expires_at < Math.floor(Date.now() / 1000)) {
-    logger.warn('AuthValidation: Session expired during validation');
-    return { session: null, user: null };
+  // Add grace period for session expiry (5 minutes instead of strict expiry)
+  if (session.expires_at) {
+    const now = Math.floor(Date.now() / 1000);
+    const expiresAt = session.expires_at;
+    const timeUntilExpiry = expiresAt - now;
+
+    // Give 5 minutes grace period before considering session expired
+    if (timeUntilExpiry < -300) { // -5 minutes = 300 seconds
+      logger.warn('AuthValidation: Session expired (including 5min grace period)', {
+        expiresAt: new Date(expiresAt * 1000).toISOString(),
+        now: new Date(now * 1000).toISOString(),
+        timeUntilExpiry,
+      });
+      return { session: null, user: null };
+    } else if (timeUntilExpiry < 60) { // Less than 1 minute remaining
+      logger.debug('AuthValidation: Session expires soon', {
+        timeUntilExpiry,
+        expiresAt: new Date(expiresAt * 1000).toISOString(),
+      });
+    }
   }
 
   const sanitizedUser = sanitizeUser(session.user);
   if (!sanitizedUser) {
     logger.warn('AuthValidation: Session has invalid user after sanitization', {
       userId: session.user?.id,
+      userEmail: session.user?.email,
     });
     return { session: null, user: null };
   }
 
-  logger.debug('AuthValidation: Session validated', { userId: sanitizedUser.id });
+  logger.debug('AuthValidation: Session validated', {
+    userId: sanitizedUser.id,
+    userEmail: sanitizedUser.email,
+    sessionExpiry: session.expires_at ? new Date(session.expires_at * 1000).toISOString() : 'no expiry'
+  });
   return { session, user: sanitizedUser };
 };
 

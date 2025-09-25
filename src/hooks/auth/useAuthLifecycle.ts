@@ -96,16 +96,16 @@ export const useAuthLifecycle = ({
     async (event: string, session: Session | null) => {
       if (!mountedRef.current) return;
 
-      // Throttle/dedupe repeated events from Supabase
+      // Throttle/dedupe repeated events from Supabase - INCREASED WINDOW
       const nowTs = Date.now();
       const sameUser =
         !!session?.user?.id && session.user.id === lastEventRef.current.userId;
       const sameEvent = event === lastEventRef.current.event;
-      const tooSoon = nowTs - lastEventRef.current.ts < 300; // Reduced from 800ms to 300ms window
+      const tooSoon = nowTs - lastEventRef.current.ts < 1000; // Increased from 300ms to 1000ms
       
-      // Don't dedupe SIGNED_IN events as they're critical for login flow
-      if (sameUser && sameEvent && tooSoon && event !== 'SIGNED_IN') {
-        logger.debug("AuthContext: Dedupe auth state event", { event });
+      // Don't dedupe SIGNED_IN and SIGNED_OUT events as they're critical
+      if (sameUser && sameEvent && tooSoon && event !== 'SIGNED_IN' && event !== 'SIGNED_OUT') {
+        logger.debug("AuthContext: Dedupe auth state event", { event, timeDiff: nowTs - lastEventRef.current.ts });
         return;
       }
 
@@ -133,12 +133,43 @@ export const useAuthLifecycle = ({
 
       if (session && !validSession) {
         logger.error(
-          "AuthContext: Auth state change contained invalid session/user, cleaning up",
+          "AuthContext: Auth state change contained invalid session/user, attempting recovery",
+          {
+            originalSession: !!session,
+            originalUserId: session?.user?.id,
+            originalUserEmail: session?.user?.email,
+            event,
+          }
         );
+
+        // Try to refresh session before signing out
+        try {
+          logger.info("AuthContext: Attempting session refresh before signout");
+          const { data: refreshData, error: refreshError } = await supabase.auth.refreshSession();
+
+          if (!refreshError && refreshData?.session) {
+            const { session: refreshedSession, user: refreshedUser } = validateSession(refreshData.session);
+            if (refreshedSession && refreshedUser) {
+              logger.success("AuthContext: Session refresh successful, continuing with refreshed session", {
+                userId: refreshedUser.id,
+                userEmail: refreshedUser.email,
+              });
+              updateAuthState(refreshedSession, refreshedUser);
+              return;
+            }
+          }
+
+          logger.warn("AuthContext: Session refresh failed or returned invalid session", refreshError);
+        } catch (refreshError) {
+          logger.error("AuthContext: Session refresh attempt failed", refreshError);
+        }
+
+        // Only sign out if refresh didn't work
+        logger.warn("AuthContext: All recovery attempts failed, signing out user");
         try {
           cleanupAuthState();
           await supabase.auth.signOut();
-          logger.info("AuthContext: Signed out due to invalid session");
+          logger.info("AuthContext: Signed out due to invalid session after recovery attempts");
         } catch (signOutError) {
           logger.error(
             "AuthContext: Failed to sign out invalid session",

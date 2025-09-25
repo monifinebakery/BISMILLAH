@@ -21,7 +21,11 @@ import {
   needsSafariWorkaround,
   safariAuthFallback,
 } from '@/utils/safariUtils';
-import { safeStorageRemove } from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
+import {
+  safeStorageRemove,
+  safeStorageSet,
+  safeStorageGet,
+} from '@/utils/auth/safeStorage'; // ✅ FIX: Thread-safe storage
 import {
   detectProblematicAndroid,
   forceAndroidSessionRefresh,
@@ -68,6 +72,21 @@ export const useAuthLifecycle = ({
     (path: string, options?: { replace?: boolean }) => navigate(path, options),
     [navigate],
   );
+
+  const LAST_PATH_KEY = 'app:last-path';
+
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        safeStorageSet(LAST_PATH_KEY, window.location.pathname).catch(() => {
+          logger.warn('AuthContext: Failed to persist last path');
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
 
   // ❌ DISABLED: Navigation handled by AuthGuard to prevent race conditions
   // const debouncedNavigate = useMemo(
@@ -194,12 +213,24 @@ export const useAuthLifecycle = ({
       }
 
       // ✅ FIXED: Let AuthGuard handle navigation to prevent race conditions
-      if (validUser && window.location.pathname === "/auth") {
-        logger.debug(
-          "AuthContext: User authenticated on auth page - delegating navigation to AuthGuard"
-        );
-        // Don't navigate here - AuthGuard will handle it through useEffect
-        // This prevents race conditions between AuthContext and AuthGuard
+      if (validUser) {
+        const storedPath = safeStorageGet(LAST_PATH_KEY);
+        if (storedPath && storedPath !== window.location.pathname && storedPath !== '/auth') {
+          logger.info('AuthContext: Restoring last path after successful auth', { storedPath });
+          safeStorageRemove(LAST_PATH_KEY).catch(() => {
+            logger.warn('AuthContext: Failed to clear last path');
+          });
+          stableNavigate(storedPath, { replace: true });
+          return;
+        }
+
+        if (window.location.pathname === '/auth') {
+          logger.debug(
+            "AuthContext: User authenticated on auth page - delegating navigation to AuthGuard"
+          );
+          // Don't navigate here - AuthGuard will handle it through useEffect
+          // This prevents race conditions between AuthContext and AuthGuard
+        }
       }
     },
     [/* No dependencies needed - all functions are stable */], // ✅ FIX: Remove unstable dependencies

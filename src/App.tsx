@@ -16,6 +16,7 @@ import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
 import { FloatingChatbot } from '@/components/chatbot/FloatingChatbot';
+import { periodicSessionRefresh } from '@/utils/auth/periodicSessionRefresh';
 
 const App = () => {
   // ✅ Auto-update system - Setup update detection and notifications
@@ -123,11 +124,16 @@ const App = () => {
     // Setup cache persistence (best-effort)
     const cleanupPersistence = setupQueryPersistence(queryClient);
 
+    // ✅ Start periodic session refresh
+    periodicSessionRefresh.startPeriodicRefresh();
+
     // Cleanup subscriptions
     return () => {
       queryUnsubscribe();
       mutationUnsubscribe();
       cleanupPersistence();
+      // ✅ Stop periodic session refresh on app unmount
+      periodicSessionRefresh.stopPeriodicRefresh();
     };
   }, [handleQueryError]);
 

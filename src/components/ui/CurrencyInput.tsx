@@ -1,9 +1,7 @@
 // src/components/ui/CurrencyInput.tsx
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
-import { helpers } from '@/components/promoCalculator/utils/helpers';
 import { useSafeCurrency } from '@/hooks/useSafeCurrency';
-import { CurrencyProvider } from '@/contexts/CurrencyContext';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: number | string;
@@ -32,59 +30,79 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     const [displayValue, setDisplayValue] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
-    
-    // Use safe currency hook to get the prefix from context if not provided
-    const { formatCurrency } = useSafeCurrency();
-    const defaultPrefix = 'Rp '; // fallback when not using the hook
-    
-    // If prefix is not provided, get it from the context by formatting 0
-    const effectivePrefix = prefix !== undefined ? prefix : defaultPrefix;
+    const debounceTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Create debounced onChange function
-    const debouncedOnChange = useMemo(
-      () => helpers.debounce(onChange, debounceMs),
-      [onChange, debounceMs]
+    const { formatCurrency } = useSafeCurrency();
+
+    const defaultPrefix = useMemo(() => {
+      try {
+        const formatted = formatCurrency?.(0) ?? '';
+        const match = formatted.match(/^[^0-9-]+/);
+        if (match && match[0].trim().length > 0) {
+          return match[0];
+        }
+      } catch (error) {
+        console.warn('CurrencyInput: unable to derive prefix from context', error);
+      }
+      return 'Rp ';
+    }, [formatCurrency]);
+
+    const effectivePrefix = prefix ?? defaultPrefix;
+
+    const escapeRegex = useCallback(
+      (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'),
+      []
     );
 
-    // Format number to display with thousands separator
-    const formatNumber = (num: number | string): string => {
-      if (num === '' || num === null || num === undefined) return '';
-      
+    const formatNumber = useCallback((num: number | string): string => {
+      if (num === '' || num === null || num === undefined) {
+        return '';
+      }
+
       const numValue = typeof num === 'string' ? parseFloat(num) || 0 : num;
-      if (numValue === 0) return '';
-      
+      if (numValue === 0) {
+        return '';
+      }
+
       return new Intl.NumberFormat('id-ID', {
         minimumFractionDigits: 0,
         maximumFractionDigits: 0,
       }).format(numValue);
-    };
+    }, []);
 
-    // Parse formatted string back to number
-    const parseNumber = (str: string): number => {
-      if (!str) return 0;
-      
-      // Remove prefix and non-numeric characters except minus
-      const cleanStr = str
-        .replace(new RegExp(effectivePrefix.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\const parseNumber = (str: string): number => {
-      if (!str) return 0;
-      
-      // Remove prefix and non-numeric characters except minus
-      const cleanStr = str
-        .replace(new RegExp(prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '')
-        .replace(/[^\d,-]/g, '')
+    const parseNumber = useCallback((str: string): number => {
+      if (!str) {
+        return 0;
+      }
+
+      let cleanStr = str;
+
+      if (effectivePrefix) {
+        cleanStr = cleanStr.replace(new RegExp(`^${escapeRegex(effectivePrefix)}`), '');
+      }
+
+      if (thousandSeparator) {
+        cleanStr = cleanStr.replace(new RegExp(escapeRegex(thousandSeparator), 'g'), '');
+      }
+
+      cleanStr = cleanStr
+        .replace(/[^0-9,-]/g, '')
         .replace(',', '.');
-      
+
       const num = parseFloat(cleanStr) || 0;
       return allowNegative ? num : Math.max(0, num);
-    };'), 'g'), '')
-        .replace(/[^\d,-]/g, '')
-        .replace(',', '.');
-      
-      const num = parseFloat(cleanStr) || 0;
-      return allowNegative ? num : Math.max(0, num);
-    };
+    }, [allowNegative, effectivePrefix, escapeRegex, thousandSeparator]);
 
-    // Update display value when external value changes
+    const emitChange = useCallback((nextValue: number) => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+
+      debounceTimeoutRef.current = setTimeout(() => {
+        onChange(nextValue);
+      }, debounceMs);
+    }, [debounceMs, onChange]);
+
     useEffect(() => {
       const numValue = typeof value === 'string' ? parseFloat(value) || 0 : (value || 0);
       
@@ -100,7 +118,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       setDisplayValue(inputValue.replace(effectivePrefix, ''));
       
       // Use debounced onChange while typing for better performance
-      debouncedOnChange(numericValue);
+      emitChange(numericValue);
       
       if (onValueChange) {
         onValueChange(inputValue, numericValue);
@@ -133,8 +151,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       
       const numericValue = parseNumber(displayValue);
       onChange(numericValue);
-      
-      // Format display value
+
       setDisplayValue(formatNumber(numericValue));
       
       if (props.onBlur) {

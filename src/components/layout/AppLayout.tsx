@@ -1,7 +1,7 @@
 // src/components/layout/AppLayout.tsx - SIMPLIFIED: Only AutoLinkingPopup
 
 import React, { useState, useEffect } from 'react';
-import { Outlet } from 'react-router-dom';
+import { Outlet, useLocation } from 'react-router-dom';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { usePaymentContext } from "@/contexts/PaymentContext";
 import { useAppLayout } from "@/hooks/useAppLayout";
@@ -10,10 +10,11 @@ import { DesktopLayout } from "./DesktopLayout";
 import { AutoLinkingPopup } from "@/components/popups";
 import { logger } from "@/utils/logger";
 import { supabase } from '@/integrations/supabase/client';
-import { safeStorageGet, safeStorageRemove } from '@/utils/auth/safeStorage';
+import { safeStorageGet, safeStorageRemove, safeStorageSet } from '@/utils/auth/safeStorage';
 
 export const AppLayout = () => {
   const isMobile = useIsMobile();
+  const location = useLocation();
   const { 
     updateAvailable,
     updateInfo,
@@ -91,6 +92,19 @@ export const AppLayout = () => {
       console.warn('AppLayout: unable to clear appUpdateRefreshing flag', error);
     }
   }, []);
+
+  useEffect(() => {
+    const path = location.pathname;
+    if (path && path !== '/auth') {
+      safeStorageSet('app:last-path', path).catch(() => {
+        logger.warn('AppLayout: Failed to persist last visited path');
+      });
+    } else if (path === '/auth') {
+      safeStorageRemove('app:last-path').catch(() => {
+        logger.warn('AppLayout: Failed to clear last visited path');
+      });
+    }
+  }, [location.pathname]);
 
   // ... (rest of the component remains the same)
   const {

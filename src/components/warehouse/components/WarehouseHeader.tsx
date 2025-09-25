@@ -101,8 +101,8 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   } = useQuery({
     queryKey: [...headerQueryKeys.stats, user?.id],
     queryFn: () => fetchWarehouseStats(user?.id),
-    staleTime: 2 * 60 * 1000,
-    refetchInterval: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - much less aggressive
+    refetchInterval: false, // Disable polling - use manual refresh instead
     retry: 1,
   });
 
@@ -112,8 +112,8 @@ const WarehouseHeader: React.FC<WarehouseHeaderProps> = ({
   } = useQuery({
     queryKey: [...headerQueryKeys.alerts, user?.id],
     queryFn: () => fetchWarehouseAlerts(user?.id),
-    staleTime: 1 * 60 * 1000,
-    refetchInterval: 2 * 60 * 1000,
+    staleTime: 10 * 60 * 1000, // 10 minutes - much less aggressive
+    refetchInterval: false, // Disable polling
     retry: 1,
   });
 

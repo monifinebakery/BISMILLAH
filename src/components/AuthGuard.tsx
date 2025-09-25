@@ -109,9 +109,9 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
     if (!user && !isLoading && isReady) {
       const otpTimestamp = readOtpTimestamp();
       const now = Date.now();
-      const OTP_DISPLAY_TIMEOUT_MS = 12000;
-      const OTP_STALE_THRESHOLD_MS = 15000;
-      const MIN_WAIT_WINDOW_MS = 3000;
+      const OTP_DISPLAY_TIMEOUT_MS = 30000; // ✅ FIX: Increased from 12s to 30s for better UX
+      const OTP_STALE_THRESHOLD_MS = 45000; // ✅ FIX: Increased from 15s to 45s
+      const MIN_WAIT_WINDOW_MS = 10000; // ✅ FIX: Increased from 3s to 10s
 
       if (otpTimestamp > 0) {
         const elapsed = now - otpTimestamp;
@@ -134,6 +134,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
 
           if (otpWaitTimeoutRef.current) {
             clearTimeout(otpWaitTimeoutRef.current);
+            otpWaitTimeoutRef.current = null; // ✅ FIX: Explicitly set to null after clearing
           }
 
           otpWaitTimeoutRef.current = setTimeout(() => {
@@ -275,7 +276,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
   if (!user) {
     const otpTimestamp = otpTimestampRef.current || readOtpTimestamp();
     const now = otpTick;
-    const OTP_DISPLAY_TIMEOUT_MS = 12000;
+    const OTP_DISPLAY_TIMEOUT_MS = 30000; // ✅ FIX: Match with timeout above for consistency
     const waitingForOtp = isWaitingForOtpSession || (otpTimestamp > 0 && (now - otpTimestamp) < OTP_DISPLAY_TIMEOUT_MS);
     const elapsedSeconds = otpTimestamp > 0 ? Math.max(0, Math.floor((now - otpTimestamp) / 1000)) : 0;
 
@@ -284,7 +285,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
       : Math.max(0, Math.ceil((OTP_DISPLAY_TIMEOUT_MS - (now - otpTimestamp)) / 1000));
 
     if (waitingForOtp) {
-      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified, ${elapsedSeconds}s ago)`);
+      console.log(`⏳ [AuthGuard #${renderCount}] Waiting for session (OTP recently verified, ${elapsedSeconds}s ago, ${remainingSeconds}s remaining)`);
+      
+      // ✅ FIX: Add debug info in dev mode
+      if (import.meta.env.DEV && elapsedSeconds > 20) {
+        console.warn(`⚠️ [AuthGuard] OTP session taking longer than expected: ${elapsedSeconds}s elapsed`);
+      }
 
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -295,7 +301,10 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
             <p className="text-xs text-gray-400 mt-1">{elapsedSeconds}s dari verifikasi</p>
             {remainingSeconds > 0 && (
               <p className="text-xs text-gray-400 mt-1">
-                Mengarahkan ulang otomatis dalam ±{remainingSeconds}s jika sesi belum aktif
+                {elapsedSeconds > 15 ? 
+                  'Memproses... mohon tunggu sebentar' : 
+                  `Mengarahkan ulang otomatis dalam ±${remainingSeconds}s jika sesi belum aktif`
+                }
               </p>
             )}
           </div>

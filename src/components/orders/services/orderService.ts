@@ -1,6 +1,7 @@
 // src/components/orders/services/orderService.ts
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { logger } from '@/utils/logger';
 import { orderEvents, emitOrderDeleted } from '../utils/orderEvents';
 import { transformOrderFromDB, transformOrderToDB, validateOrderData, toSafeISOString } from '../utils';
 import type { Order, OrderItem, CreateOrderData, UpdateOrderData, OrderStatus, NewOrder } from '../types';
@@ -322,6 +323,46 @@ export async function updateOrderSnake(userId: string, id: string, updatedDataSn
   const camel = from_snake_order(updatedDataSnake);
   const updated = await updateOrder(userId, id, camel as any);
   return to_snake_order(updated);
+}
+
+// Get single order by ID
+export async function getOrderById(userId: string, id: string): Promise<Order | null> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select(`
+        id,
+        nomor_pesanan,
+        tanggal,
+        nama_pelanggan,
+        telepon_pelanggan,
+        email_pelanggan,
+        alamat_pengiriman,
+        status,
+        total_pesanan,
+        catatan,
+        items,
+        created_at,
+        updated_at
+      `)
+      .eq('id', id)
+      .eq('user_id', userId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        // No rows returned
+        return null;
+      }
+      logger.error('Error fetching order by ID:', error);
+      throw error;
+    }
+
+    return transformOrderFromDB(data);
+  } catch (error) {
+    logger.error('getOrderById failed:', error);
+    throw error;
+  }
 }
 
 // Update only status

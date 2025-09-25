@@ -202,12 +202,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
         }, 100);
       } else {
         setError("Gagal mengirim kode OTP. Silakan coba lagi.");
-        startCooldown(30);
+        startCooldown(60); // ✅ FIX: Increased cooldown to respect rate limits
       }
     } catch (error) {
       console.error("Send OTP error:", error);
       setError("Terjadi kesalahan. Silakan coba lagi.");
-      startCooldown(30);
+      startCooldown(60); // ✅ FIX: Increased cooldown to respect rate limits
     } finally {
       setIsLoading(false);
     }
@@ -230,12 +230,12 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
         otpRefs.current[0]?.focus();
       } else {
         setError("Gagal mengirim ulang kode OTP");
-        startCooldown(30);
+        startCooldown(60); // ✅ FIX: Increased cooldown to respect rate limits
       }
     } catch (error) {
       console.error("Resend OTP error:", error);
       setError("Terjadi kesalahan saat mengirim ulang kode");
-      startCooldown(30);
+      startCooldown(90); // ✅ FIX: Longer cooldown for resend errors to respect rate limits
     } finally {
       setIsLoading(false);
     }
@@ -257,7 +257,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
 
     // Auto-verify when all fields filled
     if (newOtp.every(digit => digit !== "") && newOtp.join("").length === 6) {
-      setTimeout(() => handleVerifyOtp(newOtp.join("")), 100);
+      setTimeout(() => handleVerifyOtp(newOtp.join("")), 300); // ✅ FIX: Increased delay for better UX
     }
   };
 
@@ -281,7 +281,7 @@ const EmailAuthPage: React.FC<EmailAuthPageProps> = ({ onLoginSuccess }) => {
       
       // Auto-verify pasted OTP
       if (newOtp.every(digit => digit !== "")) {
-        setTimeout(() => handleVerifyOtp(newOtp.join("")), 100);
+        setTimeout(() => handleVerifyOtp(newOtp.join("")), 300); // ✅ FIX: Increased delay for better paste handling
       }
     }
   };

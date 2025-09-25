@@ -21,6 +21,7 @@ import { useFinancialOperations } from '@/components/financial/hooks/crud/useFin
 import { SupplierContext } from '@/contexts/SupplierContext';
 import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehouseItemUtils';
 import { PurchaseApiService } from '../services/purchaseApi';
+import { deletePurchaseWithCleanup } from '../services/purchaseApiRefactored';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
 
 import {
@@ -81,8 +82,13 @@ const apiSetStatus = async (id: string, userId: string, newStatus: PurchaseStatu
 };
 
 const apiDeletePurchase = async (id: string, userId: string) => {
-  const res = await PurchaseApiService.deletePurchase(id, userId);
-  if (!res.success) throw new Error(res.error || 'Gagal menghapus pembelian');
+  logger.info('🗑️ apiDeletePurchase called with cleanup:', { id, userId });
+  const res = await deletePurchaseWithCleanup(id, userId);
+  if (!res.success) {
+    logger.error('❌ apiDeletePurchase failed:', { id, error: res.error });
+    throw new Error(res.error || 'Gagal menghapus pembelian');
+  }
+  logger.info('✅ apiDeletePurchase success with cleanup:', { id });
 };
 
 // ------------------- Context -------------------
@@ -462,7 +468,19 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   // DELETE (optimistic remove)
   const deleteMutation = useMutation({
+    mutationFn: async (id: string) => {
+      logger.debug('🗑️ deleteMutation mutationFn called with id:', id);
+      if (!user?.id) {
+        throw new Error('User not authenticated');
+      }
+      
+      // Call the API delete function with cleanup
+      const result = await apiDeletePurchase(id, user.id);
+      logger.info('✅ deleteMutation API call successful:', { id });
+      return result;
+    },
     onMutate: async (id) => {
+      logger.debug('🗑️ deleteMutation onMutate called with id:', id);
       await queryClient.cancelQueries({ queryKey: purchaseQueryKeys.list(user?.id) });
       const prev = queryClient.getQueryData<Purchase[]>(purchaseQueryKeys.list(user?.id)) || [];
       setCacheList((old) => old.filter((p) => p.id !== id));

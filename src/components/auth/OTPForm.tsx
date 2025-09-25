@@ -73,7 +73,7 @@ export const OTPForm: React.FC<OTPFormProps> = ({
           if (allFilled) {
             onVerifyOtp();
           }
-        }, 50);
+        }, 200); // ✅ FIX: Increased delay for better paste handling
       }
     } else if (pasted.length > 0) {
       // Handle partial paste

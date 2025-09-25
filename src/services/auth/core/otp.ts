@@ -65,8 +65,10 @@ export const sendEmailOtp = async (
       if (error.message?.includes('Signups not allowed') && allowSignup) {
         logger.info('Signup disabled, trying existing users only...');
         toast.info('Mencoba untuk pengguna terdaftar...');
-        // ✅ FIXED: Add delay to prevent rapid retry which can trigger rate limiting
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        // ✅ FIXED: Add proper delay with exponential backoff to prevent rate limiting
+        const retryDelay = 3000; // 3 seconds base delay for rate limit respect
+        logger.info(`[OTP] Retrying with ${retryDelay}ms delay due to signup restriction`);
+        await new Promise(resolve => setTimeout(resolve, retryDelay));
         return await sendEmailOtp(email, null, false, true);
       }
       
@@ -77,9 +79,10 @@ export const sendEmailOtp = async (
         return false;
       }
       
-      // Handle rate limiting
+      // Handle rate limiting - Based on Supabase config: 150 requests per 5 min per IP
       if (error.status === 429 || error.message?.includes('rate limit') || error.message?.includes('too many')) {
-        toast.error('Terlalu banyak permintaan. Tunggu beberapa menit sebelum mencoba lagi.');
+        toast.error('Terlalu banyak permintaan. Tunggu 5 menit sebelum mencoba lagi. (Rate limit: 150/5 min per IP)');
+        logger.warn('[OTP] Rate limit hit - Supabase allows 150 requests per 5 minutes per IP');
         return false;
       }
       
@@ -163,8 +166,9 @@ export const verifyEmailOtp = async (
         return 'expired';
       }
       
-      if (errorMsg.includes('too many attempts')) {
-        toast.error('Terlalu banyak percobaan. Silakan minta kode baru.');
+      if (errorMsg.includes('too many attempts') || error.status === 429) {
+        toast.error('Terlalu banyak percobaan. Tunggu 5 menit. (Rate limit: 200 verifikasi per 5 min per IP)');
+        logger.warn('[OTP] Verification rate limit hit - Supabase allows 200 verifications per 5 minutes per IP');
         return 'rate_limited';
       }
       
@@ -227,8 +231,8 @@ export const verifyEmailOtp = async (
         logger.warn('Failed to trigger payment refresh:', eventError);
       }
       
-      // ✅ ENHANCED: Minimal delay to ensure session is committed (optimized for speed)
-      await new Promise(resolve => setTimeout(resolve, 100)); // Reduced from 300ms to 100ms for faster login
+      // ✅ ENHANCED: Proper delay to ensure session is committed, especially on mobile
+      await new Promise(resolve => setTimeout(resolve, 500)); // ✅ FIX: Increased to 500ms for better mobile compatibility
       
       // ✅ FIXED: Single success notification - don't show here, let caller handle it
       return true;

@@ -35,7 +35,6 @@ import { OfflineIndicator } from '@/components/common/OfflineIndicator';
 import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
-import { FloatingChatbot } from '@/components/chatbot/FloatingChatbot';
 import { periodicSessionRefresh } from '@/utils/auth/periodicSessionRefresh';
 
 const App = () => {
@@ -200,8 +199,7 @@ const App = () => {
             {/* PWA Offline Indicator - DISABLED */}
             {/* <OfflineIndicator /> */}
             
-            {/* Floating Chatbot - Disabled in production */}
-            {(import.meta.env.DEV || import.meta.env.VITE_VERCEL_ENV === "preview") && <FloatingChatbot />}
+            {/* Floating Chatbot - REMOVED */}
           </AppProviders>
         </CodeSplittingProvider>
       </TooltipProvider>

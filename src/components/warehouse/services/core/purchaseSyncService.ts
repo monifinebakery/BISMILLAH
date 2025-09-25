@@ -5,6 +5,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { toNumber } from '../../utils/typeUtils';
 import type { Purchase } from '@/components/purchase/types/purchase.types';
+import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 
 // Import other services
 import { 
@@ -190,13 +191,17 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
       }
 
       // Use atomic update with row-level locking to prevent race conditions
-      const { data: updatedItem, error: updateError } = await supabase
-        .from('bahan_baku')
-        .update(updateData)
-        .eq('id', existing.id)
-        .eq('user_id', purchase.userId)
-        .select()
-        .single();
+      const result = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('bahan_baku')
+          .update(updateData)
+          .eq('id', existing.id)
+          .eq('user_id', purchase.userId)
+          .select()
+          .single();
+      });
+      
+      const { data: updatedItem, error: updateError } = result;
       
       if (updateError) {
         logger.error('❌ [PURCHASE SYNC] Error updating existing item:', updateError);
@@ -226,11 +231,15 @@ export const applyPurchaseToWarehouse = async (purchase: Purchase) => {
         updated_at: new Date().toISOString()
       };
 
-      const { data: createdItem, error: insertError } = await supabase
-        .from('bahan_baku')
-        .insert(newItemData)
-        .select('id')
-        .single();
+      const result = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('bahan_baku')
+          .insert(newItemData)
+          .select('id')
+          .single();
+      });
+      
+      const { data: createdItem, error: insertError } = result;
       
       if (insertError) {
         logger.error('❌ [PURCHASE SYNC] Error creating new item:', insertError);
@@ -329,13 +338,17 @@ export const reversePurchaseFromWarehouse = async (purchase: Purchase) => {
       }
 
       // Use atomic update with row-level locking to prevent race conditions
-      const { data: updatedItem, error: updateError } = await supabase
-        .from('bahan_baku')
-        .update(updateData)
-        .eq('id', existing.id)
-        .eq('user_id', purchase.userId)
-        .select()
-        .single();
+      const result = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('bahan_baku')
+          .update(updateData)
+          .eq('id', existing.id)
+          .eq('user_id', purchase.userId)
+          .select()
+          .single();
+      });
+      
+      const { data: updatedItem, error: updateError } = result;
       
       if (updateError) {
         logger.error('❌ [PURCHASE SYNC] Error updating item during reversal:', updateError);

@@ -4,6 +4,7 @@
 import { logger } from '@/utils/logger';
 import { supabase } from '@/integrations/supabase/client';
 import { toNumber } from '../utils/typeUtils';
+import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 
 // Import service modules
 import { calculateEnhancedWac, calculateNewWac } from './core/wacCalculationService';
@@ -85,11 +86,15 @@ export class WarehouseSyncService {
       const warehouseItems = await getAllMaterials(this.userId);
 
       // Get all completed purchases
-      const { data: purchases, error: purchaseError } = await supabase
-        .from('purchases')
-        .select('items')
-        .eq('user_id', this.userId)
-        .eq('status', 'completed');
+      const result = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('purchases')
+          .select('items')
+          .eq('user_id', this.userId)
+          .eq('status', 'completed');
+      });
+
+      const { data: purchases, error: purchaseError } = result;
 
       if (purchaseError) throw purchaseError;
 
@@ -164,18 +169,22 @@ export class WarehouseSyncService {
 
     // Update the item with new WAC if it changed significantly
     if (Math.abs(newWac - oldWac) > 0.01) {
-      const { data: updatedItem, error: updateError } = await supabase
-        .from('bahan_baku')
-        .update({ 
-          harga_rata_rata: newWac,
-          version: oldVersion + 1,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', item.id)
-        .eq('user_id', this.userId)
-        .eq('version', oldVersion) // Optimistic locking - only update if version matches
-        .select()
-        .single();
+      const result = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('bahan_baku')
+          .update({ 
+            harga_rata_rata: newWac,
+            version: oldVersion + 1,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', item.id)
+          .eq('user_id', this.userId)
+          .eq('version', oldVersion) // Optimistic locking - only update if version matches
+          .select()
+          .single();
+      });
+
+      const { data: updatedItem, error: updateError } = result;
 
       if (updateError) {
         throw updateError;
@@ -213,12 +222,16 @@ export class WarehouseSyncService {
   async fixWarehouseItem(itemId: string): Promise<SyncResult> {
     try {
       // Get current item
-      const { data: currentItem, error: itemError } = await supabase
-        .from('bahan_baku')
-        .select('id, nama, stok, harga_rata_rata, harga_satuan')
-        .eq('id', itemId)
-        .eq('user_id', this.userId)
-        .single();
+      const itemResult = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('bahan_baku')
+          .select('id, nama, stok, harga_rata_rata, harga_satuan')
+          .eq('id', itemId)
+          .eq('user_id', this.userId)
+          .single();
+      });
+
+      const { data: currentItem, error: itemError } = itemResult;
 
       if (itemError || !currentItem) {
         return {
@@ -232,11 +245,15 @@ export class WarehouseSyncService {
       const oldWac = currentItem.harga_rata_rata;
 
       // Calculate new WAC from purchase history
-      const { data: purchases, error: purchaseError } = await supabase
-        .from('purchases')
-        .select('items')
-        .eq('user_id', this.userId)
-        .eq('status', 'completed');
+      const purchasesResult = await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('purchases')
+          .select('items')
+          .eq('user_id', this.userId)
+          .eq('status', 'completed');
+      });
+
+      const { data: purchases, error: purchaseError } = purchasesResult;
 
       if (purchaseError) {
         throw purchaseError;

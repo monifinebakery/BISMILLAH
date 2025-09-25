@@ -208,14 +208,14 @@ export const useNetworkOptimization = () => {
         }
 
         // Add timeout
-        const timeoutId = config.timeout ? setTimeout(() => {
+        const requestTimeoutId = config.timeout ? setTimeout(() => {
           abortController.abort();
         }, config.timeout) : null;
 
         try {
           const response = await fetch(config.url, fetchConfig);
           
-          if (timeoutId) clearTimeout(timeoutId);
+          if (requestTimeoutId) clearTimeout(requestTimeoutId);
           
           if (!response.ok) {
             throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -224,7 +224,7 @@ export const useNetworkOptimization = () => {
           const data = await response.json();
           return data;
         } catch (error) {
-          if (timeoutId) clearTimeout(timeoutId);
+          if (requestTimeoutId) clearTimeout(requestTimeoutId);
           throw error;
         }
       };

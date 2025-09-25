@@ -358,7 +358,7 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
           }
           return response.data;
         },
-        staleTime: 30 * 1000, // 30 seconds - overhead calculation can change frequently
+        staleTime: 5 * 60 * 1000, // 5 minutes - balanced freshness for calculations
         retry: 2,
       });
 

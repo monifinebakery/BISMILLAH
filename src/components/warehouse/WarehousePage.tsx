@@ -330,7 +330,7 @@ const useWarehouseData = (page: number = 1, limit: number = 10, usePagination: b
     queryFn: usePagination 
       ? () => fetchWarehouseItemsPaginated(page, limit, userId)
       : () => fetchWarehouseItems(userId),
-    staleTime: 2 * 60 * 1000, // 2 minutes cache for performance
+    staleTime: 15 * 60 * 1000, // 15 minutes - optimized cache for performance
     keepPreviousData: true,
     placeholderData: (prev) => prev,
     retry: (failureCount, error: any) => {

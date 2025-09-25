@@ -247,7 +247,7 @@ export const WarehouseProvider: React.FC<WarehouseProviderProps> = ({
       return fetchWarehouseData(user?.id);
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes cache to improve performance
+    staleTime: 15 * 60 * 1000, // 15 minutes - improved cache for performance
     // ✅ Improved retry logic: handle transient 5xx (e.g., 503) with backoff
     retry: (failureCount, err: any) => {
       const status = toNumber(err?.status || err?.code || 0);

@@ -81,7 +81,7 @@ const PromoCalculator = () => {
       logger.success('Latest promos loaded:', { count: latestPromos.length });
       return latestPromos;
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
     retry: 2,
     enabled: view === 'dashboard',
   });

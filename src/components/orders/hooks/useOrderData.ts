@@ -392,7 +392,7 @@ export const useOrderStats = () => {
       };
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
   });
 };
 

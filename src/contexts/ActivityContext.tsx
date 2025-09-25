@@ -489,7 +489,7 @@ export const useActivityQuery = () => {
     queryClient.prefetchQuery({
       queryKey: activityQueryKeys.list(userId),
       queryFn: () => activityApi.getActivities(userId),
-      staleTime: 2 * 60 * 1000,
+      staleTime: 15 * 60 * 1000, // 15 minutes - optimized for performance
     });
   }, [queryClient]);
 

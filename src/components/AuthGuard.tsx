@@ -208,7 +208,7 @@ const AuthGuard: React.FC<AuthGuardProps> = ({ children }) => {
         otpWaitTimeoutRef.current = null;
       }
     };
-  }, [user, isReady, isLoading, navigate, location.pathname, readOtpTimestamp, stopOtpWaiting, refreshUser]);
+  }, [user, isReady, isLoading, navigate, readOtpTimestamp, stopOtpWaiting, refreshUser]);
 
   // ✅ ENHANCED DEBUG: Log all state changes
   useEffect(() => {

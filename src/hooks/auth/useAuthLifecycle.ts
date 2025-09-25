@@ -33,6 +33,12 @@ import {
   preOptimizeAndroidLogin,
   cleanupAndroidStorage,
 } from '@/utils/androidSessionFix';
+import {
+  detectTabletDevice,
+  validateTabletSession,
+  storeSessionForTablets,
+  optimizeSupabaseForTablets
+} from '@/utils/auth/iPadSessionManager';
 
 type GetSessionResult = Awaited<ReturnType<typeof supabase.auth.getSession>>;
 
@@ -79,19 +85,62 @@ export const useAuthLifecycle = ({
     const handleVisibilityChange = () => {
       // Simpan pathname saat tab ditinggalkan (hidden=true), bukan saat diaktifkan
       if (document.hidden) {
+        // ✅ FIX: Track when tab was hidden for better session management
+        window.lastVisibilityChange = Date.now();
+        
         safeStorageSet(LAST_PATH_KEY, window.location.pathname).catch(() => {
           logger.warn('AuthContext: Failed to persist last path');
         });
       } else {
-        // Saat tab diaktifkan kembali, cek apakah session masih valid
-        // dan refresh jika perlu
-        logger.debug('AuthContext: Tab activated, checking session validity...');
-        setTimeout(() => {
-          // Panggil refreshUser untuk memeriksa dan memperbarui session jika perlu
-          refreshUser().catch(error => {
-            logger.warn('AuthContext: Failed to refresh user on tab activation', error);
+        // ✅ FIX: Only refresh session if tab was hidden for significant time (iPad/Safari optimization)
+        const tabHiddenTime = Date.now() - (window.lastVisibilityChange || 0);
+        const SIGNIFICANT_HIDDEN_TIME = 5 * 60 * 1000; // 5 minutes
+        
+        if (tabHiddenTime > SIGNIFICANT_HIDDEN_TIME || !userRef.current) {
+          logger.debug('AuthContext: Tab was hidden for significant time or no user, checking session validity...', {
+            hiddenTimeMinutes: Math.round(tabHiddenTime / 1000 / 60),
+            hasUser: !!userRef.current
           });
-        }, 100); // Beri sedikit delay agar DOM sudah siap
+          
+          setTimeout(async () => {
+            // ✅ FIX: Use iPad-optimized session validation for tablets
+            const tabletDetection = detectTabletDevice();
+            
+            if (tabletDetection.isSafariTablet) {
+              const { isValid, shouldRefresh } = await validateTabletSession();
+              
+              if (!isValid) {
+                logger.warn('iPad Session: Session invalid, user needs to re-authenticate');
+                // Let AuthGuard handle redirect to auth page
+                updateAuthState(null, null);
+                return;
+              }
+              
+              if (shouldRefresh) {
+                logger.debug('iPad Session: Session needs refresh');
+                refreshUser().catch(error => {
+                  logger.warn('AuthContext: Failed to refresh user on iPad tab activation', error);
+                });
+                return;
+              }
+              
+              logger.debug('iPad Session: Session valid, no refresh needed');
+              return;
+            }
+            
+            // Standard refresh for non-tablet devices
+            refreshUser().catch(error => {
+              logger.warn('AuthContext: Failed to refresh user on tab activation', error);
+            });
+          }, 300); // ✅ FIX: Increased delay for iPad performance
+        } else {
+          logger.debug('AuthContext: Tab reactivated quickly, skipping session refresh', {
+            hiddenTimeSeconds: Math.round(tabHiddenTime / 1000)
+          });
+        }
+        
+        // Store current time for next visibility change  
+        window.lastVisibilityChange = Date.now();
       }
     };
 
@@ -649,6 +698,13 @@ export const useAuthLifecycle = ({
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
     void initializeAuth();
+    
+    // ✅ FIX: Initialize iPad/Safari optimizations
+    try {
+      optimizeSupabaseForTablets();
+    } catch (optimizeError) {
+      logger.warn('AuthContext: Failed to initialize tablet optimizations', optimizeError);
+    }
 
     return () => {
       mountedRef.current = false;

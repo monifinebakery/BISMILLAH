@@ -118,11 +118,25 @@ export const useAuthManager = (): AuthContextValue => {
       }
     };
 
-    // ✅ FIX: Perpanjang timeout untuk menghindari tab focus flicker
-    // ✅ FIX: Tambah cleanup untuk mencegah memory leaks
-    const timeoutId = setTimeout(() => {
-      void clearCaches();
-    }, 1000); // Increased from 100ms to 1000ms to prevent tab switching flicker
+    // ✅ FIX: Only clear caches for significant user changes (iPad/Safari optimization)
+    // Don't clear caches for temporary tab switches or minor auth state changes
+    if (prevId && currentId && prevId !== currentId) {
+      // Significant user change - clear caches after delay
+      const timeoutId = setTimeout(() => {
+        void clearCaches();
+      }, 3000); // ✅ FIX: Increased to 3s to prevent iPad/Safari tab switching cache clearing
+      
+      return () => clearTimeout(timeoutId);
+    } else if (!currentId && prevId) {
+      // User logged out - clear caches immediately  
+      const timeoutId = setTimeout(() => {
+        void clearCaches();
+      }, 500); // Quick clear for logout
+      
+      return () => clearTimeout(timeoutId);
+    }
+    
+    // No cache clearing needed for same user or minor state changes
 
     // Return cleanup function to prevent memory leaks
     return () => clearTimeout(timeoutId);

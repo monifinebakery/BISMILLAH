@@ -44,6 +44,8 @@ declare global {
   interface Window {
     appDebug?: AppDebug;
     supabase?: SupabaseClient<Database>;
+    // ✅ FIX: Track last visibility change for iPad/Safari session management
+    lastVisibilityChange?: number;
   }
 
   interface GlobalThis {

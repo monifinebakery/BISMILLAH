@@ -95,10 +95,24 @@ const resilientFetch: typeof fetch = async (input, init) => {
   return fetch(input as RequestInfo, init as RequestInit);
 };
 
-// Export client
+// Export client with proper session persistence for iPad/Safari
 export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   global: {
     fetch: resilientFetch,
+  },
+  auth: {
+    // ✅ FIX: Enable session persistence for tabs/iPad
+    persistSession: true,
+    // ✅ FIX: Use localStorage for better tab persistence (default is localStorage anyway)
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    // ✅ FIX: Enable session detection in URL for better auth flow
+    detectSessionInUrl: true,
+    // ✅ FIX: Auto refresh tokens before expiry for seamless experience  
+    autoRefreshToken: true,
+    // ✅ FIX: Disable storage cache to prevent stale session issues on Safari
+    storageKey: 'sb-auth-token', // Use consistent storage key
+    // ✅ FIX: Enable debug mode in development for troubleshooting
+    debug: import.meta.env.DEV,
   },
 });
 

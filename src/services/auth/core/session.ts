@@ -97,7 +97,21 @@ export const refreshSession = async (): Promise<Session | null> => {
   
   refreshPromise = (async (): Promise<Session | null> => {
     try {
-      logger.info('[Session] Refreshing session...');
+      // ✅ NEW: Check if current session exists before attempting refresh
+      logger.debug('[Session] Checking current session before refresh...');
+      const currentSessionResult = await supabase.auth.getSession();
+      
+      if (currentSessionResult.error) {
+        logger.warn('[Session] Error checking current session before refresh:', currentSessionResult.error.message);
+        // Continue with refresh attempt anyway in case it's a retriable error
+      }
+      
+      if (!currentSessionResult.data?.session) {
+        logger.warn('[Session] No current session found, cannot refresh - AuthSessionMissingError would occur');
+        return null;
+      }
+      
+      logger.info('[Session] Current session found, proceeding with refresh...');
       
       // ✅ ADD TIMEOUT: Prevent hanging refresh
       const supabaseRefresh = supabase.auth.refreshSession();

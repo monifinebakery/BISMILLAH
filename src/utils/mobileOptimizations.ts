@@ -451,3 +451,133 @@ export const createMobilePerformanceMonitor = () => {
 
 // Global performance monitor instance
 export const mobilePerf = createMobilePerformanceMonitor();
+
+/**
+ * ✅ Mobile session debugging utilities
+ */
+export const debugMobileSession = () => {
+  const capabilities = detectMobileCapabilities();
+  
+  if (!capabilities.isMobile) {
+    logger.debug('Device is not mobile - session debugging skipped');
+    return null;
+  }
+  
+  const sessionInfo = {
+    deviceType: capabilities.isMobile ? 'mobile' : 'desktop',
+    isSlowDevice: capabilities.isSlowDevice,
+    isLowMemory: capabilities.isLowMemory,
+    networkType: capabilities.networkType,
+    estimatedSpeed: capabilities.estimatedSpeed,
+    userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown',
+    // Check session storage
+    hasLocalStorage: typeof localStorage !== 'undefined',
+    hasSessionStorage: typeof sessionStorage !== 'undefined',
+    // Check if app is in standalone mode (PWA)
+    isStandalone: typeof window !== 'undefined' && (window.navigator as any)?.standalone,
+    // Check viewport
+    viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 0,
+    viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 0
+  };
+  
+  // Check for common mobile session issues
+  const potentialIssues = [];
+  
+  if (capabilities.isSlowDevice) {
+    potentialIssues.push('Slow device detected - may need longer timeouts');
+  }
+  
+  if (capabilities.isLowMemory) {
+    potentialIssues.push('Low memory device - session may be cleared by OS');
+  }
+  
+  if (capabilities.estimatedSpeed === 'very-slow') {
+    potentialIssues.push('Very slow network - session refresh may timeout');
+  }
+  
+  if (sessionInfo.userAgent.includes('Safari') && sessionInfo.userAgent.includes('Mobile')) {
+    potentialIssues.push('Safari Mobile detected - may have session persistence issues');
+  }
+  
+  const debugInfo = {
+    ...sessionInfo,
+    potentialIssues,
+    timestamp: new Date().toISOString()
+  };
+  
+  logger.info('📱 Mobile Session Debug Info:', debugInfo);
+  
+  // Also log to console for easier mobile debugging
+  console.group('📱 Mobile Session Debug');
+  console.table(sessionInfo);
+  if (potentialIssues.length > 0) {
+    console.warn('⚠️ Potential Issues:', potentialIssues);
+  }
+  console.groupEnd();
+  
+  return debugInfo;
+};
+
+/**
+ * ✅ Mobile session health check
+ */
+export const checkMobileSessionHealth = async () => {
+  const capabilities = detectMobileCapabilities();
+  
+  if (!capabilities.isMobile || capabilities.ssrMode) {
+    return { healthy: true, issues: [], recommendations: [] };
+  }
+  
+  const issues = [];
+  const recommendations = [];
+  
+  // Check storage availability
+  try {
+    localStorage.setItem('__mobile_test__', 'test');
+    localStorage.removeItem('__mobile_test__');
+  } catch {
+    issues.push('localStorage not available or full');
+    recommendations.push('Clear browser data or use incognito mode');
+  }
+  
+  // Check if in low power mode (iOS)
+  if ('getBattery' in navigator) {
+    try {
+      const battery = await (navigator as any).getBattery();
+      if (battery.level < 0.2) {
+        issues.push('Low battery level may cause session interruptions');
+        recommendations.push('Charge device for better session reliability');
+      }
+    } catch {
+      // Battery API not available - ignore
+    }
+  }
+  
+  // Check memory pressure
+  if (capabilities.isLowMemory) {
+    issues.push('Low device memory may cause session loss');
+    recommendations.push('Close other apps to free memory');
+  }
+  
+  // Check network stability
+  if (capabilities.estimatedSpeed === 'very-slow') {
+    issues.push('Very slow network may cause session timeouts');
+    recommendations.push('Switch to better network connection if possible');
+  }
+  
+  const health = {
+    healthy: issues.length === 0,
+    issues,
+    recommendations,
+    capabilities,
+    checkedAt: new Date().toISOString()
+  };
+  
+  if (!health.healthy) {
+    logger.warn('📱 Mobile Session Health Issues Detected:', health);
+  } else {
+    logger.debug('📱 Mobile Session Health: OK');
+  }
+  
+  return health;
+};

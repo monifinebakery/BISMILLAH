@@ -6,6 +6,7 @@ import {
   transformPurchaseFromDB
 } from '../../utils/purchaseTransformers';
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
+import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 
 /**
  * Status Management Service for Purchases
@@ -67,23 +68,25 @@ async function atomicPurchaseCompletion(
 ): Promise<{ purchase: Purchase; syncApplied: boolean }> {
   return executeWithRetry(async () => {
     // Step 1: Update purchase status to completed
-    const { error: updateError } = await supabase
-      .from('purchases')
-      .update({ status: 'completed', updated_at: new Date().toISOString() })
-      .eq('id', purchaseId)
-      .eq('user_id', userId);
-
-    if (updateError) {
-      throw new SyncError('Failed to update purchase status', updateError);
-    }
+    await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .update({ status: 'completed', updated_at: new Date().toISOString() })
+        .eq('id', purchaseId)
+        .eq('user_id', userId);
+    });
 
     // Step 2: Fetch updated purchase
-    const { data: purchaseData, error: fetchError } = await supabase
-      .from('purchases')
-      .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-      .eq('id', purchaseId)
-      .eq('user_id', userId)
-      .single();
+    const result = await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+        .eq('id', purchaseId)
+        .eq('user_id', userId)
+        .single();
+    });
+
+    const { data: purchaseData, error: fetchError } = result;
 
     if (fetchError || !purchaseData) {
       throw new SyncError('Failed to fetch updated purchase', fetchError);
@@ -100,11 +103,13 @@ async function atomicPurchaseCompletion(
         logger.info('✅ Atomic purchase completion: warehouse sync applied', purchaseId);
       } catch (syncError) {
         // Rollback purchase status if warehouse sync fails
-        await supabase
-          .from('purchases')
-          .update({ status: 'pending', updated_at: new Date().toISOString() })
-          .eq('id', purchaseId)
-          .eq('user_id', userId);
+        await executeWithAuthValidation(async () => {
+          return await supabase
+            .from('purchases')
+            .update({ status: 'pending', updated_at: new Date().toISOString() })
+            .eq('id', purchaseId)
+            .eq('user_id', userId);
+        });
         
         throw new SyncError('Warehouse sync failed, purchase rolled back', syncError as Error);
       }
@@ -197,12 +202,16 @@ export async function setPurchaseStatus(
     logger.debug('🔄 [PURCHASE STATUS] setPurchaseStatus called:', { id, userId, newStatus });
     
     // Fetch current purchase
-    const { data: existingRow, error: fetchErr } = await supabase
-      .from('purchases')
-      .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+    const result = await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+    });
+    
+    const { data: existingRow, error: fetchErr } = result;
     
     if (fetchErr) {
       logger.warn('⚠️ setPurchaseStatus fetchErr:', { code: fetchErr.code, message: fetchErr.message, id, userId });
@@ -268,13 +277,13 @@ export async function setPurchaseStatus(
         await atomicPurchaseReversal(prev, { forceSync: true });
         
         // Then update the status
-        const { error } = await supabase
-          .from('purchases')
-          .update({ status: newStatus, updated_at: new Date().toISOString() })
-          .eq('id', id)
-          .eq('user_id', userId);
-        
-        if (error) throw new Error(error.message);
+        await executeWithAuthValidation(async () => {
+          return await supabase
+            .from('purchases')
+            .update({ status: newStatus, updated_at: new Date().toISOString() })
+            .eq('id', id)
+            .eq('user_id', userId);
+        });
         
         logger.info('✅ [PURCHASE STATUS] Purchase status reversed and updated:', {
           purchaseId: id,
@@ -292,13 +301,13 @@ export async function setPurchaseStatus(
       }
     } else {
       // Simple status change (no warehouse sync needed)
-      const { error } = await supabase
-        .from('purchases')
-        .update({ status: newStatus, updated_at: new Date().toISOString() })
-        .eq('id', id)
-        .eq('user_id', userId);
-      
-      if (error) throw new Error(error.message);
+      await executeWithAuthValidation(async () => {
+        return await supabase
+          .from('purchases')
+          .update({ status: newStatus, updated_at: new Date().toISOString() })
+          .eq('id', id)
+          .eq('user_id', userId);
+      });
       
       logger.info('✅ [PURCHASE STATUS] Simple status update completed:', {
         purchaseId: id,

@@ -3,6 +3,7 @@ import { logger } from '@/utils/logger';
 import type { Purchase } from '../types/purchase.types';
 import { transformPurchaseFromDB } from '../utils/purchaseTransformers';
 import { reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
+import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 
 // Import the new modular services
 import {

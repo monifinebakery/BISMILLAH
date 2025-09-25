@@ -1,8 +1,9 @@
 // src/components/purchase/services/crud/purchaseCrudService.ts
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
-import { withRetry, handleSupabaseError, recordError } from '@/utils/supabaseErrorHandler';
+import { withRetry, handleSupabaseError, recordError, handleAuthError } from '@/utils/supabaseErrorHandler';
 import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
+import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 import type { Purchase } from '../../types/purchase.types';
 import {
   transformPurchasesFromDB,
@@ -28,12 +29,14 @@ interface PaginatedResponse<T> {
  */
 export async function fetchPurchasesOptimized(userId: string): Promise<{ data: Purchase[] | null; error: string | null }> {
   try {
-    const data = await new OptimizedQueryBuilder('purchases', 'purchases_list')
-      .select(OPTIMIZED_SELECTS.purchases.list)
-      .eq('user_id', userId)
-      .order('tanggal', { ascending: false })
-      .limit(50) // Reduced from unlimited
-      .execute();
+    const data = await executeWithAuthValidation(async () => {
+      return await new OptimizedQueryBuilder('purchases', 'purchases_list')
+        .select(OPTIMIZED_SELECTS.purchases.list)
+        .eq('user_id', userId)
+        .order('tanggal', { ascending: false })
+        .limit(50) // Reduced from unlimited
+        .execute();
+    });
 
     return { data: transformPurchasesFromDB(data || []), error: null };
   } catch (err: any) {
@@ -53,17 +56,19 @@ export async function fetchPaginatedPurchasesOptimized(
   searchQuery?: string
 ): Promise<PaginatedResponse<Purchase>> {
   try {
-    const result = await PaginationOptimizer.fetchWithPagination<Purchase>(
-      'purchases',
-      userId,
-      {
-        page,
-        limit: Math.min(limit, 25), // Cap at 25 items per page
-        selectFields: OPTIMIZED_SELECTS.purchases.list,
-        orderBy: 'tanggal',
-        cachePrefix: 'purchases_paginated'
-      }
-    );
+    const result = await executeWithAuthValidation(async () => {
+      return await PaginationOptimizer.fetchWithPagination<Purchase>(
+        'purchases',
+        userId,
+        {
+          page,
+          limit: Math.min(limit, 25), // Cap at 25 items per page
+          selectFields: OPTIMIZED_SELECTS.purchases.list,
+          orderBy: 'tanggal',
+          cachePrefix: 'purchases_paginated'
+        }
+      );
+    });
 
     // Apply search filter if provided
     let filteredData = result.data;
@@ -92,12 +97,17 @@ export async function fetchPaginatedPurchasesOptimized(
 export async function fetchPurchaseById(id: string, userId: string): Promise<{ data: Purchase | null; error: string | null }> {
   try {
     logger.debug('🔍 fetchPurchaseById called with:', { id, userId });
-    const { data, error } = await supabase
-      .from('purchases')
-      .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
-      .eq('id', id)
-      .eq('user_id', userId)
-      .single();
+    
+    const result = await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .select('id, user_id, supplier, tanggal, total_nilai, items, status, metode_perhitungan, catatan, created_at, updated_at')
+        .eq('id', id)
+        .eq('user_id', userId)
+        .single();
+    });
+
+    const { data, error } = result;
 
     // Handle PGRST116 error (no rows found) gracefully
     if (error) {
@@ -130,11 +140,16 @@ export async function createPurchase(
 ): Promise<{ success: boolean; error: string | null; purchaseId?: string }> {
   try {
     const payload = transformPurchaseForDB(purchaseData, userId);
-    const { data, error } = await supabase
-      .from('purchases')
-      .insert(payload)
-      .select('id') // return id
-      .single();
+    
+    const result = await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .insert(payload)
+        .select('id') // return id
+        .single();
+    });
+
+    const { data, error } = result;
 
     if (error) throw new Error(error.message);
 
@@ -155,13 +170,14 @@ export async function updatePurchase(
 ): Promise<{ success: boolean; error: string | null }> {
   try {
     const payload = transformPurchaseUpdateForDB(updatedData);
-    const { error } = await supabase
-      .from('purchases')
-      .update(payload)
-      .eq('id', id)
-      .eq('user_id', userId);
-
-    if (error) throw new Error(error.message);
+    
+    await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .update(payload)
+        .eq('id', id)
+        .eq('user_id', userId);
+    });
 
     return { success: true, error: null };
   } catch (err: any) {
@@ -175,13 +191,14 @@ export async function updatePurchase(
  */
 export async function deletePurchase(id: string, userId: string): Promise<{ success: boolean; error: string | null }> {
   try {
-    const { error } = await supabase
-      .from('purchases')
-      .delete()
-      .eq('id', id)
-      .eq('user_id', userId);
+    await executeWithAuthValidation(async () => {
+      return await supabase
+        .from('purchases')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', userId);
+    });
 
-    if (error) throw new Error(error.message);
     logger.info('✅ [PURCHASE CRUD] Purchase deleted successfully:', id);
     return { success: true, error: null };
   } catch (err: any) {

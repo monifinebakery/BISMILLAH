@@ -639,28 +639,11 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
         throw new Error(response.error);
       }
 
-      // ✅ Comprehensive query invalidation for auto-update
+      // ✅ OPTIMIZED: Minimal invalidation to prevent cascade queries
       const invalidationPromises = [
-        // Core operational cost queries
-        queryClient.invalidateQueries({ queryKey: ['operational-costs'] }),
-        
-        // Overhead calculations (all variants)
-        queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] }),
-        
-        // Production target queries
+        // Only invalidate specific queries that need updating
         queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget() }),
-        
-        // Recipe-related overhead queries
-        queryClient.invalidateQueries({ queryKey: ['recipe-overhead'] }),
-        
-        // App settings queries (where production target is stored)
-        queryClient.invalidateQueries({ queryKey: ['app-settings'] }),
-        
-        // Enhanced HPP calculations
-        queryClient.invalidateQueries({ queryKey: ['enhanced-hpp'] }),
-        
-        // Cost calculations
-        queryClient.invalidateQueries({ queryKey: ['cost-calculation'] }),
+        queryClient.invalidateQueries({ queryKey: ['app-settings'] }), // Only app settings
       ];
       
       // Execute all invalidations simultaneously
@@ -687,28 +670,10 @@ export const OperationalCostProvider: React.FC<OperationalCostProviderProps> = (
   const invalidateOverheadCalculations = useCallback(() => {
     logger.info('🔄 Manually invalidating overhead calculations');
     
-    // Comprehensive invalidation for real-time updates
+    // OPTIMIZED: Minimal invalidation to prevent cascade queries
     const invalidationPromises = [
-      // All operational cost queries
-      queryClient.invalidateQueries({ queryKey: ['operational-costs'] }),
-      
-      // All overhead calculation queries
+      // Only invalidate core overhead calculations - let others update naturally
       queryClient.invalidateQueries({ queryKey: ['operational-costs', 'overhead-calculation'] }),
-      
-      // Allocation settings
-      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.allocationSettings() }),
-      
-      // Production target
-      queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget() }),
-      
-      // Recipe overhead calculations
-      queryClient.invalidateQueries({ queryKey: ['recipe-overhead'] }),
-      
-      // App settings
-      queryClient.invalidateQueries({ queryKey: ['app-settings'] }),
-      
-      // Enhanced HPP calculations
-      queryClient.invalidateQueries({ queryKey: ['enhanced-hpp'] }),
     ];
     
     // Execute all invalidations

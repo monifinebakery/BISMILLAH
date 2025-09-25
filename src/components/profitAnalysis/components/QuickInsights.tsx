@@ -2,19 +2,18 @@
 import React, { useMemo } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TrendingUp, TrendingDown, AlertTriangle } from 'lucide-react';
+import { useSharedFormatters } from '@/hooks/useSharedFormatters';
 
 interface QuickInsightsProps {
   analysis: any;
 }
 
 const QuickInsights: React.FC<QuickInsightsProps> = ({ analysis }) => {
-  // Format currency in Indonesian format
+  const { formatCompactCurrency } = useSharedFormatters();
+  
+  // Format currency following user's currency settings
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      notation: 'compact'
-    }).format(amount);
+    return formatCompactCurrency(amount);
   };
 
   // Format percentage

@@ -1,12 +1,13 @@
 // src/components/assets/components/AssetCard.tsx
 
 import React from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { formatDateForDisplay } from '../utils';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { Asset } from '../types';
-import { formatCurrency, formatDateForDisplay } from '../utils';
-import { AssetConditionBadge } from './AssetConditionBadge';
-import { AssetCategoryBadge } from './AssetCategoryBadge';
-import { AssetActions } from './AssetActions';
+import { Edit, Trash2, Eye } from 'lucide-react';
 
 interface AssetCardProps {
   asset: Asset;
@@ -21,6 +22,9 @@ export const AssetCard: React.FC<AssetCardProps> = ({
   onDelete,
   isDeleting = false,
 }) => {
+  const { formatCurrency: formatCurrencyWithContext } = useSafeCurrency();
+  const formatCurrency = (amount: number) => formatCurrencyWithContext(amount); // Use current context currency
+  
   return (
     <Card className="border border-orange-200 hover:border-orange-300 transition-colors duration-200">
       <CardContent className="p-4">

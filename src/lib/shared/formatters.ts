@@ -1,5 +1,7 @@
 // src/lib/shared/formatters.ts - UNIFIED FORMATTING UTILITIES
 // Single source of truth untuk semua formatting functions
+import { CURRENCIES } from '@/contexts/CurrencyContext';
+import { formatCurrencyWithCode } from './currencyFormatter';
 
 // ==================== CORE CURRENCY FORMATTING ====================
 
@@ -45,45 +47,65 @@ export const formatCompactCurrency = (
     digits?: number;
     withCurrency?: boolean;
     threshold?: number;
+    currencyCode?: string; // Added option for currency code
   } = {}
 ): string => {
   if (typeof value !== 'number' || isNaN(value)) {
+    // Check if we're using a custom currency or default to 'Rp 0'
+    if (options.currencyCode) {
+      const currency = CURRENCIES.find(c => c.code === options.currencyCode);
+      if (currency) {
+        return options.withCurrency !== false ? `${currency.symbol} 0` : '0';
+      }
+    }
     return options.withCurrency !== false ? 'Rp 0' : '0';
   }
 
   const {
     digits = 1,
     withCurrency = true,
-    threshold = 1000
+    threshold = 1000,
+    currencyCode // Added currencyCode option
   } = options;
 
+  // Use currency code if provided, otherwise default
+  const targetCurrency = currencyCode ? 
+    (CURRENCIES.find(c => c.code === currencyCode) || CURRENCIES[0]) : 
+    CURRENCIES[0];
+    
   const abbreviations = [
-    { value: 1E12, symbol: ' triliun' },
-    { value: 1E9, symbol: ' miliar' },
-    { value: 1E6, symbol: ' jt' },
-    { value: 1E3, symbol: ' rb' },
+    { value: 1E12, symbol: 'T' },  // triliun
+    { value: 1E9, symbol: 'B' },   // miliar
+    { value: 1E6, symbol: 'Jt' },  // juta
+    { value: 1E3, symbol: 'Rb' },  // ribu
     { value: 1, symbol: '' }
   ];
 
   // Jika di bawah threshold, gunakan format penuh
-  if (value < threshold) {
+  if (Math.abs(value) < threshold) {
+    if (currencyCode) {
+      return formatCurrencyWithCode(value, currencyCode, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
     return formatCurrency(value);
   }
 
   // Cari abbreviation yang tepat
   for (const abbr of abbreviations) {
-    if (value >= abbr.value) {
+    if (Math.abs(value) >= abbr.value) {
       const abbreviated = (value / abbr.value).toFixed(digits);
       const cleanValue = abbreviated.replace(/\.0+$/, '');
       
       if (withCurrency) {
-        return `Rp ${cleanValue}${abbr.symbol}`;
+        return `${targetCurrency.symbol} ${cleanValue}${abbr.symbol}`;
       } else {
         return `${cleanValue}${abbr.symbol}`;
       }
     }
   }
 
+  if (currencyCode) {
+    return formatCurrencyWithCode(value, currencyCode);
+  }
   return withCurrency ? formatCurrency(value) : value.toString();
 };
 

@@ -202,7 +202,7 @@ export const useAuthLifecycle = ({
         // This prevents race conditions between AuthContext and AuthGuard
       }
     },
-    [updateAuthState, sessionRef, userRef], // ✅ FIX: Use atomic update in dependencies
+    [/* No dependencies needed - all functions are stable */], // ✅ FIX: Remove unstable dependencies
   );
 
   // Main initialization effect

@@ -8,6 +8,9 @@ import {
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 
+// ✅ FINANCIAL SYNC: Import purchase financial sync
+import { syncPurchaseToFinancialTransaction } from '@/utils/orderFinancialSync';
+
 /**
  * Status Management Service for Purchases
  * Handles status changes and related warehouse synchronization
@@ -65,7 +68,7 @@ async function atomicPurchaseCompletion(
   purchaseId: string,
   userId: string,
   options: AtomicSyncOptions = {}
-): Promise<{ purchase: Purchase; syncApplied: boolean }> {
+): Promise<{ purchase: Purchase; syncApplied: boolean; financialSyncApplied: boolean }> {
   return executeWithRetry(async () => {
     // Step 1: Update purchase status to completed
     await executeWithAuthValidation(async () => {
@@ -115,7 +118,23 @@ async function atomicPurchaseCompletion(
       }
     }
 
-    return { purchase, syncApplied };
+    // Step 4: Apply financial sync for expense tracking
+    let financialSyncApplied = false;
+    try {
+      const financialSuccess = await syncPurchaseToFinancialTransaction(purchase, userId);
+      if (financialSuccess) {
+        financialSyncApplied = true;
+        logger.info('✅ Atomic purchase completion: financial sync applied', purchaseId);
+      } else {
+        logger.warn('⚠️ Atomic purchase completion: financial sync failed but continuing', purchaseId);
+        // Don't rollback for financial sync failure - warehouse is more critical
+      }
+    } catch (financialError) {
+      logger.error('❌ Atomic purchase completion: financial sync error:', financialError);
+      // Don't rollback for financial sync failure - warehouse is more critical
+    }
+
+    return { purchase, syncApplied, financialSyncApplied };
   }, options);
 }
 
@@ -260,7 +279,8 @@ export async function setPurchaseStatus(
         
         logger.info('✅ [PURCHASE STATUS] Atomic purchase completion successful:', {
           purchaseId: id,
-          syncApplied: result.syncApplied
+          syncApplied: result.syncApplied,
+          financialSyncApplied: result.financialSyncApplied
         });
         
         return { success: true, error: null };

@@ -1,6 +1,72 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import type { Order } from '@/components/orders/types';
+import type { Purchase } from '@/components/purchase/types/purchase.types';
+
+/**
+ * Automatically create financial expense transaction when purchase is completed
+ * This ensures purchase costs are tracked in profit analysis
+ */
+export async function syncPurchaseToFinancialTransaction(
+  purchase: Purchase,
+  userId: string
+): Promise<boolean> {
+  try {
+    // Only sync completed purchases
+    if (purchase.status !== 'completed') {
+      logger.debug('Purchase not completed, skipping financial sync:', purchase.id);
+      return true;
+    }
+
+    // Create financial expense transaction with conflict handling
+    const transactionData = {
+      user_id: userId,
+      type: 'expense',
+      category: 'Pembelian Bahan',
+      amount: purchase.total_nilai,
+      description: `Pembelian ${purchase.supplier || 'Supplier'}`,
+      date: new Date(purchase.tanggal).toISOString().split('T')[0], // YYYY-MM-DD format
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+
+    // Use insert with conflict handling to prevent race conditions
+    const { data, error } = await supabase
+      .from('financial_transactions')
+      .insert(transactionData)
+      .select()
+      .single();
+
+    if (error) {
+      // Handle unique constraint violations (race condition when same transaction created twice)
+      if (error.code === '23505') { // Unique violation
+        logger.debug('Financial transaction already exists for purchase:', purchase.id);
+        return true;
+      }
+
+      logger.error('Error creating financial transaction for purchase:', {
+        error: error.message,
+        purchaseId: purchase.id,
+        supplier: purchase.supplier,
+        amount: purchase.total_nilai
+      });
+      return false;
+    }
+
+    logger.success('✅ Financial expense transaction created for purchase:', {
+      purchaseId: purchase.id,
+      supplier: purchase.supplier,
+      amount: purchase.total_nilai,
+      transactionId: data.id,
+      date: transactionData.date
+    });
+
+    return true;
+  } catch (error) {
+    logger.error('Critical error in purchase financial sync:', error);
+    return false;
+  }
+}
 
 /**
  * Automatically create financial income transaction when order is completed

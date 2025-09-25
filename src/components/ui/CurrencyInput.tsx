@@ -2,6 +2,8 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { helpers } from '@/components/promoCalculator/utils/helpers';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
+import { CurrencyProvider } from '@/contexts/CurrencyContext';
 
 interface CurrencyInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'value' | 'onChange'> {
   value: number | string;
@@ -18,7 +20,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     className,
     value = 0,
     onChange,
-    prefix = 'Rp ',
+    prefix,
     thousandSeparator = '.',
     allowNegative = false,
     onValueChange,
@@ -30,6 +32,13 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     const [displayValue, setDisplayValue] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const inputRef = useRef<HTMLInputElement | null>(null);
+    
+    // Use safe currency hook to get the prefix from context if not provided
+    const { formatCurrency } = useSafeCurrency();
+    const defaultPrefix = 'Rp '; // fallback when not using the hook
+    
+    // If prefix is not provided, get it from the context by formatting 0
+    const effectivePrefix = prefix !== undefined ? prefix : defaultPrefix;
 
     // Create debounced onChange function
     const debouncedOnChange = useMemo(
@@ -56,7 +65,18 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       
       // Remove prefix and non-numeric characters except minus
       const cleanStr = str
+        .replace(new RegExp(effectivePrefix.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\const parseNumber = (str: string): number => {
+      if (!str) return 0;
+      
+      // Remove prefix and non-numeric characters except minus
+      const cleanStr = str
         .replace(new RegExp(prefix.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'), '')
+        .replace(/[^\d,-]/g, '')
+        .replace(',', '.');
+      
+      const num = parseFloat(cleanStr) || 0;
+      return allowNegative ? num : Math.max(0, num);
+    };'), 'g'), '')
         .replace(/[^\d,-]/g, '')
         .replace(',', '.');
       
@@ -77,7 +97,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
       const inputValue = e.target.value;
       const numericValue = parseNumber(inputValue);
       
-      setDisplayValue(inputValue.replace(prefix, ''));
+      setDisplayValue(inputValue.replace(effectivePrefix, ''));
       
       // Use debounced onChange while typing for better performance
       debouncedOnChange(numericValue);
@@ -156,14 +176,14 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
     };
 
     const formattedPlaceholder = placeholder ? 
-      (placeholder.includes(prefix) ? placeholder : `${prefix}${placeholder}`) : 
-      `${prefix}0`;
+      (placeholder.includes(effectivePrefix) ? placeholder : `${effectivePrefix}${placeholder}`) : 
+      `${effectivePrefix}0`;
 
     return (
       <div className="relative">
         {!isFocused && displayValue && (
           <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none z-10 text-sm">
-            {prefix}
+            {effectivePrefix}
           </span>
         )}
         <input
@@ -171,7 +191,7 @@ export const CurrencyInput = React.forwardRef<HTMLInputElement, CurrencyInputPro
           ref={combinedRef}
           type="text"
           inputMode="numeric"
-          value={isFocused ? displayValue : displayValue ? `${prefix}${displayValue}` : ''}
+          value={isFocused ? displayValue : displayValue ? `${effectivePrefix}${displayValue}` : ''}
           onChange={handleInputChange}
           onFocus={handleFocus}
           onBlur={handleBlur}

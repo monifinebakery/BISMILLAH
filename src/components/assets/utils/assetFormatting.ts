@@ -1,17 +1,20 @@
 // src/components/assets/utils/assetFormatting.ts
+import { formatCurrencyWithCode } from '@/lib/shared/currencyFormatter';
 
 /**
- * Format currency to Indonesian Rupiah
+ * Format currency following user's currency settings
  */
-export const formatCurrency = (amount: number): string => {
-  if (typeof amount !== 'number' || isNaN(amount)) return 'Rp 0';
+export const formatCurrency = (amount: number, currencyCode: string = 'IDR'): string => {
+  if (typeof amount !== 'number' || isNaN(amount)) {
+    // Get default currency symbol if no code provided
+    const defaultCurrency = currencyCode === 'IDR' ? 'Rp' : currencyCode;
+    return `${defaultCurrency} 0`;
+  }
   
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+  return formatCurrencyWithCode(amount, currencyCode, {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(amount);
+  });
 };
 
 // Import from unified date utils for consistency

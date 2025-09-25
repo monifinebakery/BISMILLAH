@@ -3,7 +3,7 @@ import React from 'react';
 import { ResponsiveContainer, Tooltip as RTooltip, XAxis, YAxis, CartesianGrid, LineChart, Line } from 'recharts';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatCompactCurrency } from '@/lib/shared';
+import { useSharedFormatters } from '@/hooks/useSharedFormatters';
 
 interface BreakdownItem {
   name: string;
@@ -22,6 +22,8 @@ const BreakdownCategory: React.FC<BreakdownCategoryProps> = ({ title, items, tot
   const bg = 'bg-white';
   const text = 'text-gray-800';
   const border = 'border-gray-200';
+
+  const { formatCompactCurrency } = useSharedFormatters();
 
   // Use shared Indonesian formatter with 'rb', 'jt' instead of 'K', 'M'
   const formatCurrency = (amount: number) => {
@@ -65,6 +67,7 @@ const ProfitBreakdown: React.FC<ProfitBreakdownProps> = ({
   setSelectedView,
   businessMetrics
 }) => {
+  const { formatCompactCurrency } = useSharedFormatters();
   // Build top items with sensible fallbacks
   const topRevenueItems: BreakdownItem[] = React.useMemo(() => {
     const tx = revenueData?.transactions || [];

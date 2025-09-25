@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { logger } from '@/utils/logger';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // Form components
 import BasicInfoStep from './RecipeForm/BasicInfoStep';
@@ -79,6 +80,8 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
   const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false);
   const queryClient = useQueryClient();
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  const { formatCurrency } = useSafeCurrency();
 
   // Form data state
   const [formData, setFormData] = useState<NewRecipe>({
@@ -559,7 +562,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
                   <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
                   <span className="text-gray-600">HPP per porsi:</span>
                   <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
-                    Rp {(formData.hppPerPorsi || 0).toLocaleString()}
+                    {formatCurrency(formData.hppPerPorsi || 0)}
                   </Badge>
                   {isCalculating && (
                     <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />
@@ -616,7 +619,7 @@ const RecipeFormPage: React.FC<RecipeFormPageProps> = React.memo(({
                   <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
                   <span className="text-gray-600">HPP per porsi:</span>
                   <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
-                    Rp {(formData.hppPerPorsi || 0).toLocaleString()}
+                    {formatCurrency(formData.hppPerPorsi || 0)}
                   </Badge>
                   {isCalculating && (
                     <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />

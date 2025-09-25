@@ -12,20 +12,22 @@ interface MetricCardProps {
   iconColor: string;
 }
 
-import { formatCompactCurrency } from '@/lib/shared';
+import { useSharedFormatters } from '@/hooks/useSharedFormatters';
 
-// Use shared Indonesian formatter with 'rb', 'jt' instead of 'K', 'M'
-const formatCurrency = (amount: number) => {
-  return formatCompactCurrency(amount);
-};
+import { useSharedFormatters } from '@/hooks/useSharedFormatters';
 
-const MetricCard: React.FC<MetricCardProps> = ({ 
+interface MetricCardPropsWithContext extends MetricCardProps {
+  formatCurrency: (amount: number) => string;
+}
+
+const MetricCard: React.FC<MetricCardPropsWithContext> = ({ 
   title, 
   value, 
   subtitle, 
   icon: Icon, 
   iconBg,
-  iconColor
+  iconColor,
+  formatCurrency
 }) => {
   return (
     <Card className="border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
@@ -61,6 +63,12 @@ interface ProfitMetricsProps {
 }
 
 const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
+  const { formatCompactCurrency } = useSharedFormatters();
+  
+  // Use shared Indonesian formatter with 'rb', 'jt' instead of 'K', 'M'
+  const formatCurrency = (amount: number) => {
+    return formatCompactCurrency(amount);
+  };
   if (!businessMetrics) {
     // Show placeholder cards when no data
     return (
@@ -139,6 +147,7 @@ const ProfitMetrics: React.FC<ProfitMetricsProps> = ({ businessMetrics }) => {
           icon={metric.icon}
           iconBg={metric.iconBg}
           iconColor={metric.iconColor}
+          formatCurrency={formatCurrency}
         />
       ))}
     </div>

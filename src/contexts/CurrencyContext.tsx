@@ -86,16 +86,13 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
         }
       }
 
-      // If no saved preference, default to NTD (Taiwan Dollar) as requested
-      const ntdCurrency = CURRENCIES.find(c => c.code === 'TWD');
-      if (ntdCurrency) {
-        return ntdCurrency;
-      }
+      // If no saved preference, default to IDR (Indonesian Rupiah)
+      return CURRENCIES[0]; // Default to IDR (first currency in array)
     } catch (error) {
       logger.warn('CurrencyContext: Failed to load initial currency', error);
     }
-    // Ultimate fallback to NTD instead of IDR
-    return CURRENCIES.find(c => c.code === 'TWD') || CURRENCIES[30]; // TWD is at index 30
+    // Ultimate fallback to IDR
+    return CURRENCIES[0]; // Always fallback to IDR
   };
 
   const [currentCurrency, setCurrentCurrency] = useState<Currency>(getInitialCurrency);

@@ -66,7 +66,7 @@ const defaultSettings: UserSettings = {
   phone: '',
   address: '',
   whatsappType: 'personal', // Default to personal WhatsApp
-  currencyCode: 'TWD', // Default to NTD (Taiwan Dollar) instead of IDR
+  currencyCode: 'IDR', // Default currency for cross-device sync
   notifications: {
     lowStock: true,
     newOrder: true,

@@ -66,10 +66,10 @@ interface CurrencyProviderProps {
 export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) => {
   const { settings, saveSettings } = useUserSettings();
 
-  // Use currency from user settings, fallback to localStorage for backward compatibility
+  // Get initial currency with improved fallback logic
   const getInitialCurrency = (): Currency => {
     try {
-      // First try to get from user settings
+      // First try to get from user settings (if user is authenticated)
       if (settings.currencyCode) {
         const found = CURRENCIES.find(c => c.code === settings.currencyCode);
         if (found) {
@@ -77,7 +77,7 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
         }
       }
 
-      // Fallback to localStorage for backward compatibility
+      // Fallback to localStorage for backward compatibility AND offline support
       const saved = safeStorageGetJSON<{ code: string }>(STORAGE_KEY);
       if (saved?.code) {
         const found = CURRENCIES.find(c => c.code === saved.code);
@@ -85,10 +85,17 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
           return found;
         }
       }
+
+      // If no saved preference, default to NTD (Taiwan Dollar) as requested
+      const ntdCurrency = CURRENCIES.find(c => c.code === 'TWD');
+      if (ntdCurrency) {
+        return ntdCurrency;
+      }
     } catch (error) {
       logger.warn('CurrencyContext: Failed to load initial currency', error);
     }
-    return CURRENCIES[0]; // Default to IDR
+    // Ultimate fallback to NTD instead of IDR
+    return CURRENCIES.find(c => c.code === 'TWD') || CURRENCIES[30]; // TWD is at index 30
   };
 
   const [currentCurrency, setCurrentCurrency] = useState<Currency>(getInitialCurrency);
@@ -107,12 +114,22 @@ export const CurrencyProvider: React.FC<CurrencyProviderProps> = ({ children }) 
   const handleSetCurrency = async (currency: Currency) => {
     setCurrentCurrency(currency);
 
-    // Save to user settings for cross-device sync
-    const success = await saveSettings({ currencyCode: currency.code });
-    if (!success) {
-      logger.warn('CurrencyContext: Failed to save currency to user settings');
-      // Fallback to localStorage
+    try {
+      // ALWAYS save to localStorage first for immediate persistence
       await safeStorageSetJSON(STORAGE_KEY, { code: currency.code });
+      logger.debug('CurrencyContext: Saved to localStorage:', currency.code);
+
+      // Then try to save to user settings for cross-device sync
+      const success = await saveSettings({ currencyCode: currency.code });
+      if (!success) {
+        logger.warn('CurrencyContext: Failed to save currency to user settings, but localStorage saved successfully');
+        // Don't show error toast here - localStorage fallback is working
+      } else {
+        logger.debug('CurrencyContext: Saved to both localStorage and user settings:', currency.code);
+      }
+    } catch (error) {
+      logger.error('CurrencyContext: Failed to save currency:', error);
+      // Even if both fail, don't show error - user can still use the UI
     }
   };
 

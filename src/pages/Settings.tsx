@@ -41,9 +41,6 @@ import { usePWA } from '@/utils/pwaUtils';
 // import { useNotificationTriggers } from '@/hooks/useNotificationTriggers';
 import { getDeviceType, getBrowserInfo } from '@/utils';
 
-// ✅ BUSINESS SETTINGS: Import the new hook
-import { useBusinessSettings } from '@/hooks/useBusinessSettings';
-
 const SettingsPage = () => {
   // 🚀 PERFORMANCE: Show UI immediately with loading states
   const [showContent, setShowContent] = useState(true); // Always show content
@@ -51,9 +48,6 @@ const SettingsPage = () => {
   
   // 🚀 PERFORMANCE: Load settings asynchronously
   const { settings, saveSettings, isLoading } = useUserSettings();
-  
-  // ✅ BUSINESS SETTINGS: Use the new hook for business information
-  const { businessSettings, saveBusinessSettings } = useBusinessSettings();
   
   // 🚀 PERFORMANCE: Always call hooks but conditionally use features
   // const notificationHooks = useNotificationTriggers();
@@ -101,32 +95,12 @@ const SettingsPage = () => {
     }
   }, [settings]);
 
-  // Sync formState with businessSettings changes
-  useEffect(() => {
-    if (businessSettings.businessName || businessSettings.ownerName) {
-      setFormState(prev => prev ? {
-        ...prev,
-        businessName: businessSettings.businessName,
-        ownerName: businessSettings.ownerName,
-      } : {
-        businessName: businessSettings.businessName,
-        ownerName: businessSettings.ownerName,
-        email: '',
-        phone: '',
-        address: '',
-        whatsappType: 'personal' as const,
-        currencyCode: 'IDR',
-        notifications: { lowStock: true, newOrder: true }
-      });
-    }
-  }, [businessSettings.businessName, businessSettings.ownerName]);
-
 
   // 🚀 PERFORMANCE: Show content even while loading, use skeleton states
   const isContentLoading = isLoading && !formState;
   const displaySettings = formState || {
-    businessName: businessSettings.businessName || '',
-    ownerName: businessSettings.ownerName || '',
+    businessName: '',
+    ownerName: '',
     email: '',
     phone: '',
     address: '',
@@ -164,23 +138,18 @@ const SettingsPage = () => {
     const timer = setTimeout(async () => {
       setAutoSaveStatus('saving');
       try {
-        // Auto-save business information using the business settings hook
-        const businessSuccess = await saveBusinessSettings({
+        const settingsToUpdate: Partial<UserSettings> = {
           businessName: newFormState.businessName,
           ownerName: newFormState.ownerName,
-        });
-
-        // Auto-save other settings using user settings
-        const settingsToUpdate: Partial<UserSettings> = {
           email: newFormState.email,
           phone: newFormState.phone,
           address: newFormState.address,
           whatsappType: newFormState.whatsappType,
         };
 
-        const userSettingsSuccess = await saveSettings(settingsToUpdate);
+        const success = await saveSettings(settingsToUpdate);
 
-        if (businessSuccess && userSettingsSuccess) {
+        if (success) {
           setAutoSaveStatus('saved');
           setHasChanges(false); // Mark as no changes after successful save
           toast.success('✅ Data otomatis tersimpan', {
@@ -242,26 +211,20 @@ const SettingsPage = () => {
 
     setIsSaving(true);
     try {
-      // Save business information using the business settings hook
-      const businessSuccess = await saveBusinessSettings({
+      const settingsToUpdate: Partial<UserSettings> = {
         businessName: settingsToSave.businessName,
         ownerName: settingsToSave.ownerName,
-      });
-
-      // Save other settings using user settings
-      const settingsToUpdate: Partial<UserSettings> = {
         email: settingsToSave.email,
         phone: settingsToSave.phone,
         address: settingsToSave.address,
         whatsappType: settingsToSave.whatsappType,
       };
 
-      const userSettingsSuccess = await saveSettings(settingsToUpdate);
-
-      if (businessSuccess && userSettingsSuccess) {
+      const success = await saveSettings(settingsToUpdate);
+      if (success) {
         setHasChanges(false);
         toast.success('Pengaturan bisnis berhasil disimpan');
-
+        
         // ✅ PERFORMANCE: Only trigger notification if loaded
         // if (triggerCustomNotification) {
         //   await triggerCustomNotification(

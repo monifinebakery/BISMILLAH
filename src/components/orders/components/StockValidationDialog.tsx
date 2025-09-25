@@ -23,6 +23,7 @@ import { orderApi } from '../api/orderApi';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import type { Order } from '../types';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface StockValidationDialogProps {
   isOpen: boolean;
@@ -56,6 +57,8 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
   const [isCompleting, setIsCompleting] = useState(false);
   const [validationResult, setValidationResult] = useState<StockValidationResult | null>(null);
   const [hasValidated, setHasValidated] = useState(false);
+  
+  const { formatCurrency } = useSafeCurrency();
 
   // Reset state when dialog opens/closes
   useEffect(() => {
@@ -222,7 +225,7 @@ const StockValidationDialog: React.FC<StockValidationDialogProps> = ({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Total Nilai:</span>
-                  <span className="font-medium">Rp {Number(((order as any).total_pesanan ?? (order as any).totalAmount ?? 0)).toLocaleString()}</span>
+                  <span className="font-medium">{formatCurrency(Number(((order as any).total_pesanan ?? (order as any).totalAmount ?? 0)))}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-600">Item Resep:</span>

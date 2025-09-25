@@ -31,6 +31,7 @@ const CostCalculationStep = React.lazy(() =>
 import { validateRecipeData, calculateHPP, normalizeBahanResep } from '../../services/recipeUtils';
 import { recipeApi } from '../../services/recipeApi';
 import { safeDom } from '@/utils/browserApiSafeWrappers';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import {
   RECIPE_CATEGORIES,
   type Recipe,
@@ -76,6 +77,8 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
   const [isEnhancedHppActive, setIsEnhancedHppActive] = useState(false); // Track enhanced HPP state
   const queryClient = useQueryClient();
   const contentRef = useRef<HTMLDivElement>(null);
+  
+  const { formatCurrency } = useSafeCurrency();
 
   // Form data state
   const [formData, setFormData] = useState<NewRecipe>({
@@ -546,7 +549,7 @@ const RecipeForm: React.FC<RecipeFormProps> = ({
                     <Calculator className="h-4 w-4 text-orange-600 flex-shrink-0" />
                     <span className="text-gray-600 text-overflow-safe">HPP per porsi:</span>
                     <Badge variant="outline" className="text-orange-700 border-orange-300 flex-shrink-0">
-                      Rp {(formData.hppPerPorsi || 0).toLocaleString()}
+                      {formatCurrency(formData.hppPerPorsi || 0)}
                     </Badge>
                     {isCalculating && (
                       <div className="animate-spin h-3 w-3 border border-orange-500 border-t-transparent rounded-full flex-shrink-0" />

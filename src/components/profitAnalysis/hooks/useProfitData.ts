@@ -336,17 +336,17 @@ export const useProfitData = (
   }, [chartData, formatPeriodLabel]);
   
   // 🍽️ F&B friendly export with UMKM terminology
-  const exportFNBData = useCallback(() => {
+  const exportFNBData = useCallback((currencySymbol: string = 'Rp') => {
     if (!Array.isArray(chartData) || chartData.length === 0) return [];
     
     try {
       return chartData.map(data => ({
         'Periode': formatPeriodLabel(data?.period || ''),
-        'Omset (Rp)': data?.revenue || 0,
-        'Modal Bahan Baku (Rp)': data?.cogs || 0,
-        'Biaya Bulanan Tetap (Rp)': data?.opex || 0,
-        'Untung Kotor (Rp)': data?.gross_profit || 0,
-        'Untung Bersih (Rp)': data?.net_profit || 0,
+        [`Omset (${currencySymbol})`]: data?.revenue || 0,
+        [`Modal Bahan Baku (${currencySymbol})`]: data?.cogs || 0,
+        [`Biaya Bulanan Tetap (${currencySymbol})`]: data?.opex || 0,
+        [`Untung Kotor (${currencySymbol})`]: data?.gross_profit || 0,
+        [`Untung Bersih (${currencySymbol})`]: data?.net_profit || 0,
         'Margin Kotor (%)': (data?.gross_margin || 0).toFixed(1),
         'Margin Bersih (%)': (data?.net_margin || 0).toFixed(1)
       }));

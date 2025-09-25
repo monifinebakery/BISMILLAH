@@ -62,7 +62,7 @@ interface SortConfig {
   getWarningLevel: (value: number) => 'high' | 'medium' | 'low';
 }
 
-const sortConfigs: Record<SortOption, SortConfig> = {
+const getSortConfigs = (formatCurrency: (amount: number) => string): Record<SortOption, SortConfig> => ({
   quantity: {
     key: 'quantity',
     label: 'Penjualan Terendah',
@@ -70,7 +70,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     description: 'Produk dengan unit terjual paling sedikit',
     getValue: (product) => safeNumber(product.quantity),
     formatValue: (value) => `${safeNumber(value).toLocaleString('id-ID')} unit`,
-    getSecondaryInfo: (product) => `Rp ${safeNumber(product.revenue).toLocaleString('id-ID')}`,
+    getSecondaryInfo: (product) => formatCurrency(safeNumber(product.revenue)),
     getWarningLevel: (value) => value < 5 ? 'high' : value < 20 ? 'medium' : 'low'
   },
   revenue: {
@@ -79,7 +79,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <DollarSign className="h-4 w-4" />,
     description: 'Produk dengan total pendapatan paling rendah',
     getValue: (product) => safeNumber(product.revenue),
-    formatValue: (value) => `Rp ${value.toLocaleString('id-ID')}`,
+    formatValue: (value) => formatCurrency(value),
     getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit terjual`,
     getWarningLevel: (value) => value < 100000 ? 'high' : value < 500000 ? 'medium' : 'low'
   },
@@ -89,7 +89,7 @@ const sortConfigs: Record<SortOption, SortConfig> = {
     icon: <TrendingDown className="h-4 w-4" />,
     description: 'Produk dengan profit bersih paling rendah',
     getValue: (product) => safeNumber(product.profit),
-    formatValue: (value) => `Rp ${value.toLocaleString('id-ID')}`,
+    formatValue: (value) => formatCurrency(value),
     getSecondaryInfo: (product) => `Margin ${safeNumber(product.marginPercent)}%`,
     getWarningLevel: (value) => value < 50000 ? 'high' : value < 200000 ? 'medium' : 'low'
   },
@@ -109,10 +109,10 @@ const sortConfigs: Record<SortOption, SortConfig> = {
       return safeMultiply(safeMultiply(normalizedQty, 0.4) + safeMultiply(normalizedRev, 0.6), 100);
     },
     formatValue: (value) => `${isNaN(value) || !isFinite(value) ? '0.0' : value.toFixed(1)} poin`,
-    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • Rp ${safeNumber(product.revenue).toLocaleString('id-ID')}`,
+    getSecondaryInfo: (product) => `${safeNumber(product.quantity)} unit • ${formatCurrency(safeNumber(product.revenue))}`,
     getWarningLevel: (value) => value < 10 ? 'high' : value < 30 ? 'medium' : 'low'
   }
-};
+});
 
 interface Props {
   products: Product[];
@@ -306,8 +306,12 @@ const WorstSellingProducts: React.FC<Props> = ({
   onPageChange,
   isLoading
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   const [sortBy, setSortBy] = useState<SortOption>('quantity');
   const itemsPerPage = 5;
+  
+  // Get dynamic sort configs with formatCurrency
+  const sortConfigs = useMemo(() => getSortConfigs(formatCurrency), [formatCurrency]);
 
   // 📊 Sort products based on selected option (ascending for worst)
   const sortedProducts = useMemo(() => {
@@ -315,7 +319,7 @@ const WorstSellingProducts: React.FC<Props> = ({
     
     const config = sortConfigs[sortBy];
     return [...products].sort((a, b) => config.getValue(a) - config.getValue(b)); // Ascending for worst
-  }, [products, sortBy, isLoading]);
+  }, [products, sortBy, isLoading, sortConfigs]);
 
   // 📊 Calculate pagination
   const paginationInfo = useMemo(() => 

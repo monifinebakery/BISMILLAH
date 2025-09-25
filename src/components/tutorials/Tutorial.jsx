@@ -1,11 +1,18 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import TutorialMenu from './TutorialMenu';
 import TutorialViewer from './TutorialViewer';
-import { getTutorialById, getAllTutorials } from '../../data/tutorials/tutorialData';
+import { getTutorialById, getAllTutorials, setCurrencySymbol } from '../../data/tutorials/tutorialData';
+import { useSafeCurrency } from '../../hooks/useSafeCurrency';
 
 const Tutorial = () => {
+  const { currencySymbol } = useSafeCurrency();
   const [selectedTutorial, setSelectedTutorial] = useState(null);
   const [showMenu, setShowMenu] = useState(true);
+  
+  // Set currency symbol for tutorial data
+  useEffect(() => {
+    setCurrencySymbol(currencySymbol);
+  }, [currencySymbol]);
 
   const handleSelectTutorial = (tutorial) => {
     setSelectedTutorial(tutorial);

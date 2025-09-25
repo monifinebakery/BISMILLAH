@@ -20,6 +20,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // Hooks
 import { useRecipeHppIntegration } from '../hooks/useEnhancedHppCalculation';
@@ -47,6 +48,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
   onEnhancedModeChange,
   className = ''
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   const {
     result,
     appSettings,
@@ -97,7 +99,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
               {hasOverheadSettings ? (
                 <>
                   <CheckCircle className="h-4 w-4 text-green-500" />
-                  <span className="text-sm font-semibold text-green-700">Rp {((appSettings?.overhead_per_pcs || 0) + (appSettings?.operasional_per_pcs || 0)).toLocaleString('id-ID')}/pcs</span>
+                  <span className="text-sm font-semibold text-green-700">`${formatCurrency(((appSettings?.overhead_per_pcs || 0) + (appSettings?.operasional_per_pcs || 0))}`/pcs</span>
                   <Badge variant="outline" className="text-xs bg-green-50 text-green-700">
                     Siap
                   </Badge>
@@ -163,7 +165,7 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                   <span className="text-sm font-medium text-blue-800">Bahan (WAC)</span>
                 </div>
                 <p className="text-2xl font-bold text-blue-900">
-                  Rp {result.bahanPerPcs.toLocaleString('id-ID')}
+                  `${formatCurrency(result.bahanPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-blue-600">/pcs</span>
                 </p>
                 <div className="text-xs text-blue-600 mt-2">
@@ -177,13 +179,13 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                   <span className="text-sm font-medium text-purple-800">Biaya Produksi (Overhead + Operasional)</span>
                 </div>
                 <p className="text-2xl font-bold text-purple-900">
-                  Rp {result.overheadPerPcs.toLocaleString('id-ID')}
+                  `${formatCurrency(result.overheadPerPcs.toLocaleString('id-ID')}
                   <span className="text-sm font-normal text-purple-600">/pcs</span>
                 </p>
                 {result.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 mt-2">
-                    <div>💡 Overhead: Rp {result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
-                    <div>📋 Operasional: Rp {result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
+                    <div>💡 Overhead: `${formatCurrency(result.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
+                    <div>📋 Operasional: `${formatCurrency(result.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
                   </div>
                 )}
               </div>
@@ -200,10 +202,10 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                     HPP per Pcs
                   </h4>
                   <p className="text-3xl font-bold text-green-900 mb-1">
-                    Rp {result.hppPerPcs.toLocaleString('id-ID')}
+                    `${formatCurrency(result.hppPerPcs.toLocaleString('id-ID')}
                   </p>
                   <p className="text-sm text-green-600">
-                    Total HPP: Rp {result.totalHPP.toLocaleString('id-ID')}
+                    Total HPP: `${formatCurrency(result.totalHPP.toLocaleString('id-ID')}
                   </p>
                 </div>
               </div>
@@ -215,10 +217,10 @@ const RecipeHppIntegration: React.FC<RecipeHppIntegrationProps> = ({
                     Harga Jual per Pcs
                   </h4>
                   <p className="text-3xl font-bold text-emerald-900 mb-1">
-                    Rp {result.hargaJualPerPcs.toLocaleString('id-ID')}
+                    `${formatCurrency(result.hargaJualPerPcs.toLocaleString('id-ID')}
                   </p>
                   <p className="text-sm text-emerald-600">
-                    Profit: Rp {(result.hargaJualPerPcs - result.hppPerPcs).toLocaleString('id-ID')}
+                    Profit: `${formatCurrency((result.hargaJualPerPcs - result.hppPerPcs)}`
                   </p>
                 </div>
               </div>

@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import { OpenRouterService } from './openrouter/OpenRouterService';
+import { formatCurrency as formatCurrencyUtil } from '@/lib/shared/formatters';
 
-// System prompt for accurate chatbot responses
-const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for HPP by Monifine. You ONLY answer questions about bakery data and operations. You MUST be accurate and never make up information.
+// Get system prompt with dynamic currency support
+const getChatbotSystemPrompt = (currencySymbol: string = 'Rp') => `You are a helpful bakery management assistant for HPP by Monifine. You ONLY answer questions about bakery data and operations. You MUST be accurate and never make up information.
 
 What you CAN do:
 - Answer questions about warehouse inventory (bahan baku)
@@ -36,7 +37,7 @@ How to respond:
 - Always check if the requested data exists before responding
 - If data does not exist, say so clearly (e.g., "Belum ada data bahan baku, Kak")
 - Use the exact data from the database queries
-- Format numbers as Indonesian Rupiah (Rp XXX,XXX)
+- Format numbers as currency (${currencySymbol} XXX,XXX)
 - Be polite and helpful in Indonesian language
 - Keep responses concise and accurate
 
@@ -56,6 +57,7 @@ export class ChatbotService {
   private history: Array<{role: 'user' | 'assistant', content: string, timestamp: number, importance: number}> = [];
   private businessName: string = 'Bisnis Anda';
   private ownerName: string = 'Kak';
+  private currencySymbol: string = 'Rp';
   private readonly userId?: string;
   private readonly historyStorageKey: string;
   private readonly businessNameStorageKey: string;
@@ -139,6 +141,21 @@ export class ChatbotService {
     this.savePersistedData();
   }
 
+  // Set currency symbol for personalization
+  setCurrencySymbol(symbol: string) {
+    this.currencySymbol = symbol || 'Rp';
+    this.savePersistedData();
+  }
+
+  // Format currency with current symbol
+  private formatCurrency(amount: number): string {
+    const formatter = new Intl.NumberFormat('id-ID', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    return `${this.currencySymbol} ${formatter.format(amount)}`;
+  }
+
   async processMessage(message: string, userId?: string): Promise<any> {
     try {
       if (!message.trim()) {
@@ -168,11 +185,12 @@ export class ChatbotService {
 
         // Generate AI response with context
         const aiResponse = await this.openRouter.generateResponse(message, {
-          systemPrompt: CHATBOT_SYSTEM_PROMPT,
+          systemPrompt: getChatbotSystemPrompt(this.currencySymbol),
           context: {
             intent: intent,
             ownerName: this.ownerName || 'Kak',
             businessName: this.businessName,
+            currencySymbol: this.currencySymbol,
             data: dataContext,
             conversationHistory: this.getRecentHistory()
           }
@@ -307,7 +325,7 @@ export class ChatbotService {
         totalRevenue: totalRevenue,
         orders: orders || [],
         hasData: (orders?.length || 0) > 0,
-        summary: `${orders?.length || 0} pesanan, Rp ${totalRevenue.toLocaleString('id-ID')} total`
+        summary: `${orders?.length || 0} pesanan, ${this.formatCurrency(totalRevenue)} total`
       };
     } catch (error: any) {
       return { error: error.message, orders: [], totalOrders: 0 };
@@ -338,7 +356,7 @@ export class ChatbotService {
         averageOrder: averageOrder,
         month: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
         hasData: totalSales > 0,
-        summary: `Rp ${totalSales.toLocaleString('id-ID')} dari ${orderCount} pesanan`
+        summary: `${this.formatCurrency(totalSales)} dari ${orderCount} pesanan`
       };
     } catch (error: any) {
       return { error: error.message, sales: 0, orderCount: 0 };

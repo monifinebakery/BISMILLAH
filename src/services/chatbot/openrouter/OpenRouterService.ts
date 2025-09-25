@@ -117,6 +117,7 @@ export class OpenRouterService {
     const userRole = context.userRole || 'user';
     const currentPage = context.currentPage || 'Dashboard';
     const history = context.history || [];
+    const currencySymbol = context.currencySymbol || 'Rp';
     const currentTime = new Date().toLocaleString('id-ID', {
       timeZone: 'Asia/Jakarta',
       weekday: 'long',
@@ -190,8 +191,8 @@ User: "cari pesanan bu rina"
 Assistant: "🔍 Mencari pesanan atas nama Bu Rina...
 
 📋 Ditemukan 2 pesanan:
-1. Order #00123 - Rp 150.000 (Pending)
-2. Order #00145 - Rp 200.000 (Completed)
+1. Order #00123 - ${currencySymbol} 150.000 (Pending)
+2. Order #00145 - ${currencySymbol} 200.000 (Completed)
 
 ⚠️ Manakah yang ingin Anda lihat detailnya?"
 
@@ -215,7 +216,7 @@ Ada yang lain perlu diperbarui?"
 User: "lihat laporan bulan ini"
 Assistant: "📊 Laporan Penjualan Bulan ${new Date().toLocaleDateString('id-ID', {month: 'long', year: 'numeric'})}
 
-💰 Total Penjualan: Rp 2.500.000
+💰 Total Penjualan: ${currencySymbol} 2.500.000
 📈 Growth: +15% dari bulan lalu
 🥖 Best Seller: Roti Tawar (50 pcs)
 ⚠️ Low Stock: Tepung, Gula

@@ -1,8 +1,9 @@
 // Utility to add sample operational costs for testing profit analysis
 // Run this in browser console when logged in to add sample data
 
-import { supabase } from '@/integrations/supabase/client';
-
+import { supabase } from '../integrations/supabase/client';
+import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/shared/formatters';
 export interface SampleOperationalCost {
   nama_biaya: string;
   jumlah_per_bulan: number;
@@ -102,12 +103,12 @@ export async function addSampleOperationalCosts(): Promise<void> {
 
     // Show summary
     const summary = sampleCosts.map(cost => 
-      `• ${cost.nama_biaya}: Rp ${cost.jumlah_per_bulan.toLocaleString('id-ID')} (${cost.jenis})`
+      `• ${cost.nama_biaya}: ${formatCurrency(cost.jumlah_per_bulan)} (${cost.jenis})`
     ).join('\n');
 
     console.log('📋 Added costs:\n' + summary);
     
-    alert(`✅ Berhasil menambahkan ${sampleCosts.length} biaya operasional!\n\nTotal: Rp ${sampleCosts.reduce((sum, cost) => sum + cost.jumlah_per_bulan, 0).toLocaleString('id-ID')}/bulan\n\nSilakan refresh halaman untuk melihat perubahan di profit analysis.`);
+    alert(`✓ Berhasil menambahkan ${sampleCosts.length} biaya operasional!\n\nTotal: ${formatCurrency(sampleCosts.reduce((sum, cost) => sum + cost.jumlah_per_bulan, 0))}/bulan\n\nSilakan refresh halaman untuk melihat perubahan di profit analysis.`);
 
   } catch (error) {
     console.error('❌ Error adding operational costs:', error);

@@ -32,6 +32,7 @@ import { toast } from 'sonner';
 import { Switch } from '@/components/ui/switch';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import OrderItemsSection from './dialogs/OrderItemsSection';
 
 // Import Breadcrumb components
@@ -58,6 +59,7 @@ const OrdersAddEditPage: React.FC = () => {
   const navigate = useNavigate();
   const { id: orderId } = useParams<{ id: string }>();
   const isEditMode = !!orderId;
+  const { formatCurrency } = useSafeCurrency();
 
   // Order Context
   const { orders, addOrder, updateOrder, loading: ordersLoading } = useOrder();
@@ -538,18 +540,18 @@ const OrdersAddEditPage: React.FC = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-gray-600">
                   <span>Subtotal ({formData.items.length} item):</span>
-                  <span>Rp {formData.subtotal.toLocaleString('id-ID')}</span>
+                  <span>{formatCurrency(formData.subtotal.toLocaleString('id-ID'))}</span>
                 </div>
                 {formData.isTaxEnabled && (
                   <div className="flex justify-between text-gray-600">
                     <span>Pajak (10%):</span>
-                    <span>Rp {formData.pajak.toLocaleString('id-ID')}</span>
+                    <span>{formatCurrency(formData.pajak.toLocaleString('id-ID'))}</span>
                   </div>
                 )}
                 <Separator />
                 <div className="flex justify-between font-bold text-xl text-orange-600">
                   <span>Total Pesanan:</span>
-                  <span>Rp {formData.totalPesanan.toLocaleString('id-ID')}</span>
+                  <span>{formatCurrency(formData.totalPesanan.toLocaleString('id-ID'))}</span>
                 </div>
               </div>
             </CardContent>

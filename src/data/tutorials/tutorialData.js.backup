@@ -135,8 +135,8 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <p><strong>Satuan:</strong> kg</p>
                 <p><strong>Tanggal:</strong> 29 Agustus 2024</p>
                 <p><strong>Jumlah:</strong> 25 kg</p>
-                <p><strong>Harga per kg:</strong> ${formatCurrency(12000, currencySymbol)}</p>
-                <p><strong>Total:</strong> ${formatCurrency(300000, currencySymbol)} (otomatis)</p>
+                <p><strong>Harga per kg:</strong> Rp 12.000</p>
+                <p><strong>Total:</strong> Rp 300.000 (otomatis)</p>
                 <p><strong>Supplier:</strong> Toko Sembako Jaya</p>
               </div>
             </div>
@@ -239,8 +239,8 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
               <div class="example-form">
                 <p><strong>Kategori:</strong> Utilitas</p>
                 <p><strong>Nama Biaya:</strong> Listrik Warung</p>
-                <p><strong>Biaya per Bulan:</strong> ${formatCurrency(300000, currencySymbol)}</p>
-                <p><strong>Biaya per Hari:</strong> ${formatCurrency(10000, currencySymbol)} (otomatis)</p>
+                <p><strong>Biaya per Bulan:</strong> Rp 300.000</p>
+                <p><strong>Biaya per Hari:</strong> Rp 10.000 (otomatis)</p>
                 <p><strong>Keterangan:</strong> Listrik untuk mesin, lampu, kulkas</p>
               </div>
             </div>
@@ -255,9 +255,9 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
               
               <div class="example">
                 <p><strong>Contoh:</strong></p>
-                <p>Biaya listrik per hari: ${formatCurrency(10000, currencySymbol)}</p>
+                <p>Biaya listrik per hari: Rp 10.000</p>
                 <p>Produksi bakso per hari: 100 porsi</p>
-                <p><strong>Biaya listrik per porsi bakso: ${formatCurrency(100, currencySymbol)}</strong></p>
+                <p><strong>Biaya listrik per porsi bakso: Rp 100</strong></p>
               </div>
             </div>
             
@@ -321,37 +321,37 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                     <tr>
                       <td>Daging Sapi Giling</td>
                       <td>1 kg</td>
-                      <td>${formatCurrency(80000, currencySymbol)}/kg</td>
-                      <td>${formatCurrency(80000, currencySymbol)}</td>
+                      <td>Rp 80.000/kg</td>
+                      <td>Rp 80.000</td>
                     </tr>
                     <tr>
                       <td>Tepung Tapioka</td>
                       <td>200 gram</td>
-                      <td>${formatCurrency(8000, currencySymbol)}/kg</td>
-                      <td>${formatCurrency(1600, currencySymbol)}</td>
+                      <td>Rp 8.000/kg</td>
+                      <td>Rp 1.600</td>
                     </tr>
                     <tr>
                       <td>Bawang Putih</td>
                       <td>50 gram</td>
-                      <td>${formatCurrency(25000, currencySymbol)}/kg</td>
-                      <td>${formatCurrency(1250, currencySymbol)}</td>
+                      <td>Rp 25.000/kg</td>
+                      <td>Rp 1.250</td>
                     </tr>
                     <tr>
                       <td>Garam</td>
                       <td>20 gram</td>
-                      <td>${formatCurrency(5000, currencySymbol)}/kg</td>
-                      <td>${formatCurrency(100, currencySymbol)}</td>
+                      <td>Rp 5.000/kg</td>
+                      <td>Rp 100</td>
                     </tr>
                     <tr>
                       <td>Merica</td>
                       <td>5 gram</td>
-                      <td>${formatCurrency(60000, currencySymbol)}/kg</td>
-                      <td>${formatCurrency(300, currencySymbol)}</td>
+                      <td>Rp 60.000/kg</td>
+                      <td>Rp 300</td>
                     </tr>
                   </tbody>
                 </table>
-                <p><strong>Total Biaya Bahan: ${formatCurrency(83250, currencySymbol)}</strong></p>
-                <p><strong>Biaya Bahan per Porsi: ${formatCurrency(8325, currencySymbol)}</strong></p>
+                <p><strong>Total Biaya Bahan: Rp 83.250</strong></p>
+                <p><strong>Biaya Bahan per Porsi: Rp 8.325</strong></p>
               </div>
             </div>
 
@@ -416,32 +416,32 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
               
               <h5>1️⃣ Biaya Bahan Baku (per 10 porsi):</h5>
               <ul>
-                <li>Daging sapi: ${formatCurrency(80000, currencySymbol)}</li>
-                <li>Tepung tapioka: ${formatCurrency(1600, currencySymbol)}</li>
-                <li>Bumbu-bumbu: ${formatCurrency(1650, currencySymbol)}</li>
-                <li><strong>Total Bahan: ${formatCurrency(83250, currencySymbol)}</strong></li>
-                <li><strong>Per porsi: ${formatCurrency(8325, currencySymbol)}</strong></li>
+                <li>Daging sapi: Rp 80.000</li>
+                <li>Tepung tapioka: Rp 1.600</li>
+                <li>Bumbu-bumbu: Rp 1.650</li>
+                <li><strong>Total Bahan: Rp 83.250</strong></li>
+                <li><strong>Per porsi: Rp 8.325</strong></li>
               </ul>
 
               <h5>2️⃣ Biaya Tenaga Kerja:</h5>
               <ul>
-                <li>Gaji koki per hari: ${formatCurrency(100000, currencySymbol)}</li>
+                <li>Gaji koki per hari: Rp 100.000</li>
                 <li>Produksi per hari: 100 porsi</li>
-                <li><strong>Biaya tenaga kerja per porsi: ${formatCurrency(1000, currencySymbol)}</strong></li>
+                <li><strong>Biaya tenaga kerja per porsi: Rp 1.000</strong></li>
               </ul>
 
               <h5>3️⃣ Biaya Overhead:</h5>
               <ul>
-                <li>Listrik per hari: ${formatCurrency(10000, currencySymbol)}</li>
-                <li>Gas per hari: ${formatCurrency(15000, currencySymbol)}</li>
-                <li>Sewa tempat per hari: ${formatCurrency(20000, currencySymbol)}</li>
-                <li>Total overhead: ${formatCurrency(45000, currencySymbol)}</li>
-                <li><strong>Overhead per porsi: ${formatCurrency(450, currencySymbol)}</strong></li>
+                <li>Listrik per hari: Rp 10.000</li>
+                <li>Gas per hari: Rp 15.000</li>
+                <li>Sewa tempat per hari: Rp 20.000</li>
+                <li>Total overhead: Rp 45.000</li>
+                <li><strong>Overhead per porsi: Rp 450</strong></li>
               </ul>
 
               <div class="final-calculation">
                 <h5>🎯 HPP Total per Porsi:</h5>
-                <p>${formatCurrency(8325, currencySymbol)} + ${formatCurrency(1000, currencySymbol)} + ${formatCurrency(450, currencySymbol)} = <strong>${formatCurrency(9775, currencySymbol)}</strong></p>
+                <p>Rp 8.325 + Rp 1.000 + Rp 450 = <strong>Rp 9.775</strong></p>
               </div>
             </div>
 
@@ -499,8 +499,8 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <h5>💵 Gross Profit (Keuntungan Kotor):</h5>
                 <p><strong>Rumus:</strong> Harga Jual - HPP</p>
                 <div class="example">
-                  <p><strong>Contoh:</strong> Bakso dijual ${formatCurrency(15000, currencySymbol)}, HPP ${formatCurrency(9775, currencySymbol)}</p>
-                  <p><strong>Gross Profit:</strong> ${formatCurrency(15000, currencySymbol)} - ${formatCurrency(9775, currencySymbol)} = <strong>${formatCurrency(5225, currencySymbol)}</strong></p>
+                  <p><strong>Contoh:</strong> Bakso dijual Rp 15.000, HPP Rp 9.775</p>
+                  <p><strong>Gross Profit:</strong> Rp 15.000 - Rp 9.775 = <strong>Rp 5.225</strong></p>
                 </div>
               </div>
 
@@ -508,7 +508,7 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <h5>📈 Gross Profit Margin:</h5>
                 <p><strong>Rumus:</strong> (Gross Profit ÷ Harga Jual) × 100%</p>
                 <div class="example">
-                  <p><strong>Contoh:</strong> (${formatCurrency(5225, currencySymbol)} ÷ ${formatCurrency(15000, currencySymbol)}) × 100% = <strong>34.8%</strong></p>
+                  <p><strong>Contoh:</strong> (Rp 5.225 ÷ Rp 15.000) × 100% = <strong>34.8%</strong></p>
                   <p><em>Artinya 34.8% dari harga jual adalah keuntungan kotor</em></p>
                 </div>
               </div>
@@ -517,8 +517,8 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <h5>💸 Net Profit (Keuntungan Bersih):</h5>
                 <p><strong>Rumus:</strong> Gross Profit - Biaya Admin/Marketing</p>
                 <div class="example">
-                  <p><strong>Contoh:</strong> Gross Profit ${formatCurrency(5225, currencySymbol)} - Biaya admin ${formatCurrency(500, currencySymbol)}</p>
-                  <p><strong>Net Profit:</strong> <strong>${formatCurrency(4725, currencySymbol)}</strong></p>
+                  <p><strong>Contoh:</strong> Gross Profit Rp 5.225 - Biaya admin Rp 500</p>
+                  <p><strong>Net Profit:</strong> <strong>Rp 4.725</strong></p>
                 </div>
               </div>
             </div>
@@ -692,11 +692,11 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
 
               <div class="pricing-example">
                 <h5>💡 Contoh Strategi Harga Bakso:</h5>
-                <p><strong>HPP:</strong> ${formatCurrency(9775, currencySymbol)}</p>
+                <p><strong>HPP:</strong> Rp 9.775</p>
                 <p><strong>Target margin:</strong> 40%</p>
-                <p><strong>Harga minimum:</strong> ${formatCurrency(9775, currencySymbol)} ÷ 0.6 = ${formatCurrency(16292, currencySymbol)}</p>
-                <p><strong>Harga jual yang disarankan:</strong> <strong>${formatCurrency(17000, currencySymbol)}</strong></p>
-                <p><strong>Actual margin:</strong> (${formatCurrency(17000, currencySymbol)} - ${formatCurrency(9775, currencySymbol)}) ÷ ${formatCurrency(17000, currencySymbol)} = <strong>42.5%</strong></p>
+                <p><strong>Harga minimum:</strong> Rp 9.775 ÷ 0.6 = Rp 16.292</p>
+                <p><strong>Harga jual yang disarankan:</strong> <strong>Rp 17.000</strong></p>
+                <p><strong>Actual margin:</strong> (Rp 17.000 - Rp 9.775) ÷ Rp 17.000 = <strong>42.5%</strong></p>
               </div>
             </div>
 
@@ -853,15 +853,15 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
               <h4>💡 Contoh Penggunaan Harian:</h4>
               <div class="example">
                 <h5>🌅 Pagi (buka warung):</h5>
-                <p>• Beli sayuran di pasar ${formatCurrency(50000, currencySymbol)} → Input ke Transaksi Keluar</p>
-                <p>• Bayar ongkir gas ${formatCurrency(5000, currencySymbol)} → Input ke Transaksi Keluar</p>
+                <p>• Beli sayuran di pasar Rp 50.000 → Input ke Transaksi Keluar</p>
+                <p>• Bayar ongkir gas Rp 5.000 → Input ke Transaksi Keluar</p>
                 
                 <h5>🌆 Siang (jam sibuk):</h5>
-                <p>• Jual 20 porsi bakso @ ${formatCurrency(15000, currencySymbol)} = ${formatCurrency(300000, currencySymbol)} → Input ke Transaksi Masuk</p>
+                <p>• Jual 20 porsi bakso @ Rp 15.000 = Rp 300.000 → Input ke Transaksi Masuk</p>
                 
                 <h5>🌃 Malam (tutup warung):</h5>
-                <p>• Cek laporan harian → Total masuk ${formatCurrency(300000, currencySymbol)}, keluar ${formatCurrency(55000, currencySymbol)}</p>
-                <p>• Keuntungan hari ini: ${formatCurrency(245000, currencySymbol)}</p>
+                <p>• Cek laporan harian → Total masuk Rp 300.000, keluar Rp 55.000</p>
+                <p>• Keuntungan hari ini: Rp 245.000</p>
               </div>
             </div>
           </div>
@@ -1042,13 +1042,13 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                     </tr>
                   </thead>
                   <tbody>
-                    <tr><td class="border border-gray-300 p-2">Daging Sapi Giling</td><td class="border border-gray-300 p-2">1 kg</td><td class="border border-gray-300 p-2">${formatCurrency(80000, currencySymbol)}/kg</td><td class="border border-gray-300 p-2">${formatCurrency(80000, currencySymbol)}</td></tr>
-                    <tr><td class="border border-gray-300 p-2">Tepung Tapioka</td><td class="border border-gray-300 p-2">200 g</td><td class="border border-gray-300 p-2">${formatCurrency(8000, currencySymbol)}/kg</td><td class="border border-gray-300 p-2">${formatCurrency(1600, currencySymbol)}</td></tr>
-                    <tr><td class="border border-gray-300 p-2">Bawang Putih</td><td class="border border-gray-300 p-2">50 g</td><td class="border border-gray-300 p-2">${formatCurrency(25000, currencySymbol)}/kg</td><td class="border border-gray-300 p-2">${formatCurrency(1250, currencySymbol)}</td></tr>
-                    <tr><td class="border border-gray-300 p-2">Garam</td><td class="border border-gray-300 p-2">20 g</td><td class="border border-gray-300 p-2">${formatCurrency(5000, currencySymbol)}/kg</td><td class="border border-gray-300 p-2">${formatCurrency(100, currencySymbol)}</td></tr>
-                    <tr><td class="border border-gray-300 p-2">Merica Bubuk</td><td class="border border-gray-300 p-2">5 g</td><td class="border border-gray-300 p-2">${formatCurrency(60000, currencySymbol)}/kg</td><td class="border border-gray-300 p-2">${formatCurrency(300, currencySymbol)}</td></tr>
-                    <tr class="bg-yellow-100 font-bold"><td class="border border-gray-300 p-2" colspan="3">TOTAL BIAYA BAHAN</td><td class="border border-gray-300 p-2">${formatCurrency(83250, currencySymbol)}</td></tr>
-                    <tr class="bg-green-100 font-bold"><td class="border border-gray-300 p-2" colspan="3">BIAYA PER PORSI</td><td class="border border-gray-300 p-2">${formatCurrency(8325, currencySymbol)}</td></tr>
+                    <tr><td class="border border-gray-300 p-2">Daging Sapi Giling</td><td class="border border-gray-300 p-2">1 kg</td><td class="border border-gray-300 p-2">Rp 80.000/kg</td><td class="border border-gray-300 p-2">Rp 80.000</td></tr>
+                    <tr><td class="border border-gray-300 p-2">Tepung Tapioka</td><td class="border border-gray-300 p-2">200 g</td><td class="border border-gray-300 p-2">Rp 8.000/kg</td><td class="border border-gray-300 p-2">Rp 1.600</td></tr>
+                    <tr><td class="border border-gray-300 p-2">Bawang Putih</td><td class="border border-gray-300 p-2">50 g</td><td class="border border-gray-300 p-2">Rp 25.000/kg</td><td class="border border-gray-300 p-2">Rp 1.250</td></tr>
+                    <tr><td class="border border-gray-300 p-2">Garam</td><td class="border border-gray-300 p-2">20 g</td><td class="border border-gray-300 p-2">Rp 5.000/kg</td><td class="border border-gray-300 p-2">Rp 100</td></tr>
+                    <tr><td class="border border-gray-300 p-2">Merica Bubuk</td><td class="border border-gray-300 p-2">5 g</td><td class="border border-gray-300 p-2">Rp 60.000/kg</td><td class="border border-gray-300 p-2">Rp 300</td></tr>
+                    <tr class="bg-yellow-100 font-bold"><td class="border border-gray-300 p-2" colspan="3">TOTAL BIAYA BAHAN</td><td class="border border-gray-300 p-2">Rp 83.250</td></tr>
+                    <tr class="bg-green-100 font-bold"><td class="border border-gray-300 p-2" colspan="3">BIAYA PER PORSI</td><td class="border border-gray-300 p-2">Rp 8.325</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -1120,18 +1120,18 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 
                 <h6 class="mt-3 font-bold">🛒 Daftar Belanja:</h6>
                 <div class="space-y-2 text-sm">
-                  <div class="flex justify-between">• Daging Sapi Giling: 5 kg × ${formatCurrency(82000, currencySymbol)} = <span class="font-bold">${formatCurrency(410000, currencySymbol)}</span></div>
-                  <div class="flex justify-between">• Tepung Tapioka: 2 kg × ${formatCurrency(8500, currencySymbol)} = <span class="font-bold">${formatCurrency(17000, currencySymbol)}</span></div>
-                  <div class="flex justify-between">• Bawang Putih: 1 kg × ${formatCurrency(28000, currencySymbol)} = <span class="font-bold">${formatCurrency(28000, currencySymbol)}</span></div>
-                  <div class="flex justify-between">• Garam Dapur: 5 kg × ${formatCurrency(6000, currencySymbol)} = <span class="font-bold">${formatCurrency(30000, currencySymbol)}</span></div>
-                  <div class="border-t pt-2 font-bold flex justify-between">TOTAL BELANJA: <span>${formatCurrency(485000, currencySymbol)}</span></div>
+                  <div class="flex justify-between">• Daging Sapi Giling: 5 kg × Rp 82.000 = <span class="font-bold">Rp 410.000</span></div>
+                  <div class="flex justify-between">• Tepung Tapioka: 2 kg × Rp 8.500 = <span class="font-bold">Rp 17.000</span></div>
+                  <div class="flex justify-between">• Bawang Putih: 1 kg × Rp 28.000 = <span class="font-bold">Rp 28.000</span></div>
+                  <div class="flex justify-between">• Garam Dapur: 5 kg × Rp 6.000 = <span class="font-bold">Rp 30.000</span></div>
+                  <div class="border-t pt-2 font-bold flex justify-between">TOTAL BELANJA: <span>Rp 485.000</span></div>
                 </div>
                 
                 <div class="mt-3 p-3 bg-green-100 rounded">
                   <h6 class="font-bold text-green-800">✅ Setelah Input Pembelian:</h6>
                   <ul class="text-green-700 text-sm mt-2 space-y-1">
                     <li>• Stok daging bertambah dari 2 kg → 7 kg</li>
-                    <li>• Harga daging terupdate jadi ${formatCurrency(82000, currencySymbol)}/kg</li>
+                    <li>• Harga daging terupdate jadi Rp 82.000/kg</li>
                     <li>• WAC (rata-rata harga) dihitung ulang otomatis</li>
                     <li>• Pengeluaran tercatat di laporan keuangan</li>
                   </ul>
@@ -1221,10 +1221,10 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 
                 <h6 class="mt-3 font-bold">🍜 Detail Pesanan:</h6>
                 <div class="space-y-1 text-sm">
-                  <div class="flex justify-between">• Bakso Kuah Spesial: 3 porsi × ${formatCurrency(15000, currencySymbol)} = <span class="font-bold">${formatCurrency(45000, currencySymbol)}</span></div>
-                  <div class="flex justify-between">• Es Teh Manis: 3 gelas × ${formatCurrency(5000, currencySymbol)} = <span class="font-bold">${formatCurrency(15000, currencySymbol)}</span></div>
-                  <div class="flex justify-between">• Ongkos Kirim: <span class="font-bold">${formatCurrency(10000, currencySymbol)}</span></div>
-                  <div class="border-t pt-1 font-bold flex justify-between">TOTAL: <span>${formatCurrency(70000, currencySymbol)}</span></div>
+                  <div class="flex justify-between">• Bakso Kuah Spesial: 3 porsi × Rp 15.000 = <span class="font-bold">Rp 45.000</span></div>
+                  <div class="flex justify-between">• Es Teh Manis: 3 gelas × Rp 5.000 = <span class="font-bold">Rp 15.000</span></div>
+                  <div class="flex justify-between">• Ongkos Kirim: <span class="font-bold">Rp 10.000</span></div>
+                  <div class="border-t pt-1 font-bold flex justify-between">TOTAL: <span>Rp 70.000</span></div>
                 </div>
                 
                 <div class="mt-3">
@@ -1310,14 +1310,14 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <h5>📊 Summary Bulan Agustus:</h5>
                 <div class="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p><strong>Total Penjualan:</strong> ${formatCurrency(15000000, currencySymbol)}</p>
-                    <p><strong>Total HPP:</strong> ${formatCurrency(9500000, currencySymbol)}</p>
-                    <p><strong>Keuntungan Kotor:</strong> ${formatCurrency(5500000, currencySymbol)}</p>
+                    <p><strong>Total Penjualan:</strong> Rp 15.000.000</p>
+                    <p><strong>Total HPP:</strong> Rp 9.500.000</p>
+                    <p><strong>Keuntungan Kotor:</strong> Rp 5.500.000</p>
                     <p><strong>Margin:</strong> 36.7% ✅</p>
                   </div>
                   <div>
-                    <p><strong>Biaya Operasional:</strong> ${formatCurrency(2000000, currencySymbol)}</p>
-                    <p><strong>Keuntungan Bersih:</strong> ${formatCurrency(3500000, currencySymbol)}</p>
+                    <p><strong>Biaya Operasional:</strong> Rp 2.000.000</p>
+                    <p><strong>Keuntungan Bersih:</strong> Rp 3.500.000</p>
                     <p><strong>Growth vs Juli:</strong> +15% 📈</p>
                     <p><strong>Status:</strong> SEHAT ✅</p>
                   </div>
@@ -1609,9 +1609,9 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <div class="process bg-green-50 p-4 rounded-lg">
                   <h6 class="font-bold text-green-800">🔄 Alur Otomatis:</h6>
                   <ol class="text-green-700 space-y-2">
-                    <li><strong>Customer pesan:</strong> Bakso 3 porsi = ${formatCurrency(45000, currencySymbol)}</li>
+                    <li><strong>Customer pesan:</strong> Bakso 3 porsi = Rp 45.000</li>
                     <li><strong>Anda ubah status:</strong> "Baru" → "Proses" → "Siap" → "Kirim" → <strong>"Selesai"</strong></li>
-                    <li><strong>Sistem otomatis:</strong> Catat ${formatCurrency(45000, currencySymbol)} di laporan pemasukan</li>
+                    <li><strong>Sistem otomatis:</strong> Catat Rp 45.000 di laporan pemasukan</li>
                     <li><strong>Dashboard terupdate:</strong> Total penjualan hari ini bertambah</li>
                     <li><strong>Laporan keuangan:</strong> Otomatis masuk ke kategori "Penjualan Produk"</li>
                   </ol>
@@ -1626,8 +1626,8 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <div class="process bg-orange-50 p-4 rounded-lg">
                   <h6 class="font-bold text-orange-800">🔄 Alur Otomatis:</h6>
                   <ol class="text-orange-700 space-y-2">
-                    <li><strong>Input pembelian:</strong> Daging sapi 5 kg = ${formatCurrency(400000, currencySymbol)}</li>
-                    <li><strong>Sistem otomatis:</strong> Catat ${formatCurrency(400000, currencySymbol)} di laporan pengeluaran</li>
+                    <li><strong>Input pembelian:</strong> Daging sapi 5 kg = Rp 400.000</li>
+                    <li><strong>Sistem otomatis:</strong> Catat Rp 400.000 di laporan pengeluaran</li>
                     <li><strong>Kategori otomatis:</strong> "Pembelian Bahan Baku"</li>
                     <li><strong>Tanggal otomatis:</strong> Sesuai tanggal pembelian yang Anda input</li>
                     <li><strong>Supplier tercatat:</strong> Untuk tracking pembelian</li>
@@ -1643,10 +1643,10 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <div class="process bg-purple-50 p-4 rounded-lg">
                   <h6 class="font-bold text-purple-800">🔄 Alur Otomatis:</h6>
                   <ol class="text-purple-700 space-y-2">
-                    <li><strong>Set biaya bulanan:</strong> Listrik ${formatCurrency(300000, currencySymbol)}/bulan</li>
-                    <li><strong>Sistem otomatis:</strong> Hitung ${formatCurrency(10000, currencySymbol)}/hari</li>
-                    <li><strong>Bagi per produk:</strong> Jika produksi 100 porsi = ${formatCurrency(100, currencySymbol)}/porsi</li>
-                    <li><strong>Masuk HPP otomatis:</strong> Setiap produk dapat overhead ${formatCurrency(100, currencySymbol)}</li>
+                    <li><strong>Set biaya bulanan:</strong> Listrik Rp 300.000/bulan</li>
+                    <li><strong>Sistem otomatis:</strong> Hitung Rp 10.000/hari</li>
+                    <li><strong>Bagi per produk:</strong> Jika produksi 100 porsi = Rp 100/porsi</li>
+                    <li><strong>Masuk HPP otomatis:</strong> Setiap produk dapat overhead Rp 100</li>
                     <li><strong>Laporan harian:</strong> Otomatis masuk pengeluaran operasional</li>
                   </ol>
                 </div>
@@ -1716,10 +1716,10 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                 <div class="example bg-blue-50 p-4 rounded-lg">
                   <h6 class="font-bold text-blue-800">🧮 Cara Kerja WAC:</h6>
                   <div class="text-blue-700 space-y-2">
-                    <p><strong>Stok lama:</strong> 2 kg @ ${formatCurrency(75000, currencySymbol)}/kg = ${formatCurrency(150000, currencySymbol)}</p>
-                    <p><strong>Beli baru:</strong> 5 kg @ ${formatCurrency(80000, currencySymbol)}/kg = ${formatCurrency(400000, currencySymbol)}</p>
-                    <p><strong>Total:</strong> 7 kg dengan total nilai ${formatCurrency(550000, currencySymbol)}</p>
-                    <p><strong>WAC otomatis:</strong> ${formatCurrency(550000, currencySymbol)} ÷ 7 kg = <strong>${formatCurrency(78571, currencySymbol)}/kg</strong></p>
+                    <p><strong>Stok lama:</strong> 2 kg @ Rp 75.000/kg = Rp 150.000</p>
+                    <p><strong>Beli baru:</strong> 5 kg @ Rp 80.000/kg = Rp 400.000</p>
+                    <p><strong>Total:</strong> 7 kg dengan total nilai Rp 550.000</p>
+                    <p><strong>WAC otomatis:</strong> Rp 550.000 ÷ 7 kg = <strong>Rp 78.571/kg</strong></p>
                     <p><strong>HPP terupdate:</strong> Semua resep pakai harga baru ini</p>
                   </div>
                 </div>
@@ -1838,7 +1838,7 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
               <div class="workflow-steps">
                 <div class="step bg-blue-50 p-4 rounded-lg mb-4">
                   <h5 class="font-bold text-blue-800">Step 1: Customer Pesan Bakso (Input Manual)</h5>
-                  <p class="text-blue-700">Anda input: "Bu Sari pesan 3 porsi bakso @ ${formatCurrency(15000, currencySymbol)} = ${formatCurrency(45000, currencySymbol)}"</p>
+                  <p class="text-blue-700">Anda input: "Bu Sari pesan 3 porsi bakso @ Rp 15.000 = Rp 45.000"</p>
                 </div>
                 
                 <div class="step bg-green-50 p-4 rounded-lg mb-4">
@@ -1867,11 +1867,11 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                   <div class="text-purple-700 space-y-1">
                     <p>Anda ubah status: "Proses" → "Selesai"</p>
                     <p><strong>Otomatis terjadi:</strong></p>
-                    <p>• Pemasukan: +${formatCurrency(45000, currencySymbol)}</p>
-                    <p>• HPP tercatat: ${formatCurrency(29325, currencySymbol)} (sesuai resep)</p>
-                    <p>• Keuntungan kotor: ${formatCurrency(15675, currencySymbol)}</p>
-                    <p>• Overhead terdistribusi: ${formatCurrency(450, currencySymbol)}</p>
-                    <p>• Keuntungan bersih: ${formatCurrency(15225, currencySymbol)}</p>
+                    <p>• Pemasukan: +Rp 45.000</p>
+                    <p>• HPP tercatat: Rp 29.325 (sesuai resep)</p>
+                    <p>• Keuntungan kotor: Rp 15.675</p>
+                    <p>• Overhead terdistribusi: Rp 450</p>
+                    <p>• Keuntungan bersih: Rp 15.225</p>
                   </div>
                 </div>
                 
@@ -1879,12 +1879,12 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
                   <h5 class="font-bold text-red-800">Step 5: Dashboard Terupdate Real-time</h5>
                   <div class="text-red-700 space-y-1">
                     <p><strong>Panel Keuangan:</strong></p>
-                    <p>• Total penjualan hari ini: +${formatCurrency(45000, currencySymbol)}</p>
-                    <p>• Keuntungan hari ini: +${formatCurrency(15225, currencySymbol)}</p>
+                    <p>• Total penjualan hari ini: +Rp 45.000</p>
+                    <p>• Keuntungan hari ini: +Rp 15.225</p>
                     <p>• Margin: 33.8% (healthy)</p>
                     <p><strong>Panel Pesanan:</strong></p>
                     <p>• Pesanan selesai: +1</p>
-                    <p>• Revenue dari pesanan: +${formatCurrency(45000, currencySymbol)}</p>
+                    <p>• Revenue dari pesanan: +Rp 45.000</p>
                   </div>
                 </div>
               </div>
@@ -2265,21 +2265,10 @@ export const getTutorialData = (currencySymbol = 'Rp') => [
   }
 ];
 
-// Helper functions for backward compatibility
-let currentCurrencySymbol = 'Rp';
-
-export const setCurrencySymbol = (symbol) => {
-  currentCurrencySymbol = symbol;
-};
-
 export const getTutorialById = (id) => {
-  const tutorials = getTutorialData(currentCurrencySymbol);
-  return tutorials.find(tutorial => tutorial.id === parseInt(id));
+  return tutorialData.find(tutorial => tutorial.id === parseInt(id));
 };
 
 export const getAllTutorials = () => {
-  return getTutorialData(currentCurrencySymbol);
+  return tutorialData;
 };
-
-// For backward compatibility
-export const tutorialData = getTutorialData();

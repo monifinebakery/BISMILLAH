@@ -1,6 +1,7 @@
 // src/components/orders/components/dialogs/OrderItemsSection.tsx
 import React from 'react';
 import { Plus, Trash2, ChefHat, Search, Zap, Calculator } from 'lucide-react';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -63,6 +64,7 @@ const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
   removeItem,
   getCalculationMethodIndicator,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   return (
     <div className="space-y-4">
       <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -131,14 +133,14 @@ const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
                             {method.label}
                           </Badge>
                           <Badge variant="secondary" className="text-xs">
-                            {safePrice !== undefined ? `Rp ${safePrice.toLocaleString('id-ID')}` : 'Rp N/A'}
+                            {safePrice !== undefined ? formatCurrency(safePrice) : formatCurrency(0).replace(/\d.*/, "N/A")}
                           </Badge>
                         </div>
                       </div>
                       <div className="flex items-center gap-2 text-xs text-gray-500 w-full">
                         <span>{safeCategory}</span>
                         {jumlahPorsi ? (<><span>•</span><span>{jumlahPorsi} porsi</span></>) : null}
-                        {hppPerPorsi !== undefined && (<><span>•</span><span>HPP: Rp {hppPerPorsi.toLocaleString('id-ID')}</span></>)}
+                        {hppPerPorsi !== undefined && (<><span>•</span><span>HPP: {formatCurrency(hppPerPorsi)}</span></>)}
                         {method.isEnhanced && (<><span>•</span><span className="text-blue-600 font-medium">Overhead Otomatis</span></>)}
                       </div>
                     </CommandItem>
@@ -195,7 +197,7 @@ const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
                           <RadioGroupItem value="per_portion" id={`${item.id}-per_portion`} />
                           <Label htmlFor={`${item.id}-per_portion`} className="text-sm flex-1 cursor-pointer">
                             <div className="font-medium">Per Porsi</div>
-                            <div className="text-xs text-gray-500">Rp {(item as any).pricePerPortion?.toLocaleString('id-ID')}</div>
+                            <div className="text-xs text-gray-500">{formatCurrency((item as any).pricePerPortion || 0)}</div>
                           </Label>
                         </div>
                       )}
@@ -204,7 +206,7 @@ const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
                           <RadioGroupItem value="per_piece" id={`${item.id}-per_piece`} />
                           <Label htmlFor={`${item.id}-per_piece`} className="text-sm flex-1 cursor-pointer">
                             <div className="font-medium">Per Pcs</div>
-                            <div className="text-xs text-gray-500">Rp {(item as any).pricePerPiece?.toLocaleString('id-ID')}</div>
+                            <div className="text-xs text-gray-500">{formatCurrency((item as any).pricePerPiece || 0)}</div>
                           </Label>
                         </div>
                       )}
@@ -225,8 +227,8 @@ const OrderItemsSection: React.FC<OrderItemsSectionProps> = ({
                   <div className="sm:col-span-2 lg:col-span-2">
                     <Label className="text-xs text-gray-500 font-medium">Total Harga</Label>
                     <div className="mt-1 p-2 bg-white border rounded-md">
-                      <div className="font-semibold text-lg text-green-700">Rp {item.total.toLocaleString('id-ID')}</div>
-                      <div className="text-xs text-gray-500">{item.quantity} × Rp {item.price.toLocaleString('id-ID')} {(item as any).pricingMode === 'per_piece' ? '(per pcs)' : '(per porsi)'}</div>
+                      <div className="font-semibold text-lg text-green-700">{formatCurrency(item.total)}</div>
+                      <div className="text-xs text-gray-500">{item.quantity} × {formatCurrency(item.price)} {(item as any).pricingMode === 'per_piece' ? '(per pcs)' : '(per porsi)'}</div>
                     </div>
                   </div>
                 </div>

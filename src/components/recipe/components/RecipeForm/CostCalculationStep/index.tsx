@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 // Auto-Sync HPP Integration (Simplified)
 import AutoSyncRecipeDisplay from '@/components/operational-costs/components/AutoSyncRecipeDisplay';
@@ -26,6 +27,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
   isLoading = false,
   onEnhancedHppModeChange,
 }) => {
+  const { formatCurrency } = useSafeCurrency();
   
   // Enhanced HPP state (always enabled)
   const [enhancedHppResult, setEnhancedHppResult] = React.useState<EnhancedHPPCalculationResult | null>(null);
@@ -204,21 +206,21 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
             <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
               <p className="text-xs sm:text-sm text-gray-600 font-medium text-overflow-safe">HPP per Pcs</p>
               <p className="text-lg sm:text-xl font-bold text-gray-900 text-overflow-safe">
-                Rp {enhancedHppResult.hppPerPcs.toLocaleString('id-ID')}
+                {formatCurrency(enhancedHppResult.hppPerPcs)}
               </p>
             </div>
             
             <div className="bg-gray-50 p-3 sm:p-4 rounded-lg border border-gray-200">
               <p className="text-xs sm:text-sm text-gray-600 font-medium text-overflow-safe">HPP per Porsi</p>
               <p className="text-lg sm:text-xl font-bold text-gray-900 text-overflow-safe">
-                Rp {enhancedHppResult.hppPerPorsi.toLocaleString('id-ID')}
+                {formatCurrency(enhancedHppResult.hppPerPorsi)}
               </p>
             </div>
             
             <div className="bg-orange-50 p-3 sm:p-4 rounded-lg border border-orange-200">
               <p className="text-xs sm:text-sm text-orange-600 font-medium text-overflow-safe">Total HPP</p>
               <p className="text-lg sm:text-xl font-bold text-orange-900 text-overflow-safe">
-                Rp {enhancedHppResult.totalHPP.toLocaleString('id-ID')}
+                {formatCurrency(enhancedHppResult.totalHPP)}
               </p>
             </div>
           </div>
@@ -235,15 +237,15 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                     {Math.abs(enhancedHppResult.bahanPerPcs - accurateIngredientCostPerPcs) > accurateIngredientCostPerPcs * 0.5 ? (
                       <div className="space-y-1">
                         <span className="font-bold text-red-600">
-                          Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
+                          {formatCurrency(enhancedHppResult.bahanPerPcs)}
                         </span>
                         <div className="text-xs text-red-500">
-                          ⚠️ Validasi: Rp {accurateIngredientCostPerPcs.toLocaleString('id-ID')}
+                          ⚠️ Validasi: {formatCurrency(accurateIngredientCostPerPcs)}
                         </div>
                       </div>
                     ) : (
                       <span className="font-bold text-blue-900">
-                        Rp {enhancedHppResult.bahanPerPcs.toLocaleString('id-ID')}
+                        {formatCurrency(enhancedHppResult.bahanPerPcs)}
                       </span>
                     )}
                   </div>
@@ -256,12 +258,12 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
               <div className="bg-purple-50 p-4 rounded-lg border border-purple-200">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-purple-800 font-medium">Biaya Produksi:</span>
-                  <span className="font-bold text-purple-900">Rp {enhancedHppResult.overheadPerPcs.toLocaleString('id-ID')}</span>
+                  <span className="font-bold text-purple-900">{formatCurrency(enhancedHppResult.overheadPerPcs)}</span>
                 </div>
                 {enhancedHppResult.breakdown.overheadBreakdown && (
                   <div className="text-xs text-purple-600 space-y-1">
-                    <div>💡 Overhead Produksi: Rp {enhancedHppResult.breakdown.overheadBreakdown.overheadOnly.toLocaleString('id-ID')}</div>
-                    <div>📋 Operasional: Rp {enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly.toLocaleString('id-ID')}</div>
+                    <div>💡 Overhead Produksi: {formatCurrency(enhancedHppResult.breakdown.overheadBreakdown.overheadOnly)}</div>
+                    <div>📋 Operasional: {formatCurrency(enhancedHppResult.breakdown.overheadBreakdown.operasionalOnly)}</div>
                   </div>
                 )}
               </div>
@@ -299,28 +301,28 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                 <div className="bg-gray-50 p-2 rounded border">
                   <div className="font-medium text-gray-700">Margin 25%</div>
                   <div className="text-gray-600 mt-1">
-                    Per Pcs: <span className="font-medium">Rp {Math.round(enhancedHppResult.hppPerPcs * 1.25).toLocaleString('id-ID')}</span>
+                    Per Pcs: <span className="font-medium">{formatCurrency(Math.round(enhancedHppResult.hppPerPcs * 1.25))}</span>
                   </div>
                   <div className="text-gray-600">
-                    Per Porsi: <span className="font-medium">Rp {Math.round(enhancedHppResult.hppPerPorsi * 1.25).toLocaleString('id-ID')}</span>
+                    Per Porsi: <span className="font-medium">{formatCurrency(Math.round(enhancedHppResult.hppPerPorsi * 1.25))}</span>
                   </div>
                 </div>
                 <div className="bg-orange-50 p-2 rounded border border-orange-200">
                   <div className="font-medium text-orange-700">Margin 30% (Rekomendasi)</div>
                   <div className="text-orange-700 mt-1">
-                    Per Pcs: <span className="font-medium">Rp {Math.round(enhancedHppResult.hppPerPcs * 1.3).toLocaleString('id-ID')}</span>
+                    Per Pcs: <span className="font-medium">{formatCurrency(Math.round(enhancedHppResult.hppPerPcs * 1.3))}</span>
                   </div>
                   <div className="text-orange-700">
-                    Per Porsi: <span className="font-medium">Rp {Math.round(enhancedHppResult.hppPerPorsi * 1.3).toLocaleString('id-ID')}</span>
+                    Per Porsi: <span className="font-medium">{formatCurrency(Math.round(enhancedHppResult.hppPerPorsi * 1.3))}</span>
                   </div>
                 </div>
                 <div className="bg-gray-50 p-2 rounded border">
                   <div className="font-medium text-gray-700">Margin 35%</div>
                   <div className="text-gray-600 mt-1">
-                    Per Pcs: <span className="font-medium">Rp {Math.round(enhancedHppResult.hppPerPcs * 1.35).toLocaleString('id-ID')}</span>
+                    Per Pcs: <span className="font-medium">{formatCurrency(Math.round(enhancedHppResult.hppPerPcs * 1.35))}</span>
                   </div>
                   <div className="text-gray-600">
-                    Per Porsi: <span className="font-medium">Rp {Math.round(enhancedHppResult.hppPerPorsi * 1.35).toLocaleString('id-ID')}</span>
+                    Per Porsi: <span className="font-medium">{formatCurrency(Math.round(enhancedHppResult.hppPerPorsi * 1.35))}</span>
                   </div>
                 </div>
               </div>
@@ -347,7 +349,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                     Harga Jual Per Porsi
                   </Label>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-500">Rp</span>
+                    <span className="text-sm text-gray-500">{formatCurrency(0).replace(/\d.*/, "")}</span>
                     <Input
                       type="number"
                       min="0"
@@ -393,14 +395,14 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                   <div className="text-xs text-gray-600 space-y-1">
                     <div className="flex justify-between">
                       <span>HPP per Porsi:</span>
-                      <span className="font-medium">Rp {enhancedHppResult.hppPerPorsi.toLocaleString('id-ID')}</span>
+                      <span className="font-medium">{formatCurrency(enhancedHppResult.hppPerPorsi)}</span>
                     </div>
                     {sellingPrices.hargaJualPorsi > 0 && (
                       <>
                         <div className="flex justify-between font-medium">
                           <span>Profit:</span>
                           <span className={sellingPrices.hargaJualPorsi > enhancedHppResult.hppPerPorsi ? 'text-green-600' : 'text-red-600'}>
-                            Rp {(sellingPrices.hargaJualPorsi - enhancedHppResult.hppPerPorsi).toLocaleString('id-ID')}
+                            {formatCurrency((sellingPrices.hargaJualPorsi - enhancedHppResult.hppPerPorsi))}
                           </span>
                         </div>
                         <div className="flex justify-between text-orange-600 font-medium">
@@ -420,7 +422,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                     Harga Jual Per Pcs
                   </Label>
                   <div className="flex items-center gap-2 mb-2">
-                    <span className="text-sm text-gray-500">Rp</span>
+                    <span className="text-sm text-gray-500">{formatCurrency(0).replace(/\d.*/, "")}</span>
                     <Input
                       type="number"
                       min="0"
@@ -466,14 +468,14 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                   <div className="text-xs text-gray-600 space-y-1">
                     <div className="flex justify-between">
                       <span>HPP per Pcs:</span>
-                      <span className="font-medium">Rp {enhancedHppResult.hppPerPcs.toLocaleString('id-ID')}</span>
+                      <span className="font-medium">{formatCurrency(enhancedHppResult.hppPerPcs)}</span>
                     </div>
                     {sellingPrices.hargaJualPerPcs > 0 && (
                       <>
                         <div className="flex justify-between font-medium">
                           <span>Profit:</span>
                           <span className={sellingPrices.hargaJualPerPcs > enhancedHppResult.hppPerPcs ? 'text-green-600' : 'text-red-600'}>
-                            Rp {(sellingPrices.hargaJualPerPcs - enhancedHppResult.hppPerPcs).toLocaleString('id-ID')}
+                            {formatCurrency((sellingPrices.hargaJualPerPcs - enhancedHppResult.hppPerPcs))}
                           </span>
                         </div>
                         <div className="flex justify-between text-orange-600 font-medium">
@@ -503,11 +505,11 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Revenue:</span>
-                            <span className="font-medium text-gray-900">Rp {(Number(sellingPrices.hargaJualPorsi) * Number(data.jumlahPorsi)).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">{formatCurrency((Number(sellingPrices.hargaJualPorsi) * Number(data.jumlahPorsi)))}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total HPP:</span>
-                            <span className="font-medium text-gray-900">Rp {(Number(enhancedHppResult?.hppPerPorsi || 0) * Number(data.jumlahPorsi)).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">{formatCurrency((Number(enhancedHppResult?.hppPerPorsi || 0) * Number(data.jumlahPorsi)))}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Profit:</span>
@@ -515,7 +517,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                               (Number(sellingPrices.hargaJualPorsi) - Number(enhancedHppResult?.hppPerPorsi || 0)) * Number(data.jumlahPorsi) > 0 
                                 ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              Rp {((Number(sellingPrices.hargaJualPorsi) - Number(enhancedHppResult?.hppPerPorsi || 0)) * Number(data.jumlahPorsi)).toLocaleString('id-ID')}
+                              {formatCurrency(((Number(sellingPrices.hargaJualPorsi) - Number(enhancedHppResult?.hppPerPorsi || 0)) * Number(data.jumlahPorsi)))}
                             </span>
                           </div>
                         </div>
@@ -527,11 +529,11 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                         <div className="space-y-1 text-xs">
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Revenue:</span>
-                            <span className="font-medium text-gray-900">Rp {(Number(sellingPrices.hargaJualPerPcs) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">{formatCurrency((Number(sellingPrices.hargaJualPerPcs) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)))}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total HPP:</span>
-                            <span className="font-medium text-gray-900">Rp {(Number(enhancedHppResult?.hppPerPcs || 0) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}</span>
+                            <span className="font-medium text-gray-900">{formatCurrency((Number(enhancedHppResult?.hppPerPcs || 0) * Number(data.jumlahPorsi) * Number(data.jumlahPcsPerPorsi || 1)))}</span>
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Total Profit:</span>
@@ -539,7 +541,7 @@ const CostCalculationStep: React.FC<CostCalculationStepProps> = ({
                               (Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi || 1) * Number(data.jumlahPcsPerPorsi || 1) > 0 
                                 ? 'text-green-600' : 'text-red-600'
                             }`}>
-                              Rp {((Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi || 1) * Number(data.jumlahPcsPerPorsi || 1)).toLocaleString('id-ID')}
+                              {formatCurrency(((Number(sellingPrices.hargaJualPerPcs) - Number(enhancedHppResult?.hppPerPcs || 0)) * Number(data.jumlahPorsi || 1) * Number(data.jumlahPcsPerPorsi || 1)))}
                             </span>
                           </div>
                         </div>

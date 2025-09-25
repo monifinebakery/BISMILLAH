@@ -1,17 +1,39 @@
-// 🛠️ utils/promoUtils.js - Promo calculation utilities (JavaScript version)
+// 🛠️ utils/promoUtils.ts - Promo calculation utilities (TypeScript version)
+import { formatCurrency } from '@/lib/shared/formatters';
+
+interface CalculatePromoParams {
+  promoType: string;
+  discountValue?: number;
+  bogoBuy?: number;
+  bogoGet?: number;
+  originalPrice: number;
+  originalHpp: number;
+}
+
+interface PromoResult {
+  price: number;
+  marginRp: number;
+  marginPercent: number;
+  details: any;
+  isNegativeMargin: boolean;
+}
+
+interface PromoTypeInfo {
+  label: string;
+  icon: string;
+  color: string;
+  bgColor: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+}
 
 /**
  * 📊 Calculate promo result based on type and parameters
- * @param {Object} params - Calculation parameters
- * @param {string} params.promoType - Type of promo
- * @param {number} params.discountValue - Discount value
- * @param {number} params.bogoBuy - BOGO buy quantity
- * @param {number} params.bogoGet - BOGO get quantity
- * @param {number} params.originalPrice - Original price
- * @param {number} params.originalHpp - Original HPP
- * @returns {Object|null} Calculation result
  */
-export const calculatePromoResult = (params) => {
+export const calculatePromoResult = (params: CalculatePromoParams): PromoResult | null => {
   const { promoType, discountValue, bogoBuy, bogoGet, originalPrice, originalHpp } = params;
   
   if (originalPrice <= 0) return null;
@@ -62,12 +84,8 @@ export const calculatePromoResult = (params) => {
 
 /**
  * 📄 Calculate pagination data
- * @param {Array} items - Array of items to paginate
- * @param {number} currentPage - Current page number
- * @param {number} itemsPerPage - Items per page
- * @returns {Object} Pagination result
  */
-export const calculatePagination = (items, currentPage, itemsPerPage) => {
+export const calculatePagination = (items: any[], currentPage: number, itemsPerPage: number) => {
   const safeItems = Array.isArray(items) ? items : [];
   const totalPages = Math.ceil(safeItems.length / itemsPerPage);
   const start = Math.max(0, (currentPage - 1) * itemsPerPage);
@@ -84,10 +102,8 @@ export const calculatePagination = (items, currentPage, itemsPerPage) => {
 
 /**
  * 🎨 Get promo type display info
- * @param {string} promoType - Type of promo
- * @returns {Object} Display information
  */
-export const getPromoTypeInfo = (promoType) => {
+export const getPromoTypeInfo = (promoType: string, currencySymbol?: string): PromoTypeInfo => {
   const promoTypes = {
     'discount_percent': {
       label: 'Diskon Persentase (%)',
@@ -96,7 +112,7 @@ export const getPromoTypeInfo = (promoType) => {
       bgColor: 'bg-orange-100'
     },
     'discount_rp': {
-      label: 'Diskon Nominal (Rp)',
+      label: `Diskon Nominal (${currencySymbol || 'Rp'})`,
       icon: 'TrendingDown',
       color: 'text-red-500',
       bgColor: 'bg-red-100'
@@ -114,12 +130,8 @@ export const getPromoTypeInfo = (promoType) => {
 
 /**
  * ✅ Validate promo form data
- * @param {string} promoName - Name of the promo
- * @param {Object} selectedRecipe - Selected recipe object
- * @param {Object|null} promoResult - Calculation result
- * @returns {Object} Validation result with isValid and errors
  */
-export const validatePromoForm = (promoName, selectedRecipe, promoResult) => {
+export const validatePromoForm = (promoName: string, selectedRecipe: any, promoResult: PromoResult | null): ValidationResult => {
   const errors = [];
 
   if (!promoName || !promoName.trim()) {
@@ -146,17 +158,14 @@ export const validatePromoForm = (promoName, selectedRecipe, promoResult) => {
 
 /**
  * 📊 Format promo details for display
- * @param {string} promoType - Type of promo
- * @param {Object} details - Promo details
- * @returns {string} Formatted string
  */
-export const formatPromoDetails = (promoType, details) => {
+export const formatPromoDetails = (promoType: string, details: any): string => {
   try {
     switch (promoType) {
       case 'discount_percent':
         return `${details.value}% diskon`;
       case 'discount_rp':
-        return `Rp ${details.value.toLocaleString('id-ID')} potongan`;
+        return `${formatCurrency(details.value)} potongan`;
       case 'bogo':
         return `Beli ${details.buy} Gratis ${details.get}`;
       default:

@@ -553,23 +553,25 @@ export const duplicateRecipe = (recipe: Recipe, newName: string): NewRecipe => {
  */
 export const exportRecipesToCSV = (
   recipes: Array<any>,
-  suppliers?: Array<{ id: string; nama: string }>
+  suppliers?: Array<{ id: string; nama: string }>,
+  currencySymbol?: string
 ): string => {
+  const currency = currencySymbol || 'Rp';
   const headers = [
     'Nama Resep',
     'Jumlah Porsi',
     'Kategori',
     'Deskripsi',
     'Bahan Resep',
-    'Biaya Tenaga Kerja (Rp)',
-    'Biaya Overhead (Rp)',
+    `Biaya Tenaga Kerja (${currency})`,
+    `Biaya Overhead (${currency})`,
     'Margin (%)',
-    'Total HPP (Rp)',
-    'HPP per Porsi (Rp)',
-    'Harga Jual per Porsi (Rp)',
+    `Total HPP (${currency})`,
+    `HPP per Porsi (${currency})`,
+    `Harga Jual per Porsi (${currency})`,
     'Jumlah Pcs per Porsi',
-    'HPP per Pcs (Rp)',
-    'Harga Jual per Pcs (Rp)'
+    `HPP per Pcs (${currency})`,
+    `Harga Jual per Pcs (${currency})`
   ];
 
   const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;

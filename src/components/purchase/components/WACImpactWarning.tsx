@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { PurchaseItem } from '../types/purchase.types';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 
 interface WACImpactData {
   materialName: string;
@@ -36,7 +37,7 @@ interface WACImpactWarningProps {
 }
 
 const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
-  const { formatCurrency } = useSafeCurrency();  items,
+  items,
   onCalculateImpact,
   className = ''
 }) => {
@@ -44,6 +45,11 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
   const [isCalculating, setIsCalculating] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
   const [hasSignificantImpact, setHasSignificantImpact] = useState(false);
+
+  const { formatCurrency } = useSafeCurrency();
+  // Thresholds used for determining impact severity (values in base currency units)
+  const IMPACT_THRESHOLD_MEDIUM = 50000;
+  const IMPACT_THRESHOLD_HIGH = 100000;
 
   // Calculate impact when items change
   useEffect(() => {
@@ -53,18 +59,18 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
       return;
     }
 
-    const calculateImpact = async () => {
-  const { formatCurrency } = useSafeCurrency();      if (!onCalculateImpact) return;
+const calculateImpact = async () => {
+      if (!onCalculateImpact) return;
       
       setIsCalculating(true);
       try {
         const data = await onCalculateImpact(items);
         setImpactData(data);
         
-        // Check if any material has significant WAC increase (>10%)
+        // Check if any material has significant WAC increase (>10%) or large absolute profit impact
         const hasSignificant = data.some(item => 
           item.wacIncreasePercentage > 10 || 
-          Math.abs(item.estimatedProfitImpact) > 50000 // Rp 50,000
+          Math.abs(item.estimatedProfitImpact) > IMPACT_THRESHOLD_MEDIUM
         );
         setHasSignificantImpact(hasSignificant);
       } catch (error) {
@@ -90,16 +96,16 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
     impactData[0] || {} as WACImpactData
   );
 
-  const getImpactSeverity = () => {
-  const { formatCurrency } = useSafeCurrency();    if (Math.abs(totalProfitImpact) > 100000) return 'high'; // > Rp 100,000
-    if (Math.abs(totalProfitImpact) > 50000) return 'medium'; // > Rp 50,000
+const getImpactSeverity = () => {
+    if (Math.abs(totalProfitImpact) > IMPACT_THRESHOLD_HIGH) return 'high';
+    if (Math.abs(totalProfitImpact) > IMPACT_THRESHOLD_MEDIUM) return 'medium';
     return 'low';
   };
 
   const severity = getImpactSeverity();
 
-  const getAlertStyle = () => {
-  const { formatCurrency } = useSafeCurrency();    switch (severity) {
+const getAlertStyle = () => {
+    switch (severity) {
       case 'high':
         return 'border-red-200 bg-red-50';
       case 'medium':
@@ -109,8 +115,8 @@ const WACImpactWarning: React.FC<WACImpactWarningProps> = ({
     }
   };
 
-  const getIconColor = () => {
-  const { formatCurrency } = useSafeCurrency();    switch (severity) {
+const getIconColor = () => {
+    switch (severity) {
       case 'high':
         return 'text-red-500';
       case 'medium':

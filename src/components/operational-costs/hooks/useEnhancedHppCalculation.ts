@@ -5,6 +5,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { formatCurrency } from '@/lib/shared/formatters';
 import type { 
   EnhancedHPPCalculationResult,
   BahanResepWithWAC,
@@ -192,7 +193,7 @@ export const useEnhancedHppCalculation = ({
         : 'overhead manual';
         
       toast.success('Kalkulasi HPP berhasil!', {
-        description: `Menggunakan ${overheadSource} - HPP: Rp ${calculationResult.hppPerPcs.toLocaleString()}/pcs`
+        description: `Menggunakan ${overheadSource} - HPP: ${formatCurrency(calculationResult.hppPerPcs)}/pcs`
       });
       
       return calculationResult;
@@ -240,7 +241,7 @@ export const useEnhancedHppCalculation = ({
       // Show comparison toast if significant difference
       if (Math.abs(comparison.hppDifference) > 500) {
         toast.info('Perbedaan HPP terdeteksi', {
-          description: `${comparison.recommendation} (selisih: Rp ${Math.abs(comparison.hppDifference).toLocaleString()})`
+          description: `${comparison.recommendation} (selisih: ${formatCurrency(Math.abs(comparison.hppDifference))})`
         });
       }
       

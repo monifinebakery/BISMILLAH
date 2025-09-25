@@ -4,16 +4,15 @@
  * @param value Angka yang akan diformat.
  * @returns String dalam format mata uang default (IDR).
  */
-export const formatCurrency = (value: number | null | undefined): string => {
+export const formatCurrency = (value: number | null | undefined, currencySymbol: string = 'Rp'): string => {
   if (typeof value !== 'number' || isNaN(value)) {
-    return 'Rp 0'; // Default to IDR for backward compatibility
+    return `${currencySymbol} 0`; // Default to selected currency for backward compatibility
   }
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
+  const formatter = new Intl.NumberFormat('id-ID', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
+  });
+  return `${currencySymbol} ${formatter.format(value)}`;
 };
 
 /**
@@ -23,9 +22,9 @@ export const formatCurrency = (value: number | null | undefined): string => {
  * @param digits Jumlah desimal untuk angka ringkas. Defaultnya 1.
  * @returns String yang diformat (misal: "Rp 100 rb", "Rp 1,2 jt").
  */
-export const formatLargeNumber = (num: number | null | undefined, digits: number = 1): string => {
+export const formatLargeNumber = (num: number | null | undefined, digits: number = 1, currencySymbol: string = 'Rp'): string => {
   if (typeof num !== 'number' || isNaN(num)) {
-    return 'Rp 0'; // Menangani input yang tidak valid
+    return `${currencySymbol} 0`; // Menangani input yang tidak valid
   }
 
   const si = [
@@ -45,12 +44,12 @@ export const formatLargeNumber = (num: number | null | undefined, digits: number
 
   // Untuk angka di bawah 1000, gunakan format biasa
   if (i === 0) {
-      return formatCurrency(num);
+      return formatCurrency(num, currencySymbol);
   }
 
   const abbreviatedNum = (num / si[i].value).toFixed(digits).replace(rx, "$1");
 
-  return `Rp ${abbreviatedNum}${si[i].symbol}`;
+  return `${currencySymbol} ${abbreviatedNum}${si[i].symbol}`;
 };
 
 /**

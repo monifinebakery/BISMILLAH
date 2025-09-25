@@ -313,7 +313,7 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
             {/* Overhead Input */}
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">
-                Rp
+                {formatCurrency(0).replace(/\d.*/, "")}
               </span>
               <Input
                 type="number"
@@ -387,10 +387,10 @@ export const CostInputsCard: React.FC<CostInputsCardProps> = ({
                     <div className="border-t border-gray-700 pt-2">
                       <p className="font-medium text-blue-300">📊 Contoh Perhitungan:</p>
                       <p className="text-xs bg-gray-800 p-2 rounded mt-1">
-                        HPP: Rp 10.000<br/>
+                        HPP: {formatCurrency(10000)}<br/>
                         Margin: 30%<br/>
-                        Keuntungan: Rp 3.000<br/>
-                        <span className="text-green-300">Harga Jual: Rp 13.000</span>
+                        Keuntungan: {formatCurrency(3000)}<br/>
+                        <span className="text-green-300">Harga Jual: {formatCurrency(13000)}</span>
                       </p>
                     </div>
                     

@@ -1,8 +1,16 @@
-import React from 'react';
-import { getAllTutorials } from '../../data/tutorials/tutorialData';
+import React, { useEffect } from 'react';
+import { getAllTutorials, setCurrencySymbol } from '../../data/tutorials/tutorialData';
 import { ChevronRight, Clock, BookOpen, Play } from 'lucide-react';
+import { useSafeCurrency } from '../../hooks/useSafeCurrency';
 
 const TutorialMenu = ({ onSelectTutorial }) => {
+  const { currencySymbol } = useSafeCurrency();
+  
+  // Set currency symbol for tutorial data
+  useEffect(() => {
+    setCurrencySymbol(currencySymbol);
+  }, [currencySymbol]);
+  
   const tutorials = getAllTutorials();
 
 

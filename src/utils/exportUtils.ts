@@ -121,7 +121,7 @@ export const exportAllDataToExcel = async (
         name: "Gudang Bahan Baku",
         data: (allData.bahanBaku || []).map((item: any) => ({
           ...item,
-          hargaSatuan: item.hargaSatuan ? `Rp${item.hargaSatuan.toLocaleString()}` : 'Rp0',
+          hargaSatuan: item.hargaSatuan ? formatCurrency(item.hargaSatuan) : formatCurrency(0),
           minimum: item.minimum || 0,
           stok: item.stok || 0
         })),
@@ -255,7 +255,7 @@ export const exportAllDataToExcel = async (
           let ingredientsText = '';
           if (hpp.ingredients && Array.isArray(hpp.ingredients)) {
             ingredientsText = hpp.ingredients.map((i: any) => 
-              `${i.name} (${i.quantity} ${i.unit}) - Rp${i.price?.toLocaleString() || '0'}`
+              `${i.name} (${i.quantity} ${i.unit}) - ${formatCurrency(i.price || 0)}`
             ).join(', ');
           }
           
@@ -324,7 +324,7 @@ export const exportAllDataToExcel = async (
             type: "Biaya",
             namaBiaya: c.nama_biaya || c.namaBiaya,
             jumlahPerBulan: c.jumlah_per_bulan || c.jumlahPerBulan ? 
-              `Rp${(c.jumlah_per_bulan || c.jumlahPerBulan).toLocaleString()}` : 'Rp0',
+              formatCurrency(c.jumlah_per_bulan || c.jumlahPerBulan) : formatCurrency(0),
             jenis: c.jenis,
             status: c.status,
             metode: "",
@@ -363,7 +363,7 @@ export const exportAllDataToExcel = async (
         name: "Bisnis",
         data: (allData.activities || []).map((activity: any) => ({
           ...activity,
-          value: activity.value ? `Rp${activity.value.toLocaleString()}` : 'Rp0'
+          value: formatCurrency(activity.value || 0)
         })),
         headers: {
           title: "Judul",
@@ -379,7 +379,7 @@ export const exportAllDataToExcel = async (
         name: "Laporan Keuangan",
         data: (allData.financialTransactions || []).map((transaction: any) => ({
           ...transaction,
-          amount: transaction.amount ? `Rp${transaction.amount.toLocaleString()}` : 'Rp0'
+          amount: formatCurrency(transaction.amount || 0)
         })),
         headers: {
           date: "Tanggal",
@@ -409,11 +409,11 @@ export const exportAllDataToExcel = async (
             
             return {
               period: p.period,
-              total_revenue: revenue ? `Rp${revenue.toLocaleString()}` : 'Rp0',
-              total_cogs: cogs ? `Rp${cogs.toLocaleString()}` : 'Rp0',
-              total_opex: opex ? `Rp${opex.toLocaleString()}` : 'Rp0',
-              gross_profit: margins.grossProfit ? `Rp${Math.round(margins.grossProfit).toLocaleString()}` : 'Rp0',
-              net_profit: margins.netProfit ? `Rp${Math.round(margins.netProfit).toLocaleString()}` : 'Rp0',
+              total_revenue: formatCurrency(revenue || 0),
+              total_cogs: formatCurrency(cogs || 0),
+              total_opex: formatCurrency(opex || 0),
+              gross_profit: formatCurrency(Math.round(margins.grossProfit || 0)),
+              net_profit: formatCurrency(Math.round(margins.netProfit || 0)),
               gross_margin: `${(margins.grossMargin * 100).toFixed(2)}%`,
               net_margin: `${(margins.netMargin * 100).toFixed(2)}%`,
               calculation_date: p.calculation_date || p.calculated_at
@@ -436,8 +436,8 @@ export const exportAllDataToExcel = async (
         name: "Manajemen Aset",
         data: (allData.assets || []).map((asset: any) => ({
           ...asset,
-          nilaiAwal: asset.nilaiAwal ? `Rp${asset.nilaiAwal.toLocaleString()}` : 'Rp0',
-          nilaiSaatIni: asset.nilaiSaatIni ? `Rp${asset.nilaiSaatIni.toLocaleString()}` : 'Rp0'
+          nilaiAwal: formatCurrency(asset.nilaiAwal || 0),
+          nilaiSaatIni: formatCurrency(asset.nilaiSaatIni || 0)
         })),
         headers: {
           nama: "Nama Aset",

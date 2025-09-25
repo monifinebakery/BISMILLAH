@@ -3,6 +3,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { useSafeCurrency } from '@/hooks/useSafeCurrency';
 import { 
   ChefHat, 
   TrendingUp, 
@@ -20,6 +21,7 @@ interface RecipeAnalyticsProps {
 }
 
 const RecipeAnalytics: React.FC<RecipeAnalyticsProps> = ({ orders, className }) => {
+  const { formatCurrency } = useSafeCurrency();
   // Calculate overall recipe usage statistics
   const overallStats = React.useMemo(() => {
     const allItems = orders.flatMap(order => order.items);
@@ -132,7 +134,7 @@ const RecipeAnalytics: React.FC<RecipeAnalyticsProps> = ({ orders, className }) 
                 <p className="text-sm font-medium text-gray-600">Revenue dari Resep</p>
                 <div className="flex items-center">
                   <p className="text-2xl font-bold text-gray-900">
-                    Rp {(overallStats.recipeRevenue / 1000).toFixed(0)}K
+                    {formatCurrency(overallStats.recipeRevenue / 1000)}K
                   </p>
                   <Badge variant="secondary" className="ml-2">
                     {overallStats.revenueFromRecipes.toFixed(1)}%
@@ -225,7 +227,7 @@ const RecipeAnalytics: React.FC<RecipeAnalyticsProps> = ({ orders, className }) 
                   </div>
                   <div className="text-right">
                     <p className="font-semibold text-gray-900">
-                      Rp {recipe.totalRevenue.toLocaleString('id-ID')}
+                      {formatCurrency(recipe.totalRevenue)}
                     </p>
                     <p className="text-xs text-gray-500">total revenue</p>
                   </div>

@@ -369,9 +369,9 @@ export const formatOrderStatus = (status: string): string => {
 
 // ==================== ADDITIONAL UTILITIES ====================
 
-export const formatLargeNumber = (num: number | null | undefined, digits: number = 1): string => {
+export const formatLargeNumber = (num: number | null | undefined, digits: number = 1, currencySymbol: string = 'Rp'): string => {
   if (typeof num !== 'number' || isNaN(num)) {
-    return 'Rp 0'; // Legacy IDR format - should use useSafeCurrency in components
+    return `${currencySymbol} 0`; // Legacy format - should use useSafeCurrency in components
   }
   const si = [
     { value: 1, symbol: "" },
@@ -388,10 +388,10 @@ export const formatLargeNumber = (num: number | null | undefined, digits: number
     }
   }
   if (i === 0) {
-      return formatCurrency(num);
+      return formatCurrency(num); // Uses legacy IDR format
   }
   const abbreviatedNum = (num / si[i].value).toFixed(digits).replace(rx, "$1");
-  return `Rp ${abbreviatedNum}${si[i].symbol}`; // Legacy IDR format - should use useSafeCurrency in components
+  return `${currencySymbol} ${abbreviatedNum}${si[i].symbol}`; // Legacy format - should use useSafeCurrency in components
 };
 
 export const sanitizeInput = (input: string): string => {

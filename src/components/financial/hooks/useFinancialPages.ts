@@ -71,7 +71,7 @@ export const useFinancialPage = (options: UseFinancialPageOptions = {}) => {
     queryKey: ['financial-categories', user?.id],
     queryFn: () => user?.id ? getFinancialCategories(user.id) : Promise.resolve(DEFAULT_FINANCIAL_CATEGORIES),
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
     gcTime: 10 * 60 * 1000, // 10 minutes
   });
 

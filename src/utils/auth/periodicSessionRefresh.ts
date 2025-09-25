@@ -66,9 +66,14 @@ class PeriodicSessionRefresh {
 
     this.refreshInterval = setInterval(async () => {
       if (!this.isUserInactive()) {
-        // Hanya refresh jika user aktif dalam 30 menit terakhir
-        logger.debug('🔄 [PERIODIC REFRESH] Attempting silent refresh due to user activity');
-        await silentRefreshSession();
+        // Check if there's a session before attempting refresh
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          logger.debug('🔄 [PERIODIC REFRESH] Attempting silent refresh due to user activity');
+          await silentRefreshSession();
+        } else {
+          logger.debug('🔄 [PERIODIC REFRESH] Skipping refresh - no session found');
+        }
       } else {
         logger.debug('🔄 [PERIODIC REFRESH] Skipping refresh - user inactive');
       }

@@ -8,8 +8,7 @@ import {
 import { applyPurchaseToWarehouse, reversePurchaseFromWarehouse } from '@/components/warehouse/services/warehouseSyncService';
 import { executeWithAuthValidation } from '@/utils/auth/refreshSession';
 
-// ✅ FINANCIAL SYNC: Import purchase financial sync
-import { syncPurchaseToFinancialTransaction } from '@/utils/orderFinancialSync';
+// ✅ FINANCIAL SYNC: Import purchase financial sync dynamically
 
 /**
  * Status Management Service for Purchases
@@ -121,6 +120,7 @@ async function atomicPurchaseCompletion(
     // Step 4: Apply financial sync for expense tracking
     let financialSyncApplied = false;
     try {
+      const { syncPurchaseToFinancialTransaction } = await import('@/utils/orderFinancialSync');
       const financialSuccess = await syncPurchaseToFinancialTransaction(purchase, userId);
       if (financialSuccess) {
         financialSyncApplied = true;

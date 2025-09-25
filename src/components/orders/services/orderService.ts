@@ -8,7 +8,6 @@ import type { Order, OrderItem, CreateOrderData, UpdateOrderData, OrderStatus, N
 import { generateOrderNumber } from '@/utils/formatUtils';
 import { to_snake_order, from_snake_order } from '../naming';
 import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
-import { networkErrorHandler } from '@/utils/networkErrorHandling';
 import { offlineQueue } from '@/utils/offlineQueue';
 
 // ✅ FIXED: Valid status values matching application values
@@ -88,6 +87,7 @@ export async function bulkDeleteOrders(userId: string, ids: string[]): Promise<v
     toast.success(`Berhasil menghapus ${ids.length} pesanan`);
   } catch (error) {
     // Handle network errors with user-friendly messages and retry logic
+    const { networkErrorHandler } = await import('@/utils/networkErrorHandling');
     networkErrorHandler.handleNetworkError(
       error,
       `Hapus ${ids.length} pesanan`,

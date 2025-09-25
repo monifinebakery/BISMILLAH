@@ -1,6 +1,7 @@
 // src/utils/offlineQueue.ts
 import { networkErrorHandler } from './networkErrorHandling';
 import { safeStorageGetJSON, safeStorageSetJSON } from '@/utils/auth/safeStorage';
+import { bulkDeleteOrders, bulkUpdateStatus, addOrder, updateOrder, deleteOrder } from '@/components/orders/services/orderService';
 
 export interface QueuedOperation {
   id: string;
@@ -169,27 +170,22 @@ class OfflineQueue {
   private async executeOperation(operation: QueuedOperation): Promise<void> {
     switch (operation.type) {
       case 'bulk_delete_orders':
-        const { bulkDeleteOrders } = await import('@/components/orders/services/orderService');
         await bulkDeleteOrders(operation.userId, operation.data.ids);
         break;
 
       case 'bulk_update_status':
-        const { bulkUpdateStatus } = await import('@/components/orders/services/orderService');
         await bulkUpdateStatus(operation.userId, operation.data.ids, operation.data.newStatus);
         break;
 
       case 'create_order':
-        const { addOrder } = await import('@/components/orders/services/orderService');
         await addOrder(operation.userId, operation.data.order);
         break;
 
       case 'update_order':
-        const { updateOrder } = await import('@/components/orders/services/orderService');
         await updateOrder(operation.userId, operation.data.id, operation.data.updates);
         break;
 
       case 'delete_order':
-        const { deleteOrder } = await import('@/components/orders/services/orderService');
         await deleteOrder(operation.userId, operation.data.id);
         break;
 

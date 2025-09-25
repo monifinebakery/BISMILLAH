@@ -151,7 +151,7 @@ export const preloadCriticalRoutes = () => {
  */
 export const initializeRoutePreloaders = () => {
   // Core routes
-  registerRoutePreloader('dashboard', () => import('../routes/dashboard'));
+  registerRoutePreloader('dashboard', () => Promise.resolve(dashboardModule));
   registerRoutePreloader('orders', () => import('../components/orders/components/OrdersPage'));
   registerRoutePreloader('warehouse', () => import('../components/warehouse/WarehousePageRefactored'));
   registerRoutePreloader('purchase', () => import('../components/purchase/PurchasePage'));
@@ -202,3 +202,4 @@ export const initializeRoutePreloaders = () => {
 
 // React import for hooks
 import React from 'react';
+import dashboardModule from '../routes/dashboard';

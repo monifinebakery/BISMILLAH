@@ -1,32 +1,96 @@
+import { supabase } from '@/integrations/supabase/client';
 import { OpenRouterService } from './openrouter/OpenRouterService';
+
+// System prompt for accurate chatbot responses
+const CHATBOT_SYSTEM_PROMPT = `You are a helpful bakery management assistant for HPP by Monifine. You ONLY answer questions about bakery data and operations. You MUST be accurate and never make up information.
+
+What you CAN do:
+- Answer questions about warehouse inventory (bahan baku)
+- Show order information and search orders
+- Display sales reports and financial summaries
+- Explain business rules and guidelines
+- Provide business strategy advice based on your data
+- Analyze performance and suggest improvements
+- Answer questions about bakery operations and management
+
+What you CANNOT do:
+- Create, update, or delete any data
+- Perform any actions (like creating orders, updating stock)
+- Give advice outside of bakery management
+- Answer questions about topics other than the bakery system
+- Make up or invent data that does not exist
+
+How to respond:
+- Always use friendly, conversational Indonesian language
+- Address the user as "Kak [owner name]" in a friendly, conversational way
+- Use Indonesian language naturally, like chatting with a good friend
+- Be enthusiastic, supportive, and engaging with appropriate emojis
+- Keep responses concise but warm and encouraging
+- Show genuine interest in their bakery business success
+- End responses with questions to continue conversation when appropriate
+- Celebrate successes and empathize with challenges
+- Use casual Indonesian (ngobrol santai) - avoid formal language
+- Make responses feel personal and caring, not robotic
+- Adapt your response style based on the data context provided
+- If no data is available, guide the user on how to add data or use features
+- Always check if the requested data exists before responding
+- If data does not exist, say so clearly (e.g., "Belum ada data bahan baku, Kak")
+- Use the exact data from the database queries
+- Format numbers as Indonesian Rupiah (Rp XXX,XXX)
+- Be polite and helpful in Indonesian language
+- Keep responses concise and accurate
+
+Business Context:
+- This is HPP by Monifine - Progressive Web App for bakery HPP calculations
+- Focus on accurate cost calculations for Indonesian bakery businesses
+- Support UMKM (small businesses) with professional bakery management
+- Provide data-driven insights and strategic recommendations
+- Help optimize operations, reduce costs, and increase profitability
+
+Remember: Accuracy is more important than being comprehensive. If you are not sure about something, it is better to admit it than guess.
+
+IMPORTANT: When responding, use the provided data context to give accurate information. If the data shows no records, clearly state that. Always maintain the friendly, conversational tone.`;
 
 export class ChatbotService {
   private openRouter: OpenRouterService;
-  private history: Array<{role: 'user' | 'assistant', content: string}> = [];
-  private businessName: string = 'Bisnis Anda'; // Default fallback
-  
-  // Chat persistence key
-  private readonly CHAT_HISTORY_KEY = 'chatbot_history';
-  private readonly BUSINESS_NAME_KEY = 'chatbot_business_name';
-  
-  // Analytics tracking
+  private history: Array<{role: 'user' | 'assistant', content: string, timestamp: number, importance: number}> = [];
+  private businessName: string = 'Bisnis Anda';
+  private ownerName: string = 'Kak';
+  private readonly userId?: string;
+  private readonly historyStorageKey: string;
+  private readonly businessNameStorageKey: string;
+  private readonly ownerNameStorageKey: string;
+
   private analytics = {
     totalConversations: 0,
     popularCommands: new Map<string, number>(),
     responseTimes: [],
-    emergencyCount: 0
   };
 
-  constructor() {
+  constructor(userId?: string) {
+    this.userId = userId;
+    const storageSuffix = userId ? '_' + userId : '_anonymous';
+    this.historyStorageKey = 'chatbot_history' + storageSuffix;
+    this.businessNameStorageKey = 'chatbot_business_name' + storageSuffix;
+    this.ownerNameStorageKey = 'chatbot_owner_name' + storageSuffix;
     this.openRouter = new OpenRouterService();
     this.loadPersistedData();
+  }
+
+  // Helper method to create message objects with metadata
+  private createMessage(role: 'user' | 'assistant', content: string, importance: number = 1) {
+    return {
+      role,
+      content,
+      timestamp: Date.now(),
+      importance
+    };
   }
 
   // Load persisted chat data
   private loadPersistedData() {
     try {
-      // Load chat history
-      const savedHistory = localStorage.getItem(this.CHAT_HISTORY_KEY);
+      const savedHistory = localStorage.getItem(this.historyStorageKey);
       if (savedHistory) {
         const parsedHistory = JSON.parse(savedHistory);
         if (Array.isArray(parsedHistory)) {
@@ -34,281 +98,303 @@ export class ChatbotService {
         }
       }
 
-      // Load business name
-      const savedBusinessName = localStorage.getItem(this.BUSINESS_NAME_KEY);
+      const savedBusinessName = localStorage.getItem(this.businessNameStorageKey);
       if (savedBusinessName) {
         this.businessName = savedBusinessName;
       }
 
-      console.log('🤖 Loaded persisted chat data:', { 
-        messages: this.history.length, 
-        businessName: this.businessName 
-      });
+      const savedOwnerName = localStorage.getItem(this.ownerNameStorageKey);
+      if (savedOwnerName) {
+        this.ownerName = savedOwnerName;
+      }
     } catch (error) {
-      console.warn('🤖 Failed to load persisted chat data:', error);
-      // Reset to defaults if loading fails
+      console.warn('Failed to load persisted chat data:', error);
       this.history = [];
       this.businessName = 'Bisnis Anda';
+      this.ownerName = 'Kak';
     }
   }
 
   // Save chat data to localStorage
   private savePersistedData() {
     try {
-      // Save chat history (keep only last 50 messages to avoid storage bloat)
       const recentHistory = this.history.slice(-50);
-      localStorage.setItem(this.CHAT_HISTORY_KEY, JSON.stringify(recentHistory));
-      
-      // Save business name
-      localStorage.setItem(this.BUSINESS_NAME_KEY, this.businessName);
-      
-      console.log('🤖 Saved chat data:', { messages: recentHistory.length });
+      localStorage.setItem(this.historyStorageKey, JSON.stringify(recentHistory));
+      localStorage.setItem(this.businessNameStorageKey, this.businessName);
+      localStorage.setItem(this.ownerNameStorageKey, this.ownerName);
     } catch (error) {
-      console.warn('🤖 Failed to save chat data:', error);
+      console.warn('Failed to save chat data:', error);
     }
   }
 
   // Set business name for personalization
   setBusinessName(name: string) {
     this.businessName = name || 'Bisnis Anda';
-    console.log('🤖 Chatbot business name set to:', this.businessName);
-    this.savePersistedData(); // Save after update
+    this.savePersistedData();
+  }
+
+  // Set owner name for personalization
+  setOwnerName(name: string) {
+    this.ownerName = name || 'Kak';
+    this.savePersistedData();
   }
 
   async processMessage(message: string, userId?: string): Promise<any> {
     try {
-      // Validate input
       if (!message.trim()) {
         return { text: 'Pesan tidak boleh kosong.', type: 'error' };
       }
 
-      // Pre-processing
-      const normalizedMessage = this.normalizeMessage(message);
-      const intent = this.detectIntent(normalizedMessage);
+      // Detect intent using keywords
+      const intent = this.detectIntentSimple(message);
 
-      // Check if this intent requires database query
-      const readIntents = ['orderSearch', 'inventory', 'report', 'cost'];
-      const actionIntents = ['purchase', 'orderCreate', 'orderDelete', 'inventoryUpdate', 'recipeCreate', 'promoCreate'];
-      
-      if (readIntents.includes(intent) && userId) {
-        // Handle read operations
-        console.log('🤖 Attempting database read for intent:', intent, 'userId:', userId);
-        try {
-          const dbResponse = await this.queryDatabase(intent, message, userId);
-          console.log('🤖 Database response:', dbResponse);
-          if (dbResponse && dbResponse.type !== 'error') {
-            this.history.push({ role: 'user', content: message });
-            this.history.push({ role: 'assistant', content: dbResponse.text });
-            this.savePersistedData();
-            console.log('🤖 Returning database response');
-            return dbResponse;
-          } else {
-            console.log('🤖 Database returned error or no data, falling back to AI');
-          }
-        } catch (error) {
-          console.warn('Database query failed, falling back to AI:', error);
-        }
-      } else if (actionIntents.includes(intent) && userId) {
-        // Handle action operations
-        console.log('🤖 Attempting database action for intent:', intent, 'userId:', userId);
-        try {
-          const actionResponse = await this.performDatabaseAction(intent, message, userId);
-          console.log('🤖 Action response:', actionResponse);
-          if (actionResponse && actionResponse.type !== 'error') {
-            this.history.push({ role: 'user', content: message });
-            this.history.push({ role: 'assistant', content: actionResponse.text });
-            this.savePersistedData();
-            console.log('🤖 Action completed successfully');
-            return actionResponse;
-          } else {
-            console.log('🤖 Action failed or returned error');
-          }
-        } catch (error) {
-          console.warn('Database action failed:', error);
-          // Return specific error message
-          const errorMessage = error instanceof Error ? error.message : 'Terjadi kesalahan sistem';
-          const errorResponse = { 
-            text: `❌ Gagal melakukan aksi: ${errorMessage}`, 
-            type: 'error' 
-          };
-          this.history.push({ role: 'user', content: message });
-          this.history.push({ role: 'assistant', content: errorResponse.text });
-          this.savePersistedData();
-          return errorResponse;
-        }
-      }
-
-      // Track analytics
-      this.analytics.totalConversations++;
-      this.analytics.popularCommands.set(
-        intent,
-        (this.analytics.popularCommands.get(intent) || 0) + 1
-      );
-
-      // Emergency detection
-      if (this.containsEmergencyKeywords(normalizedMessage)) {
-        this.analytics.emergencyCount++;
-        return this.handleEmergency(message);
+      // Check authentication for database queries
+      const { data: sessionData } = await supabase.auth.getSession();
+      if (!sessionData?.session && ['inventory', 'orderSearch', 'report'].includes(intent)) {
+        return {
+          text: 'Halo Kak! Untuk lihat data asli, Kakak harus login dulu ya. Login dulu biar bisa akses semua fitur keren! 🔐',
+          type: 'error'
+        };
       }
 
       // Add to history
-      this.history.push({ role: 'user', content: message });
+      this.history.push(this.createMessage('user', message));
 
       const startTime = Date.now();
 
-      // Get response from Grok
-      const response = await this.openRouter.generateResponse(message, {
-        history: this.history.slice(-10), // Keep last 10 messages
-        intent: intent,
-        currentPage: this.detectCurrentPage(),
-        businessName: this.businessName // Pass business name for personalization
-      });
+      try {
+        // Get data context for AI
+        const dataContext = await this.getDataContext(intent, userId || '');
 
-      const responseTime = Date.now() - startTime;
-      this.analytics.responseTimes.push(responseTime);
+        // Generate AI response with context
+        const aiResponse = await this.openRouter.generateResponse(message, {
+          systemPrompt: CHATBOT_SYSTEM_PROMPT,
+          context: {
+            intent: intent,
+            ownerName: this.ownerName || 'Kak',
+            businessName: this.businessName,
+            data: dataContext,
+            conversationHistory: this.getRecentHistory()
+          }
+        });
 
-      // Add response to history
-      this.history.push({ role: 'assistant', content: response.text });
-      this.savePersistedData(); // Save after AI response
+        const responseTime = Date.now() - startTime;
+        this.analytics.responseTimes.push(responseTime);
 
-      return response;
+        // Add response to history
+        if (aiResponse && aiResponse.text) {
+          this.history.push(this.createMessage('assistant', aiResponse.text));
+          this.savePersistedData();
+        }
+
+        return {
+          text: aiResponse.text,
+          type: intent,
+          data: dataContext
+        };
+
+      } catch (error) {
+        console.error('Chatbot error:', error);
+        return {
+          text: 'Wah Kak, ada error nih. Coba lagi ya! Kalau masih error, bilang ke tim support ya! 😅',
+          type: 'error'
+        };
+      }
     } catch (error) {
-      console.error('Chatbot error:', error);
+      console.error('Process message error:', error);
       return {
-        text: 'Maaf, terjadi kesalahan. Silakan coba lagi.',
+        text: 'Wah Kak, ada error nih. Coba lagi ya! Kalau masih error, bilang ke tim support ya! 😅',
         type: 'error'
       };
     }
   }
 
-  private normalizeMessage(message: string): string {
-    return message
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s]/g, ' ') // Remove special chars
-      .replace(/\s+/g, ' '); // Normalize spaces
-  }
+  private detectIntentSimple(message: string): string {
+    const msg = message.toLowerCase();
 
-  private detectIntent(message: string): string {
-    const intents = {
-      greeting: ['halo', 'hai', 'hi', 'selamat', 'pagi', 'siang', 'sore', 'malam', 'hey'],
-      orderSearch: ['cari pesanan', 'lihat pesanan', 'find order', 'search order', 'cek pesanan'],
-      inventory: ['stok', 'inventory', 'stock', 'update stok', 'cek stok', 'inventory'],
-      purchase: ['tambah pembelian', 'beli bahan', 'purchase', 'add purchase', 'buat pembelian'],
-      orderCreate: ['tambah pesanan', 'buat pesanan', 'create order', 'add order'],
-      orderDelete: ['hapus pesanan', 'delete order', 'remove order', 'cancel order'],
-      inventoryUpdate: ['update stok', 'ubah stok', 'change stock', 'modify inventory'],
-      recipeCreate: ['tambah resep', 'buat resep', 'add recipe', 'create recipe'],
-      promoCreate: ['tambah promo', 'buat promo', 'add promo', 'create promo'],
-      report: ['laporan', 'report', 'sales', 'penjualan', 'keuangan', 'profit'],
-      emergency: ['darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown'],
-      cost: ['biaya', 'cost', 'operational', 'tambah biaya', 'add cost'],
-      help: ['help', 'bantuan', 'tolong', 'cara', 'how to']
-    };
+    if (msg.includes('cek stok') || msg.includes('inventory') || msg.includes('bahan baku') || msg.includes('warehouse')) {
+      return 'inventory';
+    }
 
-    for (const [intent, keywords] of Object.entries(intents)) {
-      if (keywords.some(keyword => message.includes(keyword))) {
-        return intent;
-      }
+    if (msg.includes('cari pesanan') || msg.includes('lihat pesanan') || msg.includes('order') || msg.includes('pesanan')) {
+      return 'orderSearch';
+    }
+
+    if (msg.includes('laporan') || msg.includes('report') || msg.includes('penjualan') || msg.includes('sales')) {
+      return 'report';
+    }
+
+    if (msg.includes('aturan') || msg.includes('rules') || msg.includes('panduan')) {
+      return 'rules';
+    }
+
+    if (msg.includes('strategi') || msg.includes('strategy') || msg.includes('bisnis') || msg.includes('optimasi') || msg.includes('analisis') || msg.includes('cara') || msg.includes('bagaimana')) {
+      return 'strategy';
     }
 
     return 'general';
   }
 
-  private detectCurrentPage(): string {
-    // This would be enhanced with actual routing context
-    // For now, return generic
-    return 'Dashboard';
+  // Get data context for AI responses
+  private async getDataContext(intent: string, userId: string): Promise<any> {
+    try {
+      switch (intent) {
+        case 'inventory':
+          return await this.getInventoryData(userId);
+        case 'orderSearch':
+          return await this.getOrderData(userId);
+        case 'report':
+          return await this.getReportData(userId);
+        case 'rules':
+          return { rules: this.getRulesData() };
+        default:
+          return {};
+      }
+    } catch (error) {
+      console.error('Error getting data context:', error);
+      return { error: 'Failed to load data' };
+    }
   }
 
-  private containsEmergencyKeywords(message: string): boolean {
-    const emergencyWords = [
-      'darurat', 'urgent', 'emergency', 'kebakaran', 'pencurian', 'kerusakan', 'breakdown',
-      'bahaya', 'accident', 'bantuan segera', 'tolong segera', 'critical'
-    ];
-
-    return emergencyWords.some(word => message.includes(word));
+  // Get recent conversation history for context
+  private getRecentHistory(): Array<{role: string, content: string}> {
+    return this.history.slice(-5).map(msg => ({
+      role: msg.role,
+      content: msg.content
+    }));
   }
 
-  private handleEmergency(message: string): any {
+  // Helper methods for data context
+  private async getInventoryData(userId: string) {
+    try {
+      const { data: materials, error } = await supabase
+        .from('bahan_baku')
+        .select('nama, stok, satuan, minimum, harga_satuan')
+        .eq('user_id', userId)
+        .limit(15);
+
+      if (error) return { error: error.message, items: [], totalItems: 0 };
+
+      const lowStock = materials?.filter((item: any) => item.stok <= (item.minimum || 0)) || [];
+
+      return {
+        totalItems: materials?.length || 0,
+        lowStockCount: lowStock.length,
+        items: materials || [],
+        hasData: (materials?.length || 0) > 0,
+        summary: `Total ${materials?.length || 0} bahan baku, ${lowStock.length} perlu restock`
+      };
+    } catch (error: any) {
+      return { error: error.message, items: [], totalItems: 0 };
+    }
+  }
+
+  private async getOrderData(userId: string) {
+    try {
+      const { data: orders, error } = await supabase
+        .from('orders')
+        .select('nomor_pesanan, nama_pelanggan, total_pesanan, status')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(10);
+
+      if (error) return { error: error.message, orders: [], totalOrders: 0 };
+
+      const totalRevenue = orders?.reduce((sum, order) => sum + (order.total_pesanan || 0), 0) || 0;
+
+      return {
+        totalOrders: orders?.length || 0,
+        totalRevenue: totalRevenue,
+        orders: orders || [],
+        hasData: (orders?.length || 0) > 0,
+        summary: `${orders?.length || 0} pesanan, Rp ${totalRevenue.toLocaleString('id-ID')} total`
+      };
+    } catch (error: any) {
+      return { error: error.message, orders: [], totalOrders: 0 };
+    }
+  }
+
+  private async getReportData(userId: string) {
+    try {
+      const currentMonth = new Date().toISOString().slice(0, 7);
+
+      const { data: sales, error: salesError } = await supabase
+        .from('orders')
+        .select('total_pesanan')
+        .eq('user_id', userId)
+        .eq('status', 'completed')
+        .gte('created_at', currentMonth + '-01T00:00:00')
+        .lt('created_at', currentMonth + '-32T00:00:00');
+
+      if (salesError) return { error: salesError.message, sales: 0 };
+
+      const totalSales = sales?.reduce((sum, order) => sum + (order.total_pesanan || 0), 0) || 0;
+      const orderCount = sales?.length || 0;
+      const averageOrder = orderCount > 0 ? totalSales / orderCount : 0;
+
+      return {
+        totalSales: totalSales,
+        orderCount: orderCount,
+        averageOrder: averageOrder,
+        month: new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric' }),
+        hasData: totalSales > 0,
+        summary: `Rp ${totalSales.toLocaleString('id-ID')} dari ${orderCount} pesanan`
+      };
+    } catch (error: any) {
+      return { error: error.message, sales: 0, orderCount: 0 };
+    }
+  }
+
+  private getRulesData() {
     return {
-      text: `🚨 SITUASI DARURAT TERDETEKSI!
-
-📞 Kontak Emergency: +62812-3456-7890
-🏥 Tim akan segera merespons
-📍 Lokasi: BISMILLAH Bakery
-
-Apakah Anda dalam kondisi aman? Butuh bantuan apa?
-
-⚠️ PESAN DARURAT INI SUDAH DICATAT DI SISTEM`,
-      type: 'emergency',
-      emergency: true,
-      actions: ['call_emergency', 'notify_team', 'log_incident']
+      hppRules: [
+        'Hitung berdasarkan resep yang akurat',
+        'Waste factor maksimal 50%',
+        'Biaya operasional proporsional',
+        'Margin minimal 10%',
+        'Harga jual = HPP × (1 + margin target %)',
+      ],
+      dataValidation: [
+        'Bahan baku wajib nama, satuan, harga',
+        'Stok gak boleh minus',
+        'Update harga supplier bulanan',
+        'Catat biaya operasional tepat waktu',
+        'Monitor profit margin per resep',
+      ],
+      tips: [
+        'Konsistensi kualitas > diskon',
+        'Build loyal customer dengan service excellent',
+        'Monitor kompetitor tapi tetap unik',
+        'Expand pelan tapi steady dengan data akurat',
+      ]
     };
   }
 
-  private async queryDatabase(intent: string, message: string, userId: string): Promise<any> {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration missing');
-      }
-
-      // Use Supabase client to make authenticated request to Edge Function
-      // Import dynamically to avoid bundle issues
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      // Call the Edge Function - Supabase will automatically include auth headers
-      const { data, error } = await supabase.functions.invoke('chatbot-query', {
-        body: {
-          intent,
-          message,
-          context: {
-            currentPage: this.detectCurrentPage(),
-            businessName: this.businessName
-          }
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data;
-
-    } catch (error) {
-      console.error('Database query error:', error);
-      throw error;
-    }
+  // Public methods
+  getHistory() {
+    return this.history;
   }
 
   clearHistory() {
     this.history = [];
-    this.savePersistedData(); // Save empty history
+    this.savePersistedData();
     console.log('🤖 Chat history cleared');
   }
 
-  // Clear all persisted data
   clearPersistedData() {
     try {
-      localStorage.removeItem(this.CHAT_HISTORY_KEY);
-      localStorage.removeItem(this.BUSINESS_NAME_KEY);
+      localStorage.removeItem(this.historyStorageKey);
+      localStorage.removeItem(this.businessNameStorageKey);
+      localStorage.removeItem(this.ownerNameStorageKey);
       console.log('🤖 All persisted chat data cleared');
     } catch (error) {
       console.warn('🤖 Failed to clear persisted data:', error);
     }
   }
 
-  getHistory() {
-    return this.history;
-  }
-
   getAnalytics() {
     return {
-      ...this.analytics,
+      totalConversations: this.analytics.totalConversations,
       averageResponseTime: this.analytics.responseTimes.length > 0
         ? this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length
         : 0,
@@ -317,65 +403,13 @@ Apakah Anda dalam kondisi aman? Butuh bantuan apa?
         .slice(0, 5)
     };
   }
-
-  // Auto-adjust rules based on analytics
-  private adjustRulesBasedOnAnalytics() {
-    const avgResponseTime = this.analytics.responseTimes.reduce((a, b) => a + b, 0) / this.analytics.responseTimes.length;
-
-    if (avgResponseTime > 5000) { // Slow responses
-      console.warn('⚠️ AI responses are slow. Consider using faster model.');
-    }
-
-    if (this.analytics.emergencyCount > 10) { // High emergency count
-      console.warn('🚨 High emergency count detected. Review safety protocols.');
-    }
-  }
-
-  private async performDatabaseAction(intent: string, message: string, userId: string): Promise<any> {
-    try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-      const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
-
-      if (!supabaseUrl || !supabaseKey) {
-        throw new Error('Supabase configuration missing');
-      }
-
-      // Use Supabase client to make authenticated request to Edge Function
-      const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(supabaseUrl, supabaseKey);
-
-      // Call the Edge Function for actions
-      const { data, error } = await supabase.functions.invoke('chatbot-action', {
-        body: {
-          intent,
-          message,
-          userId, // Add userId for database operations
-          context: {
-            currentPage: this.detectCurrentPage(),
-            businessName: this.businessName
-          }
-        }
-      });
-
-      if (error) {
-        throw error;
-      }
-
-      return data;
-
-    } catch (error) {
-      console.error('Database action error:', error);
-      throw error;
-    }
-  }
 }
 
 // Singleton instances per user
-const chatbotInstances = new Map<string, ChatbotService>();
+const chatbotInstances: Map<string, ChatbotService> = new Map();
 
 export const getChatbotService = (userId?: string): ChatbotService => {
   if (!userId) {
-    // Fallback for anonymous users
     if (!chatbotInstances.has('anonymous')) {
       chatbotInstances.set('anonymous', new ChatbotService());
     }
@@ -383,16 +417,7 @@ export const getChatbotService = (userId?: string): ChatbotService => {
   }
 
   if (!chatbotInstances.has(userId)) {
-    chatbotInstances.set(userId, new ChatbotService());
+    chatbotInstances.set(userId, new ChatbotService(userId));
   }
   return chatbotInstances.get(userId)!;
-};
-
-// Legacy method for backward compatibility (but should use getChatbotService(userId))
-let chatbotInstance: ChatbotService | null = null;
-export const getChatbotServiceLegacy = (): ChatbotService => {
-  if (!chatbotInstance) {
-    chatbotInstance = new ChatbotService();
-  }
-  return chatbotInstance;
 };

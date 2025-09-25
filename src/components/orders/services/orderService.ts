@@ -1,12 +1,11 @@
 // src/components/orders/services/orderService.ts
 import { supabase } from '@/integrations/supabase/client';
-import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
 import { orderEvents, emitOrderDeleted } from '../utils/orderEvents';
 import { transformOrderFromDB, transformOrderToDB, validateOrderData, toSafeISOString } from '../utils';
 import type { Order, OrderItem, CreateOrderData, UpdateOrderData, OrderStatus, NewOrder } from '../types';
 import { generateOrderNumber } from '@/utils/formatUtils';
-import { to_snake_order } from '../utils';
+import { to_snake_order, from_snake_order } from '../naming';
 import { OptimizedQueryBuilder, OPTIMIZED_SELECTS, PaginationOptimizer } from '@/utils/egressOptimization';
 import { networkErrorHandler } from '@/utils/networkErrorHandling';
 import { offlineQueue } from '@/utils/offlineQueue';

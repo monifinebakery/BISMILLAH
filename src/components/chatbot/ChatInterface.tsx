@@ -1,10 +1,8 @@
 // src/components/chatbot/ChatInterface.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Bot, User, MessageCircle, X, RefreshCw, Send, MessageSquare } from 'lucide-react';
 import { getChatbotService } from '@/services/chatbot/ChatbotService';
@@ -38,12 +36,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
   // Get chatbot service for current user
   const chatbotService = getChatbotService(user?.id);
 
-  // Set business name for personalization
+  // Set business name and owner name for personalization
   useEffect(() => {
     if (settings.businessName && chatbotService) {
       chatbotService.setBusinessName(settings.businessName);
     }
-  }, [settings.businessName, chatbotService, user?.id]);
+    if (settings.ownerName && chatbotService) {
+      chatbotService.setOwnerName(settings.ownerName);
+    }
+  }, [settings.businessName, settings.ownerName, chatbotService, user?.id]);
 
   // Auto scroll to bottom when new messages arrive
   useEffect(() => {
@@ -92,6 +93,15 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
     const loadingId = addMessage('Sedang memproses...', 'bot');
     updateMessage(loadingId, { isLoading: true });
 
+    // Debug: Log authentication and user ID
+    console.log('🤖 Chat Debug:', {
+      userId: user?.id,
+      userEmail: user?.email,
+      isAuthenticated: !!user,
+      message: userMessage,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       const response = await chatbotService.processMessage(userMessage, user?.id);
 
@@ -99,13 +109,20 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
       setMessages(prev => {
         // Remove loading message and add response in one update
         const filteredMessages = prev.filter(msg => msg.id !== loadingId);
-        const newMessage: ChatMessage = {
-          id: Date.now().toString(),
-          content: response.text,
-          sender: 'bot',
-          timestamp: new Date()
-        };
-        return [...filteredMessages, newMessage];
+        
+        // Only add response if it exists and is valid
+        if (response && response.text) {
+          const newMessage: ChatMessage = {
+            id: Date.now().toString(),
+            content: response.text,
+            sender: 'bot',
+            timestamp: new Date()
+          };
+          return [...filteredMessages, newMessage];
+        }
+        
+        // If no valid response, just return filtered messages (user message stays)
+        return filteredMessages;
       });
 
     } catch (error) {
@@ -123,6 +140,8 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
       });
     } finally {
       setIsLoading(false);
+      // Remove any remaining loading messages as final cleanup
+      setMessages(prev => prev.filter(msg => !msg.isLoading));
     }
   };
 
@@ -142,16 +161,18 @@ export const ChatInterface: React.FC<ChatInterfaceProps> = ({ isOpen, onClose })
 
   const addWelcomeMessage = () => {
     const businessName = settings.businessName || 'Bisnis Anda';
+    const ownerName = settings.ownerName || 'Kakak';
     const isAuthenticated = !!user;
 
-    const welcomeMessage = `👋 Halo! Saya adalah asisten AI untuk ${businessName}.
+    const welcomeMessage = `👋 Halo ${ownerName}! Saya adalah asisten AI untuk ${businessName}. 
 
 ${isAuthenticated ? 
-  'Saya bisa membantu Anda dengan:\n• Mencari dan mengelola pesanan\n• Mengecek stok di warehouse\n• Membuat pembelian bahan baku\n• Menambah/menghapus pesanan\n• Update stok bahan baku\n• Membuat resep dan promo baru\n• Generate laporan penjualan\n• Tambah biaya operasional' :
-  'Untuk fitur lengkap seperti mengakses data pesanan, warehouse, dan melakukan aksi, silakan login terlebih dahulu.\n\nSaya masih bisa membantu dengan:\n• Pertanyaan umum tentang bakery\n• Tips manajemen bisnis\n• Panduan penggunaan aplikasi'
+  `Saya bisa membantu ${ownerName} dengan:\n• Mencari dan mengelola pesanan\n• Mengecek stok di warehouse\n• Membuat pembelian bahan baku\n• Menambah/menghapus pesanan\n• Update stok bahan baku\n• Membuat resep dan promo baru\n• Generate laporan penjualan\n• Tambah biaya operasional` :
+  `Untuk fitur lengkap seperti mengakses data pesanan, warehouse, dan melakukan aksi, silakan login terlebih dahulu.\n\nSaya masih bisa membantu dengan:\n• Pertanyaan umum tentang bakery\n• Tips manajemen bisnis\n• Panduan penggunaan aplikasi`
 }
 
-Silakan ketik pertanyaan Anda!`;
+Silakan ketik pertanyaan ${ownerName}!`;
+
     addMessage(welcomeMessage, 'bot');
   };
 
@@ -169,7 +190,9 @@ Silakan ketik pertanyaan Anda!`;
       setMessages(historyMessages);
       console.log('🤖 Loaded chat history:', historyMessages.length, 'messages');
     } else {
-      // Only show welcome message if there's no history
+      // Reset UI and persisted data before showing welcome message
+      setMessages([]);
+      chatbotService.clearHistory();
       addWelcomeMessage();
     }
   }, [chatbotService]);
@@ -179,14 +202,14 @@ Silakan ketik pertanyaan Anda!`;
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 z-50 md:bottom-4 md:right-4">
-      <Card className="w-[calc(100vw-3rem)] max-w-[450px] h-[calc(100vh-8rem)] max-h-[700px] shadow-xl border-2 border-orange-200 md:w-[450px] md:h-[700px]">
+    <div className="fixed inset-x-4 bottom-[96px] z-50 sm:bottom-24 sm:right-6 sm:left-auto md:bottom-4 md:right-4">
+      <div className="flex flex-col w-full max-w-[420px] h-[75vh] bg-white shadow-xl border-2 border-orange-200 rounded-2xl sm:h-[80vh] md:w-[420px] md:h-[640px] overflow-hidden">
         {/* Header */}
-        <CardHeader className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg">
+        <div className="pb-3 bg-gradient-to-r from-orange-500 to-red-500 text-white rounded-t-lg px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Bot className="h-5 w-5" />
-              <CardTitle className="text-lg">{settings.businessName || 'Bisnis Anda'} Assistant</CardTitle>
+              <h3 className="text-lg font-semibold">{settings.businessName || 'Bisnis Anda'} Assistant</h3>
             </div>
             <div className="flex items-center gap-1">
               <Button
@@ -209,15 +232,21 @@ Silakan ketik pertanyaan Anda!`;
               </Button>
             </div>
           </div>
-          <div className="text-sm opacity-90">
+          <div className="text-sm opacity-90 mt-1">
             AI Assistant untuk manajemen bakery
           </div>
-        </CardHeader>
+        </div>
 
         {/* Messages */}
-        <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-[calc(100vh-16rem)] md:h-96 p-4">
-            <div className="space-y-4">
+        <div className="flex-1 relative">
+          <div
+            className="absolute inset-0 overflow-y-auto px-4 py-4"
+            style={{
+              maxHeight: '100%',
+              minHeight: '200px'
+            }}
+          >
+            <div className="space-y-4 pb-4">
               {messages.map((message) => (
                 <div
                   key={message.id}
@@ -250,7 +279,7 @@ Silakan ketik pertanyaan Anda!`;
                         <span>Sedang memproses...</span>
                       </div>
                     ) : (
-                      <div className="whitespace-pre-wrap text-sm">
+                      <div className="whitespace-pre-wrap text-sm max-h-60 overflow-y-auto">
                         {message.content}
                       </div>
                     )}
@@ -269,11 +298,11 @@ Silakan ketik pertanyaan Anda!`;
               ))}
               <div ref={messagesEndRef} />
             </div>
-          </ScrollArea>
-        </CardContent>
+          </div>
+        </div>
 
         {/* Input */}
-        <div className="p-4 border-t">
+        <div className="p-4 border-t bg-white">
           <div className="flex gap-2">
             <Input
               ref={inputRef}
@@ -309,7 +338,7 @@ Silakan ketik pertanyaan Anda!`;
             </div>
           </div>
         </div>
-      </Card>
+      </div>
     </div>
   );
 };

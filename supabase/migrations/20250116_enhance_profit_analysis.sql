@@ -2,19 +2,34 @@
 -- =========================================
 -- This migration enhances the profit_analysis table to support the improved dashboard
 
--- 1. Add new columns for enhanced analysis
-ALTER TABLE public.profit_analysis 
-ADD COLUMN IF NOT EXISTS data_quality_score numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS health_score numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS health_status text CHECK (health_status IN ('excellent', 'good', 'warning', 'critical')),
-ADD COLUMN IF NOT EXISTS issues jsonb DEFAULT '[]'::jsonb,
-ADD COLUMN IF NOT EXISTS recommendations jsonb DEFAULT '[]'::jsonb,
-ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb,
-ADD COLUMN IF NOT EXISTS cogs_method text CHECK (cogs_method IN ('wac', 'transaction', 'estimated')),
-ADD COLUMN IF NOT EXISTS revenue_growth numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS break_even_point numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS profit_per_day numeric DEFAULT 0,
-ADD COLUMN IF NOT EXISTS profit_per_transaction numeric DEFAULT 0;
+-- Only alter table if it exists
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'profit_analysis'
+    ) THEN
+        -- 1. Add new columns for enhanced analysis
+        ALTER TABLE public.profit_analysis
+        ADD COLUMN IF NOT EXISTS data_quality_score numeric DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS health_score numeric DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS health_status text CHECK (health_status IN ('excellent', 'good', 'warning', 'critical')),
+        ADD COLUMN IF NOT EXISTS issues jsonb DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS recommendations jsonb DEFAULT '[]'::jsonb,
+        ADD COLUMN IF NOT EXISTS metadata jsonb DEFAULT '{}'::jsonb,
+        ADD COLUMN IF NOT EXISTS cogs_method text CHECK (cogs_method IN ('wac', 'transaction', 'estimated')),
+        ADD COLUMN IF NOT EXISTS revenue_growth numeric DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS break_even_point numeric DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS profit_per_day numeric DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS profit_per_transaction numeric DEFAULT 0;
+        
+        RAISE NOTICE 'Enhanced profit_analysis table successfully';
+    ELSE
+        RAISE NOTICE 'Table profit_analysis does not exist, skipping enhancement';
+    END IF;
+END$$;
 
 -- 2. Create enhanced profit calculation function
 CREATE OR REPLACE FUNCTION public.calculate_enhanced_profit(
@@ -289,56 +304,97 @@ BEGIN
 END;
 $$;
 
--- 3. Create indexes for better performance
-CREATE INDEX IF NOT EXISTS idx_profit_analysis_user_period 
-ON public.profit_analysis(user_id, period DESC);
+-- 3. Create indexes for better performance (only if table exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'profit_analysis'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_profit_analysis_user_period 
+        ON public.profit_analysis(user_id, period DESC);
+        
+        CREATE INDEX IF NOT EXISTS idx_profit_analysis_health 
+        ON public.profit_analysis(user_id, health_score DESC);
+        
+        RAISE NOTICE 'Created profit_analysis indexes successfully';
+    ELSE
+        RAISE NOTICE 'Table profit_analysis does not exist, skipping index creation';
+    END IF;
+END$$;
 
-CREATE INDEX IF NOT EXISTS idx_profit_analysis_health 
-ON public.profit_analysis(user_id, health_score DESC);
-
--- 4. Add RLS policies if not exists
+-- 4. Add RLS policies if table exists
 DO $$ 
 BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE tablename = 'profit_analysis' 
-        AND policyname = 'Users can view their own profit analysis'
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'profit_analysis'
     ) THEN
-        CREATE POLICY "Users can view their own profit analysis" 
-        ON public.profit_analysis 
-        FOR SELECT 
-        TO authenticated 
-        USING (user_id = auth.uid());
-    END IF;
-    
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE tablename = 'profit_analysis' 
-        AND policyname = 'Users can insert their own profit analysis'
-    ) THEN
-        CREATE POLICY "Users can insert their own profit analysis" 
-        ON public.profit_analysis 
-        FOR INSERT 
-        TO authenticated 
-        WITH CHECK (user_id = auth.uid());
-    END IF;
-    
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_policies 
-        WHERE tablename = 'profit_analysis' 
-        AND policyname = 'Users can update their own profit analysis'
-    ) THEN
-        CREATE POLICY "Users can update their own profit analysis" 
-        ON public.profit_analysis 
-        FOR UPDATE 
-        TO authenticated 
-        USING (user_id = auth.uid());
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_policies 
+            WHERE tablename = 'profit_analysis' 
+            AND policyname = 'Users can view their own profit analysis'
+        ) THEN
+            CREATE POLICY "Users can view their own profit analysis" 
+            ON public.profit_analysis 
+            FOR SELECT 
+            TO authenticated 
+            USING (user_id = auth.uid());
+        END IF;
+        
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_policies 
+            WHERE tablename = 'profit_analysis' 
+            AND policyname = 'Users can insert their own profit analysis'
+        ) THEN
+            CREATE POLICY "Users can insert their own profit analysis" 
+            ON public.profit_analysis 
+            FOR INSERT 
+            TO authenticated 
+            WITH CHECK (user_id = auth.uid());
+        END IF;
+        
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_policies 
+            WHERE tablename = 'profit_analysis' 
+            AND policyname = 'Users can update their own profit analysis'
+        ) THEN
+            CREATE POLICY "Users can update their own profit analysis" 
+            ON public.profit_analysis 
+            FOR UPDATE 
+            TO authenticated 
+            USING (user_id = auth.uid());
+        END IF;
+        
+        RAISE NOTICE 'Created profit_analysis policies successfully';
+    ELSE
+        RAISE NOTICE 'Table profit_analysis does not exist, skipping policy creation';
     END IF;
 END $$;
 
--- 5. Grant permissions
-GRANT ALL ON public.profit_analysis TO authenticated;
-GRANT ALL ON FUNCTION public.calculate_enhanced_profit TO authenticated;
+-- 5. Grant permissions (only if table exists)
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT 1 
+        FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'profit_analysis'
+    ) THEN
+        GRANT ALL ON public.profit_analysis TO authenticated;
+        RAISE NOTICE 'Granted permissions on profit_analysis table';
+    ELSE
+        RAISE NOTICE 'Table profit_analysis does not exist, skipping table permissions';
+    END IF;
+    
+    -- Always grant function permissions
+    GRANT ALL ON FUNCTION public.calculate_enhanced_profit TO authenticated;
+    RAISE NOTICE 'Granted permissions on calculate_enhanced_profit function';
+END$$;
 
 -- 6. Add comment
 COMMENT ON FUNCTION public.calculate_enhanced_profit IS 'Enhanced profit calculation with health scoring and data quality monitoring for improved dashboard';

@@ -1,11 +1,12 @@
 // src/config/routes.tsx - Konfigurasi Rute Utama (modular)
 import React from 'react';
 import { Routes, Route, useNavigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout';
+import { AppLayout } from '@/components/layout/app-layout';
 import ErrorBoundary from '@/components/dashboard/ErrorBoundary';
 import EmailAuthPage from '@/components/EmailAuthPage';
 import { AuthGuard } from '@/components/AuthGuard';
 import PaymentGuard from '@/components/PaymentGuard';
+import { ModernDashboard } from '@/pages/modern-dashboard';
 import { logger } from '@/utils/logger';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';

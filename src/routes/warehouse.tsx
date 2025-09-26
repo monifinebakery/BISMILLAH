@@ -2,6 +2,7 @@ import React from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
 import { logger } from '@/utils/logger';
+import { SimpleWarehouse } from '@/pages/simple-warehouse';
 
 const WarehousePage = React.lazy(() =>
   import(/* webpackChunkName: "warehouse" */ '@/components/warehouse/WarehousePageRefactored')
@@ -36,6 +37,10 @@ const warehouseRoutes = (
           <WarehousePage />
         </OptimizedRouteWrapper>
       }
+    />
+    <Route
+      path="simple-warehouse"
+      element={<SimpleWarehouse />}
     />
     <Route
       path="warehouse/edit/:id"

@@ -36,6 +36,8 @@ import { useAutoUpdate } from "@/hooks/useAutoUpdate";
 import { loadPersistedQueryState, setupQueryPersistence } from "@/utils/queryPersistence";
 // import MemoryMonitor from "@/components/MemoryMonitor";
 import { periodicSessionRefresh } from '@/utils/auth/periodicSessionRefresh';
+import { ThemeProvider } from "@/components/providers/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const App = () => {
   // ✅ Auto-update system - Setup update detection and notifications
@@ -170,39 +172,44 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <HydrationBoundary state={dehydratedState ?? undefined}>
-      <TooltipProvider>
-        {/* Auto-update: banner rendering handled inside AppLayout to avoid duplicates */}
-        
-        {/* ✅ Code Splitting Provider untuk optimasi loading */}
-        <CodeSplittingProvider>
-          {/* ✅ AppProviders already includes AuthProvider and PaymentProvider in correct order */}
-          <AppProviders>
-            <Suspense fallback={null}>
-              <AppRouter />
-            </Suspense>
-
-            {/* ✅ Dev tools only in development */}
-            {import.meta.env.DEV && (
-              <>
-                <ReactQueryDevtools initialIsOpen={false} />
-                {/* <MemoryMonitor /> */}
-              </>
-            )}
+        <ThemeProvider defaultTheme="system" storageKey="bismillah-ui-theme">
+          <TooltipProvider>
+            {/* Auto-update: banner rendering handled inside AppLayout to avoid duplicates */}
             
-            {/* Vercel Analytics - Web visitor tracking */}
-            <Analytics />
-            
-            {/* Speed Insights removed */}
+            {/* ✅ Code Splitting Provider untuk optimasi loading */}
+            <CodeSplittingProvider>
+              {/* ✅ AppProviders already includes AuthProvider and PaymentProvider in correct order */}
+              <AppProviders>
+                <Suspense fallback={null}>
+                  <AppRouter />
+                </Suspense>
 
-            {/* PWA Install Banner */}
+                {/* ✅ Dev tools only in development */}
+                {import.meta.env.DEV && (
+                  <>
+                    <ReactQueryDevtools initialIsOpen={false} />
+                    {/* <MemoryMonitor /> */}
+                  </>
+                )}
+                
+                {/* Toaster for notifications */}
+                <Toaster />
+                
+                {/* Vercel Analytics - Web visitor tracking */}
+                <Analytics />
+                
+                {/* Speed Insights removed */}
 
-            {/* PWA Offline Indicator - DISABLED */}
-            {/* <OfflineIndicator /> */}
-            
-            {/* Floating Chatbot - REMOVED */}
-          </AppProviders>
-        </CodeSplittingProvider>
-      </TooltipProvider>
+                {/* PWA Install Banner */}
+
+                {/* PWA Offline Indicator - DISABLED */}
+                {/* <OfflineIndicator /> */}
+                
+                {/* Floating Chatbot - REMOVED */}
+              </AppProviders>
+            </CodeSplittingProvider>
+          </TooltipProvider>
+        </ThemeProvider>
       </HydrationBoundary>
     </QueryClientProvider>
   );

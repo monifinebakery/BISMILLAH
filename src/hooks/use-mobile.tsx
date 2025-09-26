@@ -1,35 +1,19 @@
-// src/hooks/use-mobile.ts
+import * as React from "react"
 
-import { useState, useEffect } from 'react';
-import { safeDom } from '@/utils/browserApiSafeWrappers';
+const MOBILE_BREAKPOINT = 768
 
+export function useIsMobile() {
+  const [isMobile, setIsMobile] = React.useState<boolean | undefined>(undefined)
 
-/**
- * Custom hook untuk mendeteksi apakah layar saat ini dianggap sebagai mobile.
- * @param {number} [maxWidth=768] - Lebar maksimal dalam piksel untuk dianggap mobile. Defaultnya adalah 768px (ukuran tablet potret).
- * @returns {boolean} - Mengembalikan `true` jika lebar layar kurang dari atau sama dengan maxWidth, `false` jika lebih besar.
- */
-export const useIsMobile = (maxWidth: number = 768): boolean => {
-  const [isMobile, setIsMobile] = useState(false);
+  React.useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${MOBILE_BREAKPOINT - 1}px)`)
+    const onChange = () => {
+      setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    }
+    mql.addEventListener("change", onChange)
+    setIsMobile(window.innerWidth < MOBILE_BREAKPOINT)
+    return () => mql.removeEventListener("change", onChange)
+  }, [])
 
-  useEffect(() => {
-    // Fungsi untuk memeriksa ukuran layar
-    const handleResize = () => {
-      setIsMobile(window.innerWidth <= maxWidth);
-    };
-
-    // Panggil fungsi sekali saat komponen pertama kali dimuat
-    handleResize();
-
-    // Tambahkan event listener untuk memantau perubahan ukuran jendela
-    safeDom.addEventListener(safeDom, window, 'resize', handleResize);
-
-    // Fungsi cleanup untuk menghapus event listener saat komponen tidak lagi digunakan
-    // Ini penting untuk mencegah memory leak
-    return () => {
-      safeDom.removeEventListener(safeDom, window, 'resize', handleResize);
-    };
-  }, [maxWidth]); // Efek ini akan dijalankan ulang jika nilai maxWidth berubah
-
-  return isMobile;
-};
+  return !!isMobile
+}

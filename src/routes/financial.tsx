@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
+import { SimpleFinancial } from '@/pages/simple-financial';
 
 const FinancialReportPage = React.lazy(() =>
   import(/* webpackChunkName: "financial" */ '@/components/financial/FinancialReportPage')
@@ -16,6 +17,10 @@ const AddTransactionPage = React.lazy(() =>
 
 const financialRoutes = (
   <>
+    <Route
+      path="simple-financial"
+      element={<SimpleFinancial />}
+    />
     <Route
       path="laporan"
       element={

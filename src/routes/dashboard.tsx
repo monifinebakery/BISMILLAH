@@ -4,7 +4,7 @@ import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrappe
 import RouteWrapper from './RouteWrapper';
 
 const Dashboard = React.lazy(() =>
-  import(/* webpackChunkName: "dashboard" */ '@/pages/Dashboard')
+  import(/* webpackChunkName: "dashboard" */ '@/pages/modern-dashboard').then(m => ({ default: m.ModernDashboard }))
 );
 
 const dashboardRoutes = (

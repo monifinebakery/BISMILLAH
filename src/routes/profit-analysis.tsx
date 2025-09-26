@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
+import { SimpleAnalytics } from '@/pages/simple-analytics';
 
 // Load the dashboard component directly to avoid touching the barrel index
 const ProfitAnalysisPage = React.lazy(() =>
@@ -11,18 +12,24 @@ const ProfitAnalysisPage = React.lazy(() =>
 // The new RouteErrorFallback component provides comprehensive error recovery for all routes
 
 const profitAnalysisRoutes = (
-  <Route
-    path="analisis-profit"
-    element={
-      <OptimizedRouteWrapper 
-        routeName="profit-analysis" 
-        priority="high"
-        preloadOnHover={true}
-      >
-        <ProfitAnalysisPage />
-      </OptimizedRouteWrapper>
-    }
-  />
+  <>
+    <Route
+      path="simple-analytics"
+      element={<SimpleAnalytics />}
+    />
+    <Route
+      path="analisis-profit"
+      element={
+        <OptimizedRouteWrapper 
+          routeName="profit-analysis" 
+          priority="high"
+          preloadOnHover={true}
+        >
+          <ProfitAnalysisPage />
+        </OptimizedRouteWrapper>
+      }
+    />
+  </>
 );
 
 export default profitAnalysisRoutes;

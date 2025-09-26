@@ -1,6 +1,7 @@
 import React from 'react';
 import { Route } from 'react-router-dom';
 import { OptimizedRouteWrapper } from '@/components/routing/OptimizedRouteWrapper';
+import { SimpleOrders } from '@/pages/simple-orders';
 
 // Lazy load components
 const OrdersPage = React.lazy(() =>
@@ -21,6 +22,12 @@ const FollowUpTemplateManagerPage = React.lazy(() =>
 
 const ordersRoutes = (
   <>
+    {/* Simple Orders Page */}
+    <Route
+      path="simple-orders"
+      element={<SimpleOrders />}
+    />
+    
     {/* Orders List Page */}
     <Route
       path="pesanan"

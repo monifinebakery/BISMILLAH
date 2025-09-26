@@ -1,5 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { AnimatedContainer, StaggeredContainer } from "@/components/ui/animated-container"
+import { AnimatedButton, LoadingButton } from "@/components/ui/animated-button"
+import { AnimatedGrid, HoverCard, StatsCard } from "@/components/ui/animated-card"
 import { Button } from "@/components/ui/button"
 import {
   DollarSign,
@@ -103,7 +106,7 @@ export function ModernDashboard() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <AnimatedContainer variant="slideUp" className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
           <p className="text-muted-foreground">
@@ -111,54 +114,36 @@ export function ModernDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
+          <AnimatedButton variant="outline" delay={0.3}>
             <FileText className="h-4 w-4 mr-2" />
             Export Report
-          </Button>
-          <Button>
+          </AnimatedButton>
+          <AnimatedButton delay={0.4}>
             <Plus className="h-4 w-4 mr-2" />
             Quick Add
-          </Button>
+          </AnimatedButton>
         </div>
-      </div>
+      </AnimatedContainer>
 
       {/* Stats Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
-                {stat.title}
-              </CardTitle>
-              <stat.icon className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                {stat.changeType === "increase" ? (
-                  <TrendingUp className="h-3 w-3 text-green-600" />
-                ) : (
-                  <TrendingDown className="h-3 w-3 text-red-600" />
-                )}
-                <span
-                  className={
-                    stat.changeType === "increase"
-                      ? "text-green-600"
-                      : "text-red-600"
-                  }
-                >
-                  {stat.change}
-                </span>
-                {stat.description}
-              </div>
-            </CardContent>
-          </Card>
+      <StaggeredContainer className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat, index) => (
+          <StatsCard
+            key={stat.title}
+            title={stat.title}
+            value={stat.value}
+            change={stat.change}
+            changeType={stat.changeType}
+            icon={stat.icon}
+            description={stat.description}
+            index={index}
+          />
         ))}
-      </div>
+      </StaggeredContainer>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <AnimatedGrid className="grid gap-6 lg:grid-cols-2">
         {/* Quick Actions */}
-        <Card>
+        <HoverCard>
           <CardHeader>
             <CardTitle>Quick Actions</CardTitle>
             <CardDescription>
@@ -166,30 +151,34 @@ export function ModernDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {quickActions.map((action) => (
-              <div
-                key={action.title}
-                className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer"
-              >
-                <div className="p-2 bg-primary/10 rounded-lg">
-                  <action.icon className="h-5 w-5 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="font-medium">{action.title}</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {action.description}
-                  </p>
-                </div>
-                <Button variant="ghost" size="sm">
-                  <Plus className="h-4 w-4" />
-                </Button>
-              </div>
-            ))}
+            <StaggeredContainer>
+              {quickActions.map((action, index) => (
+                <AnimatedContainer
+                  key={action.title}
+                  variant="slideUp"
+                  delay={index * 0.1}
+                  className="flex items-center gap-4 p-4 rounded-lg border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer group"
+                >
+                  <div className="p-2 bg-primary/10 rounded-lg group-hover:bg-primary/20 transition-colors">
+                    <action.icon className="h-5 w-5 text-primary" />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-medium">{action.title}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {action.description}
+                    </p>
+                  </div>
+                  <AnimatedButton variant="ghost" size="sm">
+                    <Plus className="h-4 w-4" />
+                  </AnimatedButton>
+                </AnimatedContainer>
+              ))}
+            </StaggeredContainer>
           </CardContent>
-        </Card>
+        </HoverCard>
 
         {/* Recent Activities */}
-        <Card>
+        <HoverCard>
           <CardHeader>
             <CardTitle>Recent Activities</CardTitle>
             <CardDescription>
@@ -197,42 +186,49 @@ export function ModernDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-start gap-4">
-                <div className="p-2 bg-muted rounded-lg">
-                  {activity.type === "order" && <ShoppingCart className="h-4 w-4" />}
-                  {activity.type === "inventory" && <AlertTriangle className="h-4 w-4 text-orange-600" />}
-                  {activity.type === "purchase" && <Package className="h-4 w-4" />}
-                  {activity.type === "financial" && <DollarSign className="h-4 w-4" />}
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center gap-2">
-                    <h4 className="text-sm font-medium">{activity.title}</h4>
-                    <Badge
-                      variant={
-                        activity.status === "new"
-                          ? "default"
-                          : activity.status === "warning"
-                          ? "destructive"
-                          : "secondary"
-                      }
-                      className="text-xs"
-                    >
-                      {activity.status}
-                    </Badge>
+            <StaggeredContainer>
+              {recentActivities.map((activity, index) => (
+                <AnimatedContainer
+                  key={index}
+                  variant="slideUp"
+                  delay={index * 0.1}
+                  className="flex items-start gap-4 p-3 rounded-lg hover:bg-accent/50 transition-colors"
+                >
+                  <div className="p-2 bg-muted rounded-lg">
+                    {activity.type === "order" && <ShoppingCart className="h-4 w-4" />}
+                    {activity.type === "inventory" && <AlertTriangle className="h-4 w-4 text-orange-600" />}
+                    {activity.type === "purchase" && <Package className="h-4 w-4" />}
+                    {activity.type === "financial" && <DollarSign className="h-4 w-4" />}
                   </div>
-                  <p className="text-sm text-muted-foreground">
-                    {activity.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {activity.time}
-                  </p>
-                </div>
-              </div>
-            ))}
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-sm font-medium">{activity.title}</h4>
+                      <Badge
+                        variant={
+                          activity.status === "new"
+                            ? "default"
+                            : activity.status === "warning"
+                            ? "destructive"
+                            : "secondary"
+                        }
+                        className="text-xs"
+                      >
+                        {activity.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {activity.description}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {activity.time}
+                    </p>
+                  </div>
+                </AnimatedContainer>
+              ))}
+            </StaggeredContainer>
           </CardContent>
-        </Card>
-      </div>
+        </HoverCard>
+      </AnimatedGrid>
     </div>
   )
 }

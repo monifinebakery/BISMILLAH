@@ -54,7 +54,9 @@ const navigation: NavItem[] = [
     href: "/purchases",
     icon: ShoppingCart,
     children: [
+      { title: "Simple Purchases", href: "/simple-purchases", icon: ShoppingCart },
       { title: "All Purchases", href: "/purchases", icon: ShoppingCart },
+      { title: "Simple Suppliers", href: "/simple-suppliers", icon: Truck },
       { title: "Suppliers", href: "/suppliers", icon: Truck },
     ],
   },
@@ -63,11 +65,19 @@ const navigation: NavItem[] = [
     href: "/orders",
     icon: FileText,
     badge: "New",
+    children: [
+      { title: "Simple Orders", href: "/simple-orders", icon: FileText },
+      { title: "All Orders", href: "/pesanan", icon: FileText },
+    ],
   },
   {
     title: "Recipes",
     href: "/recipes",
     icon: Calculator,
+    children: [
+      { title: "Simple Recipes", href: "/simple-recipes", icon: Calculator },
+      { title: "All Recipes", href: "/resep", icon: Calculator },
+    ],
   },
   {
     title: "Financial",
@@ -84,14 +94,28 @@ const navigation: NavItem[] = [
     href: "/analytics",
     icon: LineChart,
     children: [
-      { title: "Profit Analysis", href: "/analytics/profit", icon: BarChart3 },
+      { title: "Simple Analytics", href: "/simple-analytics", icon: LineChart },
+      { title: "Profit Analysis", href: "/analisis-profit", icon: BarChart3 },
       { title: "Reports", href: "/analytics/reports", icon: FileText },
+    ],
+  },
+  {
+    title: "Customers",
+    href: "/customers",
+    icon: Users,
+    children: [
+      { title: "Simple Customers", href: "/simple-customers", icon: Users },
+      { title: "Customer Analytics", href: "/customers/analytics", icon: BarChart3 },
     ],
   },
   {
     title: "Settings",
     href: "/settings",
     icon: Settings,
+    children: [
+      { title: "Simple Settings", href: "/simple-settings", icon: Settings },
+      { title: "Advanced Settings", href: "/pengaturan", icon: Settings },
+    ],
   },
 ]
 

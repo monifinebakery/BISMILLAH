@@ -15,6 +15,7 @@ import dashboardRoutes from '@/routes/dashboard';
 import recipeRoutes from '@/routes/recipes';
 import warehouseRoutes from '@/routes/warehouse';
 import supplierRoutes from '@/routes/supplier';
+import customersRoutes from '@/routes/customers';
 import LazyPurchasePage from '@/pages/Purchase';
 import ordersRoutes from '@/routes/orders';
 import operationalCostRoutes from '@/routes/operational-costs';
@@ -123,6 +124,7 @@ export const AppRouter: React.FC = () => (
       {recipeRoutes}
       {warehouseRoutes}
       {supplierRoutes}
+      {customersRoutes}
       {/* Back-compat and new purchase routes */}
       <Route path="/pembelian" element={<LazyPurchasePage />} />
       {/* Mount nested purchase routes including /purchase/add */}

@@ -21,7 +21,11 @@
 
     // Path alias (sinkron dengan vite.config.ts)
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
+    "paths": { 
+      "@/*": ["./src/*"],
+      "@/heytrack": ["./heytrack/index.ts"],
+      "@/heytrack/*": ["./heytrack/*"]
+    },
 
     // Improved type checking for better stability
     "strict": true,

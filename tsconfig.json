@@ -7,7 +7,9 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/heytrack": ["./heytrack/index.ts"],
+      "@/heytrack/*": ["./heytrack/*"]
     },
     "noImplicitAny": false,
     "noUnusedParameters": false,

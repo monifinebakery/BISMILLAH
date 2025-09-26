@@ -209,8 +209,8 @@ const useSuppliersQuery = (userId?: string) => {
     queryKey: supplierQueryKeys.list(),
     queryFn: () => fetchSuppliers(userId!),
     enabled: !!userId,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - less aggressive
+    gcTime: 30 * 60 * 1000, // 30 minutes
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;

@@ -235,14 +235,14 @@ export const FollowUpTemplateProvider: React.FC<{ children: React.ReactNode }> =
     queryKey: followUpTemplateQueryKeys.list(user?.id),
     queryFn: () => fetchTemplates(user!.id),
     enabled: !!user?.id,
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 20 * 60 * 1000, // 20 minutes - templates rarely change
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;
       }
       return failureCount < 2;
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });
 
   // ✅ Mutations for CRUD operations

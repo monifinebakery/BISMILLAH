@@ -22,7 +22,7 @@ export const useRecipeQueries = () => {
         throw new Error(error instanceof Error ? error.message : 'Failed to load recipes');
       }
     },
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - optimized for performance
     retry: 2,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
   });

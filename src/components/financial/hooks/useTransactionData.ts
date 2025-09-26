@@ -130,7 +130,7 @@ export const useTransactionData = ({
       return getTransactionsByDateRange(userId, dateRange.from, dateRange.to);
     },
     enabled: shouldFetch,
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
     gcTime: 10 * 60 * 1000,
     refetchInterval: false,
     retry: 1,

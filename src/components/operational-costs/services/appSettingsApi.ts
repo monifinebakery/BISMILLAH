@@ -147,14 +147,22 @@ export const appSettingsApi = {
         };
       }
 
-      // Get current settings to preserve target_output_monthly if not provided
-      const currentSettings = await this.getSettings();
-      const currentTargetOutput = currentSettings.data?.target_output_monthly || 1000;
+      // OPTIMIZATION: Only get current settings if targetOutput is not provided
+      let currentTargetOutput = targetOutput;
+      if (!currentTargetOutput) {
+        // Direct query to avoid nested API calls
+        const { data } = await supabase
+          .from('app_settings')
+          .select('target_output_monthly')
+          .eq('user_id', userId)
+          .maybeSingle();
+        currentTargetOutput = data?.target_output_monthly || 1000;
+      }
 
       const updateData = {
         overhead_per_pcs: Number(overheadPerPcs) || 0,
         operasional_per_pcs: Number(operasionalPerPcs) || 0,
-        target_output_monthly: targetOutput || currentTargetOutput,
+        target_output_monthly: currentTargetOutput,
         updated_at: new Date().toISOString(),
       };
 
@@ -196,11 +204,25 @@ export const appSettingsApi = {
 
   /**
    * Get current overhead per pcs (for HPP calculation)
+   * OPTIMIZED: Direct query to avoid nested API calls
    */
   async getCurrentOverheadPerPcs(): Promise<number> {
     try {
-      const settings = await this.getSettings();
-      return settings.data?.overhead_per_pcs || 0;
+      const userId = await getCurrentUserId();
+      if (!userId) return 0;
+
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('overhead_per_pcs')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('Error getting current overhead per pcs:', error);
+        return 0;
+      }
+
+      return Number(data?.overhead_per_pcs) || 0;
     } catch (error) {
       logger.error('Error getting current overhead per pcs:', error);
       return 0;
@@ -209,11 +231,25 @@ export const appSettingsApi = {
 
   /**
    * Get current operational cost per pcs (for BEP analysis)
+   * OPTIMIZED: Direct query to avoid nested API calls
    */
   async getCurrentOperasionalPerPcs(): Promise<number> {
     try {
-      const settings = await this.getSettings();
-      return settings.data?.operasional_per_pcs || 0;
+      const userId = await getCurrentUserId();
+      if (!userId) return 0;
+
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('operasional_per_pcs')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (error) {
+        logger.error('Error getting current operational per pcs:', error);
+        return 0;
+      }
+
+      return Number(data?.operasional_per_pcs) || 0;
     } catch (error) {
       logger.error('Error getting current operational per pcs:', error);
       return 0;

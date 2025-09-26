@@ -15,15 +15,15 @@ export const useFinancialData = () => {
     queryKey: financialQueryKeys.transactions(user?.id),
     queryFn: () => getFinancialTransactions(user!.id),
     enabled: !!user?.id,
-    // ✅ OPTIMIZED: Faster loading with shorter stale time
-    staleTime: 30 * 1000, // 30 seconds - much shorter for fresh data
-    gcTime: 5 * 60 * 1000, // 5 minutes - shorter cache time
+    // ✅ OPTIMIZED: Balanced performance and freshness
+    staleTime: 15 * 60 * 1000, // 15 minutes - much less aggressive
+    gcTime: 30 * 60 * 1000, // 30 minutes cache time
     retry: 2, // Reduce retry attempts
     retryDelay: (attemptIndex) => Math.min(1000 * attemptIndex, 3000), // Faster retries
-    // ✅ OPTIMIZED: Enable smart refetching for better UX
-    refetchOnWindowFocus: true, // Enable for fresh data
-    refetchOnMount: true, // Always fetch fresh on mount
-    refetchOnReconnect: true, // Refetch when connection restored
+    // ✅ OPTIMIZED: Disable aggressive refetching
+    refetchOnWindowFocus: false, // Disable aggressive refetch
+    refetchOnMount: 'always', // Use global setting
+    refetchOnReconnect: false, // Disable aggressive reconnect refetch
     refetchInterval: false, // Disable interval to avoid spam
     refetchIntervalInBackground: false,
     // ✅ OPTIMIZED: Better loading states

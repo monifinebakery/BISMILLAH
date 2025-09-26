@@ -74,21 +74,23 @@ export const useEnhancedHppCalculation = ({
   const queryClient = useQueryClient();
 
   // ✅ Subscribe to app settings changes (including production target)
+  // OPTIMIZED: Use consistent query key and remove aggressive refetch
   const appSettingsQuery = useQuery({
-    queryKey: ['enhanced-hpp', 'app-settings'],
+    queryKey: ['app-settings'], // Use consistent key across the app
     queryFn: async () => {
       logger.debug('🔄 Fetching app settings for enhanced HPP');
       const settings = await getCurrentAppSettings();
       return settings;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: true,
-    refetchInterval: 5 * 60 * 1000, // Refetch every 5 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - much less aggressive
+    refetchOnWindowFocus: false, // Disable aggressive refetch
+    refetchInterval: false, // Disable polling - rely on global cache
   });
   
   // ✅ Subscribe to production target changes
+  // OPTIMIZED: Use consistent query key and remove aggressive refetch
   const productionTargetQuery = useQuery({
-    queryKey: ['enhanced-hpp', 'production-target'],
+    queryKey: ['operational-costs', 'production-target'], // Use consistent key
     queryFn: async () => {
       const response = await productionOutputApi.getCurrentProductionTarget();
       if (response.error) {
@@ -98,8 +100,8 @@ export const useEnhancedHppCalculation = ({
       logger.debug('✅ Production target fetched in enhanced HPP:', response.data);
       return response.data;
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    refetchOnWindowFocus: true,
+    staleTime: 15 * 60 * 1000, // 15 minutes - much less aggressive
+    refetchOnWindowFocus: false, // Disable aggressive refetch
   });
 
   // ✅ Update local state when queries complete

@@ -38,16 +38,16 @@ export const useOrderData = () => {
       return orderService.fetchOrders(user.id);
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive order fetching
+    gcTime: 20 * 60 * 1000, // 20 minutes
     retry: (failureCount, error: any) => {
       // Don't retry on authentication errors
       if (error?.status === 401 || error?.status === 403) {
         return false;
       }
-      return failureCount < 3;
+      return failureCount < 2; // Reduced retries for performance
     },
-    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+    retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 15000),
   });
 };
 
@@ -64,8 +64,8 @@ export const useOrderDataSnake = () => {
       return orderService.fetchOrdersSnake(user.id);
     },
     enabled: !!user?.id,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - consistent with main order query
+    gcTime: 20 * 60 * 1000, // 20 minutes
   });
 };
 
@@ -392,7 +392,7 @@ export const useOrderStats = () => {
       };
     },
     enabled: !!user?.id,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
   });
 };
 

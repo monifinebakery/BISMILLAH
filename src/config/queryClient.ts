@@ -30,14 +30,15 @@ export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       // ULTRA PERFORMANCE: Extended stale time untuk mengurangi refetch
-      staleTime: 10 * 60 * 1000, // 10 minutes (dari 5 minutes)
-      gcTime: 15 * 60 * 1000, // 15 minutes (dari 10 minutes)
+      staleTime: 15 * 60 * 1000, // 15 minutes - even longer to reduce excessive queries
+      gcTime: 30 * 60 * 1000, // 30 minutes - longer cache retention
       
       // CRITICAL: Disable semua auto-refetch untuk performa maksimal
       refetchOnWindowFocus: false,
       refetchOnReconnect: false, // Disable untuk performa, user bisa manual refresh
-      refetchOnMount: false, // Disable refetch saat mount untuk mencegah flicker saat tab switching
-      refetchInterval: false, // Disable auto polling
+      refetchOnMount: 'always', // Always refetch on mount for fresh data but control via staleTime
+      refetchInterval: false, // Disable auto polling - use real-time subscriptions instead
+      refetchIntervalInBackground: false, // Disable background refetch
       
       // OPTIMIZED: Retry strategy yang lebih efisien
       retry: (failureCount, error: unknown) => {

@@ -174,8 +174,8 @@ const useActivitiesQuery = (userId?: string) => {
     queryKey: activityQueryKeys.list(userId),
     queryFn: () => activityApi.getActivities(userId!),
     enabled: !!userId,
-    staleTime: 2 * 60 * 1000, // 2 minutes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - much less aggressive
+    gcTime: 15 * 60 * 1000, // 15 minutes
     retry: (failureCount, error: any) => {
       if (error?.status >= 400 && error?.status < 500) {
         return false;
@@ -489,7 +489,7 @@ export const useActivityQuery = () => {
     queryClient.prefetchQuery({
       queryKey: activityQueryKeys.list(userId),
       queryFn: () => activityApi.getActivities(userId),
-      staleTime: 2 * 60 * 1000,
+      staleTime: 15 * 60 * 1000, // 15 minutes - optimized for performance
     });
   }, [queryClient]);
 

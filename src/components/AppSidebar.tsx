@@ -182,7 +182,7 @@ export function AppSidebar() {
       queryClient.prefetchQuery({
         queryKey: financialQueryKeys.transactions(user.id),
         queryFn: () => financialApi.getFinancialTransactions(user.id),
-        staleTime: 10 * 60 * 1000,
+        staleTime: 15 * 60 * 1000, // 15 minutes
       });
     } catch {}
   }, [queryClient, user?.id]);
@@ -193,7 +193,7 @@ export function AppSidebar() {
       queryClient.prefetchQuery({
         queryKey: orderQueryKeys.list(user.id),
         queryFn: () => orderService.fetchOrders(user.id),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 15 * 60 * 1000, // 15 minutes
       });
     } catch {}
   }, [queryClient, user?.id]);
@@ -208,7 +208,7 @@ export function AppSidebar() {
           // @ts-ignore service type
           return service.fetchBahanBaku();
         },
-        staleTime: 2 * 60 * 1000,
+        staleTime: 15 * 60 * 1000, // 15 minutes
       });
     } catch {}
   }, [queryClient, user?.id]);
@@ -219,7 +219,7 @@ export function AppSidebar() {
       queryClient.prefetchQuery({
         queryKey: purchaseQueryKeys.list(user.id),
         queryFn: () => PurchaseApiService.fetchPurchases(user.id),
-        staleTime: 5 * 60 * 1000,
+        staleTime: 15 * 60 * 1000, // 15 minutes
       });
     } catch {}
   }, [queryClient, user?.id]);

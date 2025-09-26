@@ -11,6 +11,7 @@ import {
   getCurrentAppSettings,
 } from '../utils/enhancedHppCalculations';
 import { productionOutputApi } from '../services/productionOutputApi';
+import { OPERATIONAL_COST_QUERY_KEYS } from './useOperationalCostQuery';
 import { logger } from '@/utils/logger';
 
 interface AutoSyncRecipeProps {
@@ -60,8 +61,9 @@ export const useAutoSyncRecipe = ({
   const queryClient = useQueryClient();
 
   // ✅ Subscribe to app settings changes for auto-refresh
+  // OPTIMIZED: Use consistent query key and remove aggressive refetch
   const appSettingsQuery = useQuery({
-    queryKey: ['auto-sync', 'app-settings'],
+    queryKey: ['app-settings'], // Use consistent key across the app
     queryFn: async () => {
       logger.debug('🔄 Fetching app settings for auto-sync recipe');
       const settings = await getCurrentAppSettings();
@@ -72,14 +74,15 @@ export const useAutoSyncRecipe = ({
       });
       return settings;
     },
-    staleTime: 30 * 1000, // Reduced to 30 seconds for more responsive updates
-    refetchOnWindowFocus: true,
-    refetchInterval: 60 * 1000, // More frequent refetch every 1 minute
+    staleTime: 5 * 60 * 1000, // 5 minutes - much less aggressive
+    refetchOnWindowFocus: false, // Disable aggressive refetch
+    refetchInterval: false, // Disable polling - use real-time subscriptions instead
   });
   
   // ✅ Subscribe to production target changes
+  // OPTIMIZED: Use consistent query key and remove aggressive refetch
   const productionTargetQuery = useQuery({
-    queryKey: ['auto-sync', 'production-target'],
+    queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget(), // Use consistent key
     queryFn: async () => {
       const response = await productionOutputApi.getCurrentProductionTarget();
       if (response.error) {
@@ -89,8 +92,8 @@ export const useAutoSyncRecipe = ({
       logger.debug('✅ Production target fetched in auto-sync:', response.data);
       return response.data;
     },
-    staleTime: 30 * 1000, // Reduced to 30 seconds for more responsive updates
-    refetchOnWindowFocus: true,
+    staleTime: 10 * 60 * 1000, // 10 minutes - much less aggressive
+    refetchOnWindowFocus: false, // Disable aggressive refetch
   });
 
   // ✅ Update operational costs status from query data
@@ -249,9 +252,9 @@ export const useAutoSyncRecipe = ({
   const refreshCalculation = useCallback(() => {
     logger.info('🔄 Manual refresh triggered - invalidating queries and recalculating');
     
-    // Force refresh queries
-    queryClient.invalidateQueries({ queryKey: ['auto-sync', 'app-settings'] });
-    queryClient.invalidateQueries({ queryKey: ['auto-sync', 'production-target'] });
+    // Force refresh queries using consistent keys
+    queryClient.invalidateQueries({ queryKey: ['app-settings'] });
+    queryClient.invalidateQueries({ queryKey: OPERATIONAL_COST_QUERY_KEYS.productionTarget() });
     
     if (hasOperationalCosts) {
       performCalculation();

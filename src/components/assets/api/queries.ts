@@ -60,7 +60,7 @@ export const useSearchAssetsQuery = (
     },
     enabled: !!userId && searchTerm.length > 0 && (options?.enabled !== false),
     refetchOnWindowFocus: options?.refetchOnWindowFocus ?? false,
-    staleTime: options?.staleTime ?? 2 * 60 * 1000, // 2 minutes for search
+    staleTime: options?.staleTime ?? 15 * 60 * 1000, // 15 minutes - optimized for search
   });
 };
 

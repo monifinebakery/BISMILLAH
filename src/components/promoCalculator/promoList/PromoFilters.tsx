@@ -70,7 +70,7 @@ const PromoList = () => {
       logger.debug('✅ Got promos:', promos?.length || 0); // ✅ Ganti console.log dengan logger.debug
       return promos || [];
     },
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {

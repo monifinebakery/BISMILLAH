@@ -61,6 +61,7 @@ export const useRecipeOverhead = (): UseRecipeOverheadReturn => {
   const [lastIngredientCost, setLastIngredientCost] = useState<number>(0);
 
   // ✅ Subscribe to production target changes for auto-refresh
+  // OPTIMIZED: Reduce aggressive refetch settings
   const productionTargetQuery = useQuery({
     queryKey: ['operational-costs', 'production-target'],
     queryFn: async () => {
@@ -73,8 +74,8 @@ export const useRecipeOverhead = (): UseRecipeOverheadReturn => {
       return response.data;
     },
     enabled: isAuthenticated,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    refetchOnWindowFocus: true,
+    staleTime: 15 * 60 * 1000, // 15 minutes - much less aggressive
+    refetchOnWindowFocus: false, // Disable aggressive refetch
   });
 
   // ✅ Auto-recalculate overhead when production target changes

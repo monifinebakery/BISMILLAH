@@ -296,7 +296,7 @@ export const useProfitAnalysis = (
       }
     },
     enabled: enableWAC && Boolean((mode === 'daily' && dateRange) || (mode !== 'daily' && currentPeriod)),
-    staleTime: 60 * 1000, // 1 minute
+    staleTime: 15 * 60 * 1000, // 15 minutes - optimized cache duration
     retry: (failureCount, err: any) => {
       const status = Number((err?.status ?? err?.code ?? 0) as any);
       if (status >= 500) return failureCount < 3; // handle 503 gracefully

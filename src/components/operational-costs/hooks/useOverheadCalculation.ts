@@ -51,7 +51,7 @@ export const useOverheadCalculation = ({
           }
           return response.data;
         },
-        staleTime: 30 * 1000, // 30 seconds - overhead calculation can change frequently
+        staleTime: 5 * 60 * 1000, // 5 minutes - balanced freshness for calculations
         retry: 2,
       });
 
@@ -127,7 +127,7 @@ export const useOverheadCalculation = ({
           }
           return response.data;
         },
-        staleTime: 30 * 1000,
+        staleTime: 5 * 60 * 1000, // 5 minutes
       });
       
       logger.debug('✅ Overhead calculation prefetched for material cost:', materialCost);
@@ -149,7 +149,7 @@ export const useOverheadCalculation = ({
     
     if (!query) return true;
     
-    const staleTime = 30 * 1000; // 30 seconds
+    const staleTime = 5 * 60 * 1000; // 5 minutes - balanced freshness
     const isStale = Date.now() - (query.dataUpdatedAt || 0) > staleTime;
     
     return isStale;

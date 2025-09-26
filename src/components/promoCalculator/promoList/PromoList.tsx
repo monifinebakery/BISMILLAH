@@ -76,7 +76,7 @@ const PromoList = () => {
       logger.success('Got promos:', promos?.length || 0);
       return promos || [];
     },
-    staleTime: 2 * 60 * 1000,
+    staleTime: 15 * 60 * 1000, // 15 minutes - reduced excessive fetching
     retry: 3,
     retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
     onError: (error) => {

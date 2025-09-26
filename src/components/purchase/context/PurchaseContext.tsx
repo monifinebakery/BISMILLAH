@@ -23,6 +23,7 @@ import { ensureBahanBakuIdsForItems } from '@/components/warehouse/utils/warehou
 import { PurchaseApiService } from '../services/purchaseApi';
 import { deletePurchaseWithCleanup } from '../services/purchaseApiRefactored';
 import type { Purchase, PurchaseContextType, PurchaseStatus, PurchaseItem } from '../types/purchase.types';
+import { formatCurrency } from '@/lib/shared/formatters';
 
 import {
   transformPurchaseFromDB,
@@ -482,7 +483,7 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         await cleanupFinancialForDeleted(id, user!.id, deleteFinancialTransaction, queryClient);
         
         const supplierName = getSupplierName(p.supplier);
-        const totalValue = formatCurrency(p.total_nilai);
+        const totalValue = formatCurrency(p.total_nilai || 0);
         toast.success('Pembelian dan transaksi keuangan terkait berhasil dihapus.');
         addActivity?.({ title: 'Pembelian Dihapus', description: `Pembelian dari ${supplierName} telah dihapus.`, type: 'purchase', value: null });
         addNotification?.({
@@ -626,10 +627,15 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
 
   const deletePurchaseAction = useCallback(async (id: string) => {
     try {
+      logger.info('🗑️ [DELETE] Starting delete operation for purchase:', id);
       await deleteMutation.mutateAsync(id);
+      logger.info('✅ [DELETE] Delete operation completed successfully:', id);
       return true;
     } catch (e) {
-      logger.error('Delete purchase failed', e);
+      logger.error('❌ [DELETE] Delete purchase failed:', { id, error: e });
+      // Provide more detailed error information
+      const errorMessage = e instanceof Error ? e.message : 'Unknown error occurred';
+      toast.error(`Gagal menghapus pembelian: ${errorMessage}`);
       return false;
     }
   }, [user, deleteMutation]);

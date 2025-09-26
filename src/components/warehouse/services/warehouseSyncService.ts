@@ -155,9 +155,20 @@ export class WarehouseSyncService {
           const itemId = purchaseItem.bahanBakuId || purchaseItem.bahan_baku_id || purchaseItem.id;
           
           if (itemId === item.id) {
-            // Standardized field matching - use consistent field names
-            const qty = toNumber(purchaseItem.quantity || 0);
-            const price = toNumber(purchaseItem.unitPrice || 0);
+            // ✅ FLEXIBLE FIELD MATCHING - handle both frontend and backend field names
+            const qty = toNumber(
+              purchaseItem.quantity || 
+              purchaseItem.kuantitas || 
+              purchaseItem.jumlah || 
+              0
+            );
+            const price = toNumber(
+              purchaseItem.unitPrice || 
+              purchaseItem.hargaSatuan || 
+              purchaseItem.harga_per_satuan || 
+              purchaseItem.harga_satuan || 
+              0
+            );
             totalQuantity += qty;
             totalValue += qty * price;
           }

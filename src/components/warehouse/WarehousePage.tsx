@@ -674,6 +674,11 @@ const WarehousePageContent: React.FC = () => {
               isSelected={core.selection?.isSelected}
               isPageSelected={core.selection?.isPageSelected}
               isPagePartiallySelected={core.selection?.isPagePartiallySelected}
+              // ✅ Pagination props
+              currentPage={currentPage}
+              totalPages={warehouseData.paginationInfo?.totalPages || 1}
+              totalItems={warehouseData.paginationInfo?.total || 0}
+              onPageChange={(page: number) => setCurrentPage(page)}
             />
           </Suspense>
 
@@ -691,35 +696,6 @@ const WarehousePageContent: React.FC = () => {
             </div>
           </div>
 
-          {/* Pagination */}
-          {warehouseData.paginationInfo && warehouseData.paginationInfo.totalPages > 1 && (
-            <div className="p-4 border-t border-gray-200">
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                <div className="text-sm text-gray-600">
-                  Menampilkan {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, warehouseData.paginationInfo.total)} dari {warehouseData.paginationInfo.total} item
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                    disabled={currentPage === 1}
-                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                  >
-                    Sebelumnya
-                  </button>
-                  <span className="px-3 py-1 text-sm font-medium">
-                    Halaman {currentPage} dari {warehouseData.paginationInfo.totalPages}
-                  </span>
-                  <button
-                    onClick={() => setCurrentPage(prev => Math.min(warehouseData.paginationInfo!.totalPages, prev + 1))}
-                    disabled={currentPage === warehouseData.paginationInfo.totalPages}
-                    className="px-3 py-1 text-sm border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 transition-colors"
-                  >
-                    Selanjutnya
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
 

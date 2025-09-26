@@ -33,6 +33,7 @@ import { validatePurchaseData, getStatusDisplayText } from '../utils/purchaseHel
 import { purchaseQueryKeys } from '../query/purchase.queryKeys';
 import { broadcastPurchaseCreated } from '../utils/purchaseBroadcast';
 import { onCompletedFinancialSync, onRevertedFinancialCleanup, cleanupFinancialForDeleted } from '../utils/financialSync';
+import { autoSyncWithNotification } from '../services/status/purchaseAutoSync';
 
 // ✅ WAREHOUSE QUERY KEYS: Untuk invalidation
 const warehouseQueryKeys = {
@@ -293,6 +294,18 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         }
       } catch (e) {
         logger.error('Gagal menambahkan/update bahan baku dari pembelian', e);
+      }
+
+      // 🚀 NEW: Auto-sync to warehouse immediately (don't wait for "completed" status)
+      try {
+        const autoSyncSuccess = await autoSyncWithNotification(newRow, addNotification);
+        if (autoSyncSuccess) {
+          logger.info('✅ [PURCHASE-CREATE] Auto-sync to warehouse successful:', newRow.id);
+        } else {
+          logger.warn('⚠️ [PURCHASE-CREATE] Auto-sync to warehouse failed:', newRow.id);
+        }
+      } catch (autoSyncError) {
+        logger.error('❌ [PURCHASE-CREATE] Auto-sync to warehouse error:', autoSyncError);
       }
 
       // ✅ INVALIDATE WAREHOUSE

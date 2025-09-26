@@ -4,6 +4,7 @@ import { AnimatedContainer, StaggeredContainer } from "@/components/ui/animated-
 import { AnimatedButton, LoadingButton } from "@/components/ui/animated-button"
 import { AnimatedGrid, HoverCard, StatsCard } from "@/components/ui/animated-card"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "react-i18next"
 import {
   DollarSign,
   Package,
@@ -16,38 +17,40 @@ import {
 } from "lucide-react"
 
 export function ModernDashboard() {
+  const { t } = useTranslation(['dashboard', 'common'])
+  
   const stats = [
     {
-      title: "Total Revenue",
+      title: t('dashboard:stats.totalRevenue'),
       value: "Rp 45,231,890",
       change: "+20.1%",
       changeType: "increase" as const,
       icon: DollarSign,
-      description: "from last month",
+      description: t('dashboard:stats.fromLastMonth'),
     },
     {
-      title: "Active Orders",
+      title: t('dashboard:stats.activeOrders'),
       value: "234",
       change: "+12.3%",
       changeType: "increase" as const,
       icon: ShoppingCart,
-      description: "pending orders",
+      description: t('dashboard:stats.pendingOrders'),
     },
     {
-      title: "Inventory Items",
+      title: t('dashboard:stats.inventoryItems'),
       value: "1,234",
       change: "-2.4%",
       changeType: "decrease" as const,
       icon: Package,
-      description: "total stock",
+      description: t('dashboard:stats.totalStock'),
     },
     {
-      title: "Profit Margin",
+      title: t('dashboard:stats.profitMargin'),
       value: "32.4%",
       change: "+4.2%",
       changeType: "increase" as const,
       icon: TrendingUp,
-      description: "gross margin",
+      description: t('dashboard:stats.grossMargin'),
     },
   ]
 
@@ -108,19 +111,19 @@ export function ModernDashboard() {
       {/* Header */}
       <AnimatedContainer variant="slideUp" className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t('dashboard:title')}</h1>
           <p className="text-muted-foreground">
-            Welcome back! Here's an overview of your business.
+            {t('dashboard:subtitle')}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <AnimatedButton variant="outline" delay={0.3}>
             <FileText className="h-4 w-4 mr-2" />
-            Export Report
+            {t('dashboard:buttons.exportReport')}
           </AnimatedButton>
           <AnimatedButton delay={0.4}>
             <Plus className="h-4 w-4 mr-2" />
-            Quick Add
+            {t('dashboard:buttons.quickAdd')}
           </AnimatedButton>
         </div>
       </AnimatedContainer>
@@ -145,9 +148,9 @@ export function ModernDashboard() {
         {/* Quick Actions */}
         <HoverCard>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t('dashboard:quickActions.title')}</CardTitle>
             <CardDescription>
-              Frequently used actions for your business
+              {t('dashboard:quickActions.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -180,9 +183,9 @@ export function ModernDashboard() {
         {/* Recent Activities */}
         <HoverCard>
           <CardHeader>
-            <CardTitle>Recent Activities</CardTitle>
+            <CardTitle>{t('dashboard:recentActivities.title')}</CardTitle>
             <CardDescription>
-              Latest updates from your business
+              {t('dashboard:recentActivities.description')}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">

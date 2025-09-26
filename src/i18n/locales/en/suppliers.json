@@ -1,0 +1,42 @@
+{
+  "title": "Suppliers",
+  "subtitle": "Manage supplier relationships and vendor information",
+  "addSupplier": "Add Supplier",
+  "addNewSupplier": "Add New Supplier",
+  "addSupplierDesc": "Enter supplier details to add them to your vendor list",
+  "supplierDirectory": "Supplier Directory",
+  "supplierDirectoryDesc": "Manage all supplier information and relationships",
+  "fields": {
+    "supplierName": "Supplier Name",
+    "contactPerson": "Contact Person",
+    "paymentTerms": "Payment Terms",
+    "totalOrders": "Total Orders",
+    "totalValue": "Total Value",
+    "lastOrder": "Last Order",
+    "rating": "Rating"
+  },
+  "categories": {
+    "rawMaterials": "Raw Materials",
+    "specialtyIngredients": "Specialty Ingredients",
+    "packaging": "Packaging",
+    "equipment": "Equipment",
+    "dairy": "Dairy"
+  },
+  "paymentTerms": {
+    "cash": "Cash",
+    "cod": "COD",
+    "14days": "14 Days",
+    "30days": "30 Days",
+    "60days": "60 Days"
+  },
+  "stats": {
+    "totalSuppliers": "Total Suppliers",
+    "activeSuppliers": "Active Suppliers",
+    "totalValue": "Total Value",
+    "avgRating": "Avg Rating",
+    "registeredVendors": "registered vendors",
+    "currentlyActive": "currently active",
+    "totalPurchaseValue": "total purchase value",
+    "supplierQualityRating": "supplier quality rating"
+  }
+}

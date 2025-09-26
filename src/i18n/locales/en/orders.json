@@ -1,0 +1,31 @@
+{
+  "title": "Orders",
+  "subtitle": "Manage customer orders and delivery status",
+  "addOrder": "Add Order",
+  "addNewOrder": "Add New Order",
+  "orderDetails": "Order Details",
+  "fields": {
+    "orderId": "Order ID",
+    "customer": "Customer",
+    "orderDate": "Order Date",
+    "dueDate": "Due Date",
+    "totalAmount": "Total Amount",
+    "orderStatus": "Order Status",
+    "paymentStatus": "Payment Status",
+    "deliveryStatus": "Delivery Status"
+  },
+  "status": {
+    "pending": "Pending",
+    "processing": "Processing",
+    "ready": "Ready",
+    "delivered": "Delivered",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "paymentStatus": {
+    "unpaid": "Unpaid",
+    "partial": "Partial",
+    "paid": "Paid",
+    "refunded": "Refunded"
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "title": "Inventaris",
+  "subtitle": "Lacak level stok, kelola item, dan pantau kesehatan inventaris",
+  "addItem": "Tambah Item",
+  "addNewItem": "Tambah Item Inventaris Baru",
+  "addItemDesc": "Masukkan detail item untuk ditambahkan ke inventaris Anda",
+  "inventoryItems": "Item Inventaris",
+  "inventoryItemsDesc": "Pantau level stok dan kelola inventaris Anda",
+  "fields": {
+    "itemName": "Nama Item",
+    "unit": "Satuan",
+    "currentStock": "Stok Saat Ini",
+    "minStock": "Stok Minimum",
+    "maxStock": "Stok Maksimum",
+    "unitPrice": "Harga Satuan",
+    "totalValue": "Total Nilai",
+    "supplier": "Supplier",
+    "storageLocation": "Lokasi Penyimpanan",
+    "stockLevel": "Level Stok"
+  },
+  "categories": {
+    "rawMaterials": "Bahan Baku",
+    "specialtyIngredients": "Bahan Khusus",
+    "packaging": "Kemasan",
+    "equipment": "Peralatan",
+    "dairy": "Dairy"
+  },
+  "status": {
+    "good": "Baik",
+    "lowStock": "Stok Rendah",
+    "critical": "Kritis",
+    "outOfStock": "Habis"
+  },
+  "stats": {
+    "totalItems": "Total Item",
+    "totalValue": "Total Nilai",
+    "lowStock": "Stok Rendah",
+    "outOfStock": "Habis",
+    "itemsInInventory": "item di inventaris",
+    "inventoryValue": "nilai inventaris",
+    "needRestock": "perlu restock",
+    "requiresImmediateAction": "perlu tindakan segera"
+  }
+}

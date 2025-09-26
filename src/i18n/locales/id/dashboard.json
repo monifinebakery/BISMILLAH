@@ -1,0 +1,44 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Selamat datang! Berikut adalah ringkasan bisnis Anda.",
+  "stats": {
+    "totalRevenue": "Total Pendapatan",
+    "activeOrders": "Pesanan Aktif",
+    "inventoryItems": "Item Inventaris",
+    "profitMargin": "Margin Keuntungan",
+    "fromLastMonth": "dari bulan lalu",
+    "pendingOrders": "pesanan menunggu",
+    "totalStock": "total stok",
+    "grossMargin": "margin kotor"
+  },
+  "quickActions": {
+    "title": "Tindakan Cepat",
+    "description": "Aksi yang sering digunakan untuk bisnis Anda",
+    "newPurchase": "Pembelian Baru",
+    "addInventory": "Tambah Inventaris",
+    "createOrder": "Buat Pesanan",
+    "newPurchaseDesc": "Tambah pesanan pembelian baru",
+    "addInventoryDesc": "Tambah item inventaris baru",
+    "createOrderDesc": "Buat pesanan pelanggan baru"
+  },
+  "recentActivities": {
+    "title": "Aktivitas Terbaru",
+    "description": "Update terbaru dari bisnis Anda",
+    "types": {
+      "order": "Pesanan baru diterima",
+      "inventory": "Peringatan stok rendah",
+      "purchase": "Pembelian selesai",
+      "financial": "Pembayaran diterima"
+    },
+    "activities": {
+      "newOrder": "Pesanan #{{orderId}} dari {{customer}}",
+      "lowStock": "{{item}} stok hampir habis",
+      "purchaseComplete": "Pembelian #{{purchaseId}} dari {{supplier}}",
+      "paymentReceived": "{{amount}} dari Pesanan #{{orderId}}"
+    }
+  },
+  "buttons": {
+    "exportReport": "Ekspor Laporan",
+    "quickAdd": "Tambah Cepat"
+  }
+}

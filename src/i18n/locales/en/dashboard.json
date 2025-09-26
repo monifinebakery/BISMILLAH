@@ -1,0 +1,44 @@
+{
+  "title": "Dashboard",
+  "subtitle": "Welcome back! Here's an overview of your business.",
+  "stats": {
+    "totalRevenue": "Total Revenue",
+    "activeOrders": "Active Orders",
+    "inventoryItems": "Inventory Items",
+    "profitMargin": "Profit Margin",
+    "fromLastMonth": "from last month",
+    "pendingOrders": "pending orders",
+    "totalStock": "total stock",
+    "grossMargin": "gross margin"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "description": "Frequently used actions for your business",
+    "newPurchase": "New Purchase",
+    "addInventory": "Add Inventory",
+    "createOrder": "Create Order",
+    "newPurchaseDesc": "Add new purchase order",
+    "addInventoryDesc": "Add new inventory item",
+    "createOrderDesc": "Create new customer order"
+  },
+  "recentActivities": {
+    "title": "Recent Activities",
+    "description": "Latest updates from your business",
+    "types": {
+      "order": "New order received",
+      "inventory": "Low stock alert",
+      "purchase": "Purchase completed",
+      "financial": "Payment received"
+    },
+    "activities": {
+      "newOrder": "Order #{{orderId}} from {{customer}}",
+      "lowStock": "{{item}} is running low",
+      "purchaseComplete": "Purchase #{{purchaseId}} from {{supplier}}",
+      "paymentReceived": "{{amount}} from Order #{{orderId}}"
+    }
+  },
+  "buttons": {
+    "exportReport": "Export Report",
+    "quickAdd": "Quick Add"
+  }
+}

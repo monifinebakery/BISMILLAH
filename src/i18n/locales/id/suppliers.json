@@ -1,0 +1,42 @@
+{
+  "title": "Supplier",
+  "subtitle": "Kelola hubungan supplier dan informasi vendor",
+  "addSupplier": "Tambah Supplier",
+  "addNewSupplier": "Tambah Supplier Baru",
+  "addSupplierDesc": "Masukkan detail supplier untuk menambahkan ke daftar vendor Anda",
+  "supplierDirectory": "Direktori Supplier",
+  "supplierDirectoryDesc": "Kelola semua informasi supplier dan hubungan",
+  "fields": {
+    "supplierName": "Nama Supplier",
+    "contactPerson": "Narahubung",
+    "paymentTerms": "Syarat Pembayaran",
+    "totalOrders": "Total Pesanan",
+    "totalValue": "Total Nilai",
+    "lastOrder": "Pesanan Terakhir",
+    "rating": "Rating"
+  },
+  "categories": {
+    "rawMaterials": "Bahan Baku",
+    "specialtyIngredients": "Bahan Khusus",
+    "packaging": "Kemasan",
+    "equipment": "Peralatan",
+    "dairy": "Dairy"
+  },
+  "paymentTerms": {
+    "cash": "Tunai",
+    "cod": "COD",
+    "14days": "14 Hari",
+    "30days": "30 Hari",
+    "60days": "60 Hari"
+  },
+  "stats": {
+    "totalSuppliers": "Total Supplier",
+    "activeSuppliers": "Supplier Aktif",
+    "totalValue": "Total Nilai",
+    "avgRating": "Rating Rata-rata",
+    "registeredVendors": "vendor terdaftar",
+    "currentlyActive": "saat ini aktif",
+    "totalPurchaseValue": "total nilai pembelian",
+    "supplierQualityRating": "rating kualitas supplier"
+  }
+}

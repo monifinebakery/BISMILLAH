@@ -1,0 +1,31 @@
+{
+  "title": "Customers",
+  "subtitle": "Manage customer relationships and order history",
+  "addCustomer": "Add Customer",
+  "addNewCustomer": "Add New Customer",
+  "addCustomerDesc": "Enter customer details to add them to your customer base",
+  "customerDirectory": "Customer Directory",
+  "customerDirectoryDesc": "Manage all customer information and order history",
+  "fields": {
+    "customerName": "Customer Name",
+    "customerType": "Customer Type",
+    "totalOrders": "Total Orders",
+    "totalSpent": "Total Spent",
+    "loyaltyPoints": "Loyalty Points",
+    "lastOrder": "Last Order"
+  },
+  "types": {
+    "business": "Business",
+    "individual": "Individual"
+  },
+  "stats": {
+    "totalCustomers": "Total Customers",
+    "activeCustomers": "Active Customers",
+    "totalRevenue": "Total Revenue",
+    "avgOrderValue": "Avg Order Value",
+    "registeredCustomers": "registered customers",
+    "currentlyActive": "currently active",
+    "fromAllCustomers": "from all customers",
+    "perOrderAverage": "per order average"
+  }
+}

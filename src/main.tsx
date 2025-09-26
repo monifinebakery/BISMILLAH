@@ -7,6 +7,7 @@ import App from "./App";
 import "./index.css";
 import "@/styles/mobile-input-fixes.css";
 import "@/styles/safari-optimizations.css";
+import "./i18n"; // Initialize i18n
 import ErrorBoundary from "@/components/dashboard/ErrorBoundary";
 import { logger } from "@/utils/logger";
 import { pwaManager } from '@/utils/pwaUtils'

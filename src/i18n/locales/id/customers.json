@@ -1,0 +1,31 @@
+{
+  "title": "Pelanggan",
+  "subtitle": "Kelola hubungan pelanggan dan riwayat pesanan",
+  "addCustomer": "Tambah Pelanggan",
+  "addNewCustomer": "Tambah Pelanggan Baru",
+  "addCustomerDesc": "Masukkan detail pelanggan untuk menambahkan ke basis pelanggan Anda",
+  "customerDirectory": "Direktori Pelanggan",
+  "customerDirectoryDesc": "Kelola semua informasi pelanggan dan riwayat pesanan",
+  "fields": {
+    "customerName": "Nama Pelanggan",
+    "customerType": "Jenis Pelanggan",
+    "totalOrders": "Total Pesanan",
+    "totalSpent": "Total Belanja",
+    "loyaltyPoints": "Poin Loyalitas",
+    "lastOrder": "Pesanan Terakhir"
+  },
+  "types": {
+    "business": "Bisnis",
+    "individual": "Individu"
+  },
+  "stats": {
+    "totalCustomers": "Total Pelanggan",
+    "activeCustomers": "Pelanggan Aktif",
+    "totalRevenue": "Total Pendapatan",
+    "avgOrderValue": "Nilai Pesanan Rata-rata",
+    "registeredCustomers": "pelanggan terdaftar",
+    "currentlyActive": "saat ini aktif",
+    "fromAllCustomers": "dari semua pelanggan",
+    "perOrderAverage": "rata-rata per pesanan"
+  }
+}

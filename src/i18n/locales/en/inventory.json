@@ -1,0 +1,44 @@
+{
+  "title": "Inventory",
+  "subtitle": "Track stock levels, manage items, and monitor inventory health",
+  "addItem": "Add Item",
+  "addNewItem": "Add New Inventory Item",
+  "addItemDesc": "Enter item details to add to your inventory",
+  "inventoryItems": "Inventory Items",
+  "inventoryItemsDesc": "Monitor stock levels and manage your inventory",
+  "fields": {
+    "itemName": "Item Name",
+    "unit": "Unit",
+    "currentStock": "Current Stock",
+    "minStock": "Min Stock",
+    "maxStock": "Max Stock",
+    "unitPrice": "Unit Price",
+    "totalValue": "Total Value",
+    "supplier": "Supplier",
+    "storageLocation": "Storage Location",
+    "stockLevel": "Stock Level"
+  },
+  "categories": {
+    "rawMaterials": "Raw Materials",
+    "specialtyIngredients": "Specialty Ingredients",
+    "packaging": "Packaging",
+    "equipment": "Equipment",
+    "dairy": "Dairy"
+  },
+  "status": {
+    "good": "Good",
+    "lowStock": "Low Stock",
+    "critical": "Critical",
+    "outOfStock": "Out of Stock"
+  },
+  "stats": {
+    "totalItems": "Total Items",
+    "totalValue": "Total Value",
+    "lowStock": "Low Stock",
+    "outOfStock": "Out of Stock",
+    "itemsInInventory": "items in inventory",
+    "inventoryValue": "inventory value",
+    "needRestock": "need restock",
+    "requiresImmediateAction": "requires immediate action"
+  }
+}

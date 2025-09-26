@@ -1,0 +1,31 @@
+{
+  "title": "Pesanan",
+  "subtitle": "Kelola pesanan pelanggan dan status pengiriman",
+  "addOrder": "Tambah Pesanan",
+  "addNewOrder": "Tambah Pesanan Baru",
+  "orderDetails": "Detail Pesanan",
+  "fields": {
+    "orderId": "ID Pesanan",
+    "customer": "Pelanggan",
+    "orderDate": "Tanggal Pesanan",
+    "dueDate": "Tanggal Jatuh Tempo",
+    "totalAmount": "Jumlah Total",
+    "orderStatus": "Status Pesanan",
+    "paymentStatus": "Status Pembayaran",
+    "deliveryStatus": "Status Pengiriman"
+  },
+  "status": {
+    "pending": "Menunggu",
+    "processing": "Diproses",
+    "ready": "Siap",
+    "delivered": "Dikirim",
+    "completed": "Selesai",
+    "cancelled": "Dibatalkan"
+  },
+  "paymentStatus": {
+    "unpaid": "Belum Bayar",
+    "partial": "Sebagian",
+    "paid": "Lunas",
+    "refunded": "Dikembalikan"
+  }
+}

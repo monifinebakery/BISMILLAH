@@ -265,36 +265,8 @@ export const PurchaseProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       // swap temp with real
       setCacheList((old) => [newRow, ...old.filter((p) => p.id !== ctx?.tempId)]);
 
-      // Tambahkan otomatis bahan baku baru jika belum ada di gudang
-      // Dan update harga untuk bahan baku yang sudah ada
-      try {
-        for (const item of newRow.items || []) {
-          const existingBahan = (bahanBaku as any[])?.find((bb: any) => bb.id === item.bahanBakuId);
-          
-          if (!existingBahan) {
-            // Tambah bahan baku baru
-            await addBahanBaku({
-              id: item.bahanBakuId,
-              nama: item.nama,
-              kategori: 'Lainnya',
-              // Manual sync: stok awal selalu 0. Akan dinaikkan saat status 'completed'.
-              stok: 0,
-              minimum: 0,
-              satuan: item.satuan || '-',
-              harga: item.unitPrice || 0,
-              supplier: newRow.supplier,
-            });
-          } else if (item.unitPrice && item.unitPrice > 0) {
-            // Update harga bahan baku yang sudah ada
-            await updateBahanBaku(item.bahanBakuId, {
-              harga: item.unitPrice,
-              supplier: newRow.supplier,
-            });
-          }
-        }
-      } catch (e) {
-        logger.error('Gagal menambahkan/update bahan baku dari pembelian', e);
-      }
+      // ⚠️ REMOVED OLD MANUAL CODE: Auto-sync service will handle warehouse updates
+      // The auto-sync service below will create/update items with correct stock quantities
 
       // 🚀 NEW: Auto-sync to warehouse immediately (don't wait for "completed" status)
       try {

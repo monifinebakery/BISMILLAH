@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Warehouse Issues</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; background: #f9f9f9; }
+        .issue { color: #d63031; font-weight: bold; }
+        .solution { color: #00b894; font-weight: bold; }
+        code { background: #e1e1e1; padding: 2px 5px; font-family: monospace; }
+        .step { margin: 10px 0; padding: 10px; background: #e8f4f8; border-left: 4px solid #0984e3; }
+    </style>
+</head>
+<body>
+    <h1>🐛 Debug: Warehouse Issues</h1>
+    
+    <div class="debug-section">
+        <h2>📋 Issue 1: Purchase-to-Warehouse Sync Not Working</h2>
+        <div class="issue">❌ Pembelian completed tidak sync ke warehouse</div>
+        
+        <h3>🔍 Debug Steps:</h3>
+        <div class="step">
+            <strong>1. Check Browser Console</strong><br>
+            Open Dev Tools → Console → Complete a purchase → Look for logs:
+            <ul>
+                <li><code>🔄 [PURCHASE SYNC] Starting applyPurchaseToWarehouse</code></li>
+                <li><code>✅ [PURCHASE SYNC] Successfully updated existing item</code></li>
+            </ul>
+        </div>
+        
+        <div class="step">
+            <strong>2. Test Field Mapping</strong><br>
+            When completing purchase, check console for:
+            <ul>
+                <li><code>🔄 [PURCHASE SYNC] Processing item</code> - should show extracted data</li>
+                <li>If quantity = 0 or unitPrice = 0, field mapping is broken</li>
+            </ul>
+        </div>
+        
+        <div class="step">
+            <strong>3. Verify Purchase Items Structure</strong><br>
+            In console, run: <code>console.log(JSON.stringify(purchase.items[0], null, 2))</code><br>
+            Should have: <code>quantity</code>, <code>unitPrice</code>, <code>bahanBakuId</code>
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>📄 Issue 2: Warehouse Pagination Missing</h2>
+        <div class="issue">❌ No "Previous/Next" buttons in warehouse table</div>
+        
+        <h3>🔍 Debug Steps:</h3>
+        <div class="step">
+            <strong>1. Check Pagination Data</strong><br>
+            In warehouse page console, run:<br>
+            <code>console.log(window.warehouseDebug)</code><br>
+            Look for totalPages > 1
+        </div>
+        
+        <div class="step">
+            <strong>2. Inspect WarehouseTable Props</strong><br>
+            Check if these props are passed to WarehouseTable:
+            <ul>
+                <li><code>currentPage</code></li>
+                <li><code>totalPages</code></li>
+                <li><code>totalItems</code></li>
+                <li><code>onPageChange</code></li>
+            </ul>
+        </div>
+        
+        <div class="step">
+            <strong>3. Check PaginationComponent Logic</strong><br>
+            In WarehouseTable.tsx, PaginationComponent should render if:
+            <code>onPageChange && totalPages > 1</code>
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>🛠️ Quick Fixes Applied</h2>
+        <div class="solution">✅ Fixed field name inconsistency in warehouseSyncService.ts</div>
+        <div class="solution">✅ Added pagination props to WarehouseTable</div>
+        
+        <h3>🔄 If Still Not Working:</h3>
+        <div class="step">
+            <strong>Hard Refresh</strong><br>
+            Ctrl+Shift+R (or Cmd+Shift+R) to clear cached JavaScript
+        </div>
+        
+        <div class="step">
+            <strong>Check Network Tab</strong><br>
+            See if API calls to <code>/bahan_baku</code> are returning paginated responses
+        </div>
+        
+        <div class="step">
+            <strong>Verify User Authentication</strong><br>
+            Ensure user is properly logged in with valid session
+        </div>
+    </div>
+    
+    <div class="debug-section">
+        <h2>💡 Manual Test Scenarios</h2>
+        
+        <h3>Test Purchase Sync:</h3>
+        <ol>
+            <li>Create new purchase with 2-3 items</li>
+            <li>Add items with specific quantities and prices</li>
+            <li>Set status to "Completed"</li>
+            <li>Check warehouse table - items should appear</li>
+            <li>Check console logs for sync messages</li>
+        </ol>
+        
+        <h3>Test Pagination:</h3>
+        <ol>
+            <li>Ensure you have 11+ warehouse items</li>
+            <li>Set items per page to 10 (in filters)</li>
+            <li>Pagination buttons should appear at table bottom</li>
+            <li>Test "Previous" and "Next" functionality</li>
+        </ol>
+    </div>
+    
+    <script>
+        // Add debug helper to global scope
+        window.warehouseDebug = {
+            checkPagination: () => {
+                console.log('🔍 Checking pagination state...');
+                const table = document.querySelector('[data-testid="warehouse-table"]');
+                const paginationControls = document.querySelectorAll('button[aria-label*="page"], button:contains("Sebelumnya"), button:contains("Selanjutnya")');
+                console.log({
+                    tableExists: !!table,
+                    paginationControlsCount: paginationControls.length,
+                    tableDataLength: table ? table.querySelectorAll('tbody tr').length : 0
+                });
+            },
+            
+            checkPurchaseSync: () => {
+                console.log('🔍 Checking purchase sync logs...');
+                console.log('Look for these patterns in console:');
+                console.log('- 🔄 [PURCHASE SYNC] messages');
+                console.log('- ✅ [PURCHASE SYNC] success messages');
+                console.log('- ❌ [PURCHASE SYNC] error messages');
+            }
+        };
+        
+        console.log('🛠️ Debug helpers loaded!');
+        console.log('Run warehouseDebug.checkPagination() or warehouseDebug.checkPurchaseSync()');
+    </script>
+</body>
+</html>

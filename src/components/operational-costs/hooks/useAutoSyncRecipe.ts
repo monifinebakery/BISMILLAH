@@ -2,7 +2,7 @@
 // 🔗 Auto-Sync Recipe Hook (Simplified Single Mode)
 // Otomatis sync biaya operasional ke recipe tanpa dual mode
 
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import type { EnhancedHPPCalculationResult } from '../utils/enhancedHppCalculations';
@@ -58,7 +58,16 @@ export const useAutoSyncRecipe = ({
   const [error, setError] = useState<string | null>(null);
   const [hasOperationalCosts, setHasOperationalCosts] = useState(false);
   
+  // ✅ RENDER LOOP FIX: Use refs to store stable callback references
+  const onResultChangeRef = useRef(onResultChange);
+  const calculationInProgressRef = useRef(false);
+  
   const queryClient = useQueryClient();
+  
+  // Update ref when callback changes but don't trigger re-renders
+  useEffect(() => {
+    onResultChangeRef.current = onResultChange;
+  }, [onResultChange]);
 
   // ✅ Subscribe to app settings changes for auto-refresh
   // OPTIMIZED: Use consistent query key and remove aggressive refetch
@@ -161,13 +170,20 @@ export const useAutoSyncRecipe = ({
     }
   }, [appSettingsQuery.data, appSettingsQuery.isLoading]);
 
-  // Auto-calculate when recipe data changes and operational costs are available
+  // ✅ RENDER LOOP FIX: Auto-calculate when recipe data changes and operational costs are available
   const performCalculation = useCallback(async () => {
+    // ✅ Prevent multiple simultaneous calculations
+    if (calculationInProgressRef.current) {
+      logger.debug('⏳ Calculation already in progress, skipping...');
+      return;
+    }
+    
     if (!hasOperationalCosts || bahanResep.length === 0) {
       setResult(null);
       return;
     }
 
+    calculationInProgressRef.current = true;
     setIsCalculating(true);
     setError(null);
     
@@ -205,6 +221,7 @@ export const useAutoSyncRecipe = ({
       // Don't show toast for automatic calculations to avoid spam
       console.error('Auto-sync calculation failed:', errorMessage);
     } finally {
+      calculationInProgressRef.current = false;
       setIsCalculating(false);
     }
   }, [hasOperationalCosts, bahanResep, jumlahPorsi, jumlahPcsPerPorsi, marginKeuntunganPersen]);
@@ -216,7 +233,7 @@ export const useAutoSyncRecipe = ({
     }
   }, [checkOperationalCosts, appSettingsQuery.data, appSettingsQuery.isLoading]);
 
-  // Auto-calculate when data changes with debounce
+  // ✅ RENDER LOOP FIX: Auto-calculate when data changes with debounce
   useEffect(() => {
     if (hasOperationalCosts && !isLoadingSettings) {
       const timer = setTimeout(() => {
@@ -227,7 +244,7 @@ export const useAutoSyncRecipe = ({
     }
   }, [performCalculation, hasOperationalCosts, isLoadingSettings]);
   
-  // ✅ Auto-recalculate when production target or app settings change
+  // ✅ RENDER LOOP FIX: Auto-recalculate when production target or app settings change
   useEffect(() => {
     if (hasOperationalCosts && !isLoadingSettings && 
         (productionTargetQuery.data || appSettingsQuery.data)) {
@@ -242,12 +259,12 @@ export const useAutoSyncRecipe = ({
     }
   }, [productionTargetQuery.data, appSettingsQuery.data, hasOperationalCosts, isLoadingSettings, performCalculation]);
 
-  // Notify parent of result changes
+  // ✅ RENDER LOOP FIX: Notify parent of result changes without onResultChange in deps
   useEffect(() => {
-    if (onResultChange) {
-      onResultChange(result);
+    if (onResultChangeRef.current) {
+      onResultChangeRef.current(result);
     }
-  }, [result, onResultChange]);
+  }, [result]); // ✅ FIXED: Removed onResultChange from dependency array
 
   const refreshCalculation = useCallback(() => {
     logger.info('🔄 Manual refresh triggered - invalidating queries and recalculating');

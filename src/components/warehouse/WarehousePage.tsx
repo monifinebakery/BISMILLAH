@@ -441,7 +441,7 @@ const WarehousePageContent: React.FC = () => {
   
   // 🎯 NEW: Lazy loading state
   const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [itemsPerPage, setItemsPerPage] = useState(5); // 🔍 DEBUG: Use smaller page size to force pagination
   const [useLazyLoading] = useState(true);
 
   // ✅ TAMBAH: Use warehouse data hook with pagination support
@@ -489,6 +489,27 @@ const WarehousePageContent: React.FC = () => {
   };
   
   const core = useWarehouseCore(context);
+
+  // 🔍 DEBUG: Log pagination info
+  useEffect(() => {
+    if (warehouseData.paginationInfo) {
+      const debugInfo = {
+        currentPage,
+        itemsPerPage,
+        paginationInfo: warehouseData.paginationInfo,
+        totalItems: warehouseData.paginationInfo.total,
+        totalPages: warehouseData.paginationInfo.totalPages,
+        shouldShowPagination: warehouseData.paginationInfo.totalPages > 1
+      };
+      logger.debug('📊 Warehouse pagination debug:', debugInfo);
+      
+      // 🔍 DEBUG: Add to global scope for browser console debugging
+      if (typeof window !== 'undefined') {
+        (window as any).warehouseDebugInfo = debugInfo;
+        console.log('🔍 Warehouse pagination info available at window.warehouseDebugInfo:', debugInfo);
+      }
+    }
+  }, [currentPage, itemsPerPage, warehouseData.paginationInfo]);
 
   useEffect(() => {
     if (warehouseData.bahanBaku) {
@@ -678,7 +699,10 @@ const WarehousePageContent: React.FC = () => {
               currentPage={currentPage}
               totalPages={warehouseData.paginationInfo?.totalPages || 1}
               totalItems={warehouseData.paginationInfo?.total || 0}
-              onPageChange={(page: number) => setCurrentPage(page)}
+              onPageChange={(page: number) => {
+                logger.debug('🔄 Page change requested:', { from: currentPage, to: page });
+                setCurrentPage(page);
+              }}
             />
           </Suspense>
 

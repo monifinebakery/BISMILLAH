@@ -8,6 +8,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  ArrowLeft,
+  ArrowRight,
   RefreshCw,
   AlertTriangle,
 } from 'lucide-react';
@@ -38,6 +40,11 @@ interface WarehouseTableProps {
   isSelected?: (id: string) => boolean;
   isPageSelected?: boolean;
   isPagePartiallySelected?: boolean;
+  // ✅ NEW: Pagination props
+  currentPage?: number;
+  totalPages?: number;
+  totalItems?: number;
+  onPageChange?: (page: number) => void;
 }
 
 // ✅ OPTIMIZED with React.memo, useMemo, useCallback
@@ -60,6 +67,11 @@ const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
   isSelected,
   isPageSelected = false,
   isPagePartiallySelected = false,
+  // ✅ NEW: Pagination props
+  currentPage = 1,
+  totalPages = 1,
+  totalItems = 0,
+  onPageChange,
 }) => {
   // ✅ FIXED: Use selection from props if available, otherwise fallback to internal hook
   const fallbackSelection = useWarehouseSelection(items, isSelectionMode, onRefresh);
@@ -366,6 +378,95 @@ const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
     </div>
   );
 
+  // Create pagination component
+  const PaginationComponent = () => {
+    if (!onPageChange || totalPages <= 1) {
+      return null;
+    }
+
+    const handlePrevious = () => {
+      onPageChange(Math.max(1, currentPage - 1));
+    };
+
+    const handleNext = () => {
+      onPageChange(Math.min(totalPages, currentPage + 1));
+    };
+
+    const handlePageClick = (page: number) => {
+      onPageChange(page);
+    };
+
+    const startIndex = (currentPage - 1) * Math.ceil(totalItems / totalPages);
+    const endIndex = Math.min(startIndex + Math.ceil(totalItems / totalPages), totalItems);
+
+    return (
+      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 bg-gray-50">
+        <div className="text-sm text-gray-700">
+          Menampilkan {startIndex + 1} - {endIndex} dari {totalItems} item
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handlePrevious}
+            disabled={currentPage === 1}
+            type="button"
+            className="flex items-center gap-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Sebelumnya
+          </Button>
+          
+          <div className="flex items-center gap-1">
+            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+              const page = i + 1;
+              return (
+                <Button
+                  key={page}
+                  variant={currentPage === page ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageClick(page)}
+                  className="w-8 h-8 p-0"
+                  type="button"
+                >
+                  {page}
+                </Button>
+              );
+            })}
+            
+            {totalPages > 5 && currentPage < totalPages - 2 && (
+              <>
+                <span className="px-2 text-gray-500">...</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageClick(totalPages)}
+                  className="w-8 h-8 p-0"
+                  type="button"
+                >
+                  {totalPages}
+                </Button>
+              </>
+            )}
+          </div>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleNext}
+            disabled={currentPage === totalPages}
+            type="button"
+            className="flex items-center gap-1"
+          >
+            Selanjutnya
+            <ArrowRight className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white rounded-lg border border-gray-200">
       {lowStockItems && lowStockItems.length > 0 && (
@@ -376,6 +477,7 @@ const WarehouseTable: React.FC<WarehouseTableProps> = React.memo(({
       )}
       <MobileCardView />
       <DesktopTableView />
+      <PaginationComponent />
     </div>
   );
 });

@@ -45,14 +45,35 @@ const navigation: NavItem[] = [
     icon: Home,
   },
   {
-    title: "Warehouse",
+    title: "Inventory",
     titleKey: "common:navigation.inventory",
     href: "/warehouse",
     icon: Package,
     children: [
-      { title: "Simple Warehouse", titleKey: "common:navigation.inventory", href: "/simple-warehouse", icon: Package },
-      { title: "Inventory", titleKey: "common:navigation.inventory", href: "/warehouse/inventory", icon: Package },
-      { title: "Stock Alerts", titleKey: "inventory:stats.lowStock", href: "/warehouse/alerts", icon: Package },
+      { title: "Modern Inventory", titleKey: "Modern Inventory", href: "/warehouse/inventory", icon: Package },
+      { title: "Simple Warehouse", titleKey: "Simple Warehouse", href: "/simple-warehouse", icon: Package },
+      { title: "Stock Alerts", titleKey: "Stock Alerts", href: "/warehouse/alerts", icon: Package },
+    ],
+  },
+  {
+    title: "Suppliers",
+    titleKey: "common:navigation.suppliers",
+    href: "/suppliers",
+    icon: Truck,
+    children: [
+      { title: "Modern Suppliers", titleKey: "Modern Suppliers", href: "/suppliers", icon: Truck },
+      { title: "Simple Suppliers", titleKey: "Simple Suppliers", href: "/simple-suppliers", icon: Truck },
+    ],
+  },
+  {
+    title: "Customers",
+    titleKey: "common:navigation.customers",
+    href: "/customers",
+    icon: Users,
+    children: [
+      { title: "Modern Customers", titleKey: "Modern Customers", href: "/customers", icon: Users },
+      { title: "Simple Customers", titleKey: "Simple Customers", href: "/simple-customers", icon: Users },
+      { title: "Customer Analytics", titleKey: "Customer Analytics", href: "/customers/analytics", icon: BarChart3 },
     ],
   },
   {
@@ -61,10 +82,8 @@ const navigation: NavItem[] = [
     href: "/purchases",
     icon: ShoppingCart,
     children: [
-      { title: "Simple Purchases", titleKey: "common:navigation.purchases", href: "/simple-purchases", icon: ShoppingCart },
-      { title: "All Purchases", titleKey: "common:navigation.purchases", href: "/purchases", icon: ShoppingCart },
-      { title: "Simple Suppliers", titleKey: "common:navigation.suppliers", href: "/simple-suppliers", icon: Truck },
-      { title: "Suppliers", titleKey: "common:navigation.suppliers", href: "/suppliers", icon: Truck },
+      { title: "All Purchases", titleKey: "All Purchases", href: "/purchases", icon: ShoppingCart },
+      { title: "Simple Purchases", titleKey: "Simple Purchases", href: "/simple-purchases", icon: ShoppingCart },
     ],
   },
   {
@@ -75,8 +94,8 @@ const navigation: NavItem[] = [
     badge: "New",
     badgeKey: "common:status.pending",
     children: [
-      { title: "Simple Orders", titleKey: "common:navigation.orders", href: "/simple-orders", icon: FileText },
-      { title: "All Orders", titleKey: "common:navigation.orders", href: "/pesanan", icon: FileText },
+      { title: "All Orders", titleKey: "All Orders", href: "/pesanan", icon: FileText },
+      { title: "Simple Orders", titleKey: "Simple Orders", href: "/simple-orders", icon: FileText },
     ],
   },
   {
@@ -85,8 +104,8 @@ const navigation: NavItem[] = [
     href: "/recipes",
     icon: Calculator,
     children: [
-      { title: "Simple Recipes", titleKey: "common:navigation.recipes", href: "/simple-recipes", icon: Calculator },
-      { title: "All Recipes", titleKey: "common:navigation.recipes", href: "/resep", icon: Calculator },
+      { title: "All Recipes", titleKey: "All Recipes", href: "/resep", icon: Calculator },
+      { title: "Simple Recipes", titleKey: "Simple Recipes", href: "/simple-recipes", icon: Calculator },
     ],
   },
   {
@@ -95,9 +114,9 @@ const navigation: NavItem[] = [
     href: "/financial",
     icon: DollarSign,
     children: [
-      { title: "Simple Financial", titleKey: "common:navigation.finance", href: "/simple-financial", icon: DollarSign },
-      { title: "Transactions", titleKey: "common:navigation.finance", href: "/financial/transactions", icon: DollarSign },
-      { title: "Operational Costs", titleKey: "common:navigation.finance", href: "/financial/operational-costs", icon: BarChart3 },
+      { title: "Transactions", titleKey: "Transactions", href: "/financial/transactions", icon: DollarSign },
+      { title: "Operational Costs", titleKey: "Operational Costs", href: "/financial/operational-costs", icon: BarChart3 },
+      { title: "Simple Financial", titleKey: "Simple Financial", href: "/simple-financial", icon: DollarSign },
     ],
   },
   {
@@ -106,19 +125,9 @@ const navigation: NavItem[] = [
     href: "/analytics",
     icon: LineChart,
     children: [
-      { title: "Simple Analytics", titleKey: "common:navigation.reports", href: "/simple-analytics", icon: LineChart },
-      { title: "Profit Analysis", titleKey: "common:navigation.reports", href: "/analisis-profit", icon: BarChart3 },
-      { title: "Reports", titleKey: "common:navigation.reports", href: "/analytics/reports", icon: FileText },
-    ],
-  },
-  {
-    title: "Customers",
-    titleKey: "common:navigation.customers",
-    href: "/customers",
-    icon: Users,
-    children: [
-      { title: "Simple Customers", titleKey: "common:navigation.customers", href: "/simple-customers", icon: Users },
-      { title: "Customer Analytics", titleKey: "customers:stats.totalCustomers", href: "/customers/analytics", icon: BarChart3 },
+      { title: "Profit Analysis", titleKey: "Profit Analysis", href: "/analisis-profit", icon: BarChart3 },
+      { title: "Reports", titleKey: "Reports", href: "/analytics/reports", icon: FileText },
+      { title: "Simple Analytics", titleKey: "Simple Analytics", href: "/simple-analytics", icon: LineChart },
     ],
   },
   {
@@ -127,8 +136,8 @@ const navigation: NavItem[] = [
     href: "/settings",
     icon: Settings,
     children: [
-      { title: "Simple Settings", titleKey: "common:navigation.settings", href: "/simple-settings", icon: Settings },
-      { title: "Advanced Settings", titleKey: "common:navigation.settings", href: "/pengaturan", icon: Settings },
+      { title: "Advanced Settings", titleKey: "Advanced Settings", href: "/pengaturan", icon: Settings },
+      { title: "Simple Settings", titleKey: "Simple Settings", href: "/simple-settings", icon: Settings },
     ],
   },
 ]

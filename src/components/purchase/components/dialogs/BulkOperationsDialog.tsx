@@ -58,7 +58,13 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
   onCancel,
   suppliers = [],
 }) => {
-  const { formatCurrency } = useSafeCurrency();
+  // ✅ ENHANCED: Safe currency with fallback and error handling
+  const currencyHook = useSafeCurrency();
+  const formatCurrency = currencyHook?.formatCurrency || ((value: number) => {
+    // Fallback formatter in case useSafeCurrency fails
+    console.warn('BulkOperationsDialog: formatCurrency fallback used, useSafeCurrency hook failed');
+    return `Rp ${value?.toLocaleString('id-ID') || '0'}`;
+  });
   const isEditMode = type === 'edit';
   
   // Internal state for bulk edit data
@@ -161,7 +167,16 @@ const BulkOperationsDialog: React.FC<BulkOperationsDialogProps> = ({
                 </div>
                 <div className="col-span-2">
                   <span className="text-gray-500">Total Nilai:</span>
-                  <span className="ml-2 font-medium text-lg">{formatCurrency(totals.total_nilai)}</span>
+                  <span className="ml-2 font-medium text-lg">
+                    {(() => {
+                      try {
+                        return formatCurrency(totals.total_nilai);
+                      } catch (error) {
+                        console.error('BulkOperationsDialog: formatCurrency error:', error);
+                        return `Rp ${totals.total_nilai?.toLocaleString('id-ID') || '0'}`;
+                      }
+                    })()}
+                  </span>
                 </div>
               </div>
             </div>
